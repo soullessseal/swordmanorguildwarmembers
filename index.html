@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v11 (fast)</title>
+  <title>幫戰名單比對工具 v11.1 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -21,10 +21,7 @@
       padding: 1.25rem;
       font-size: 16px;
     }
-    h1 {
-      color: #fff;
-      margin: 0 0 .75rem;
-    }
+    h1 { color: #fff; margin: 0 0 .75rem; }
     .layout {
       display: grid;
       grid-template-columns: 0.65fr 1.45fr 1.45fr 0.65fr;
@@ -38,83 +35,39 @@
       border: 1px solid rgba(15, 23, 42, 0.05);
       box-shadow: 0 10px 30px rgba(0,0,0,.04);
     }
-    #allMembersPanel {
-      position: sticky;
-      top: 1rem;
-      align-self: flex-start;
-      z-index: 5;
-    }
+    #allMembersPanel { position: sticky; top: 1rem; z-index: 5; }
     .right-sticky-wrap {
-      position: sticky;
-      top: 1rem;
-      align-self: flex-start;
-      z-index: 6;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
+      position: sticky; top: 1rem; z-index: 6;
+      display: flex; flex-direction: column; gap: .6rem;
     }
-    .right-actions-bar {
-      display: flex;
-      gap: .4rem;
-      justify-content: flex-end;
-    }
+    .right-actions-bar { display: flex; gap: .4rem; justify-content: flex-end; }
     .float-btn {
-      background: #0ea5e9;
-      border: none;
-      color: #fff;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 0.78rem;
-      cursor: pointer;
-      white-space: nowrap;
+      background: #0ea5e9; border: none; color: #fff;
+      padding: 0.35rem 0.75rem; border-radius: 999px;
+      font-weight: 600; font-size: 0.78rem;
+      cursor: pointer; white-space: nowrap;
     }
-    .float-btn.secondary {
-      background: #1f2937;
-    }
-    /* 儲存 = 紅 */
-    .float-btn.danger {
-      background: #ef4444;
-    }
+    .float-btn.secondary { background: #1f2937; }
+    .float-btn.danger { background: #ef4444; }
 
     .member-search {
-      width: 100%;
-      padding: 0.4rem 0.5rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 0.4rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.85rem;
+      width: 100%; padding: 0.4rem 0.5rem;
+      border: 1px solid #cbd5e1; border-radius: 0.4rem;
+      margin-bottom: 0.5rem; font-size: 0.85rem;
       box-sizing: border-box;
     }
     .role-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
     .role-tab {
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      color: #0f172a;
-      font-size: 0.73rem;
-      cursor: pointer;
-      border: 1px solid transparent;
-      user-select: none;
-      white-space: nowrap;
+      padding: 0.25rem 0.6rem; border-radius: 999px;
+      color: #0f172a; font-size: 0.73rem; cursor: pointer;
+      border: 1px solid transparent; user-select: none; white-space: nowrap;
     }
     .role-tab.active { border: 1px solid #0f172a44; }
-    .member-list {
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      padding: 0.4rem;
-      background: #f8fafc;
-    }
+    .member-list { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.4rem; background: #f8fafc; }
     .member-item {
-      display: flex;
-      justify-content: space-between;
-      gap: .35rem;
-      align-items: center;
-      background: #fff;
-      border-radius: .35rem;
-      padding: .3rem .35rem;
-      margin-bottom: .3rem;
-      border: 1px solid #e2e8f0;
-      cursor: grab;
+      display: flex; justify-content: space-between; gap: .35rem; align-items: center;
+      background: #fff; border-radius: .35rem; padding: .3rem .35rem;
+      margin-bottom: .3rem; border: 1px solid #e2e8f0; cursor: grab;
     }
     .member-left { flex: 1 1 auto; min-width: 0; }
     .member-name { font-weight: 700; font-size: .9rem; }
@@ -125,21 +78,11 @@
     .pagination button { border:1px solid #cbd5e1; background:#fff; border-radius:.35rem; font-size:.65rem; padding:.25rem .45rem; cursor:pointer; }
     .pagination select { font-size:.7rem; }
 
-    .add-member-form {
-      margin-top: .35rem;
-      display: none;
-      flex-direction: column;
-      gap: 0.3rem;
-      width: 100%;
-    }
+    .add-member-form { margin-top: .35rem; display: none; flex-direction: column; gap: 0.3rem; width: 100%; }
     .add-member-form input,
     .add-member-form select {
-      padding: 0.35rem 0.4rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 0.4rem;
-      font-size: 0.78rem;
-      width: 100%;
-      box-sizing: border-box;
+      padding: 0.35rem 0.4rem; border: 1px solid #cbd5e1;
+      border-radius: 0.4rem; font-size: 0.78rem; width: 100%; box-sizing: border-box;
     }
 
     .team-block {
@@ -157,27 +100,13 @@
       font-size: 0.9rem;
       gap: .5rem;
     }
-    .team-head-left {
-      display: flex;
-      align-items: center;
-      gap: .4rem;
-    }
+    .team-head-left { display:flex; align-items:center; gap:.4rem; }
     .team-tag-select {
-      font-size: .78rem;
-      font-weight: 700;
-      border-radius: .35rem;
-      border: none;
-      padding: .2rem .45rem;
-      background: rgba(255,255,255,0.95);
-      color: #0f172a;
-      line-height: 1.2;
-      cursor: pointer;
+      font-size: .78rem; font-weight: 700; border-radius: .35rem; border: none;
+      padding: .2rem .45rem; background: rgba(255,255,255,0.95); color: #0f172a;
+      line-height: 1.2; cursor: pointer;
     }
-    .team-tag-select option {
-      font-size: .78rem;
-      font-weight: 600;
-      color: #0f172a;
-    }
+    .team-tag-select option { font-size: .78rem; font-weight: 600; color: #0f172a; }
     .team-tag-label {
       background: rgba(255,255,255,0.95);
       color: #0f172a;
@@ -186,8 +115,6 @@
       border-radius: .35rem;
       padding: .2rem .55rem;
     }
-
-    .team-head .head-actions { display:flex; gap:.35rem; }
     .head-add-btn {
       background: rgba(255,255,255,0.12);
       border: 1px solid rgba(255,255,255,0.25);
@@ -199,19 +126,8 @@
     }
     .head-add-btn.disabled { opacity:.35; cursor:not-allowed; }
 
-    .squads {
-      display: flex;
-      flex-wrap: nowrap;
-      border-top: 1px solid var(--line);
-      width: 100%;
-    }
-    .squad {
-      border-left: 1px solid var(--line);
-      padding: 0.4rem 0.4rem 0.75rem;
-      position: relative;
-      flex: 1 1 auto;
-      min-width: 0;
-    }
+    .squads { display: flex; flex-wrap: nowrap; border-top: 1px solid var(--line); width: 100%; }
+    .squad { border-left: 1px solid var(--line); padding: 0.4rem 0.4rem 0.75rem; position: relative; flex: 1 1 auto; min-width: 0; }
     .squad:first-child { border-left: none; }
     .squad-title {
       background: #f8fafc;
@@ -224,38 +140,26 @@
       font-size: 0.78rem;
     }
     .squad-del-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: #ef4444;
-      color: #fff;
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 1.05rem;
-      line-height: 1;
-      padding: 0.15rem 0.35rem;
-      cursor: pointer;
+      position: absolute; top: 6px; right: 6px;
+      background: #ef4444; color: #fff; border: none;
+      border-radius: 0.5rem; font-size: 1.05rem; line-height: 1;
+      padding: 0.15rem 0.35rem; cursor: pointer;
     }
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input {
-      width: 100%;
-      font-size: 0.78rem;
-      padding: 0.3rem 0.35rem;
-      border: 1px solid #cbd5f5;
-      border-radius: 0.25rem;
-      box-sizing: border-box;
-      font-weight: 700;
+      width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem;
+      border: 1px solid #cbd5f5; border-radius: 0.25rem;
+      box-sizing: border-box; font-weight: 700;
     }
     .readonly-skill { background:#e2e8f0; }
     .locked-input { background:#e2e8f0; pointer-events:none; }
 
-    /* (3) 新的綠再深一點 */
+    /* 深一點的綠 + 紅 */
     .highlight-new {
       background:#bbf7d0 !important;
       border:1px solid #166534 !important;
       color:#064e3b !important;
     }
-    /* 深紅 */
     .highlight-missing {
       background:#fca5a5 !important;
       border:1px solid #b91c1c !important;
@@ -309,43 +213,24 @@
     }
 
     #thisWeek { position: relative; }
-    #downloadBtn {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: #0f766e;
-    }
+    #downloadBtn { position: absolute; top: 1rem; right: 1rem; background: #0f766e; }
 
-    /* (4) 登入視窗 */
+    /* 登入視窗 */
     #loginModal {
-      position: fixed;
-      inset: 0;
-      background: rgba(15,23,42,.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
+      position: fixed; inset: 0; background: rgba(15,23,42,.5);
+      display: none; align-items: center; justify-content: center; z-index: 99999;
     }
     #loginModal .modal-card {
-      background: #fff;
-      border-radius: .75rem;
-      padding: 1.2rem 1.4rem;
-      width: 280px;
-      box-shadow: 0 20px 40px rgba(0,0,0,.12);
+      background: #fff; border-radius: .75rem; padding: 1.2rem 1.4rem;
+      width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12);
     }
-    #loginModal h3 {
-      margin: 0 0 .5rem;
-      font-size: 1.05rem;
-    }
+    #loginModal h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
     #loginModal input {
-      width: 100%;
-      margin-bottom: .5rem;
-      padding: .35rem .4rem;
-      border: 1px solid #cbd5e1;
-      border-radius: .4rem;
+      width: 100%; margin-bottom: .5rem; padding: .35rem .4rem;
+      border: 1px solid #cbd5e1; border-radius: .4rem;
     }
 
-    /* (5) 三個帳號的框線 */
+    /* 三組帳號的框線 */
     .outline-dabai { outline: 2px solid #a855f7; outline-offset: 2px; }
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
     .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
@@ -358,10 +243,10 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v11</h1>
+  <h1>幫戰名單比對工具 v11.1</h1>
 
   <div class="layout">
-    <!-- 左側全部成員 -->
+    <!-- 左側：全部成員 -->
     <div class="panel" id="allMembersPanel">
       <h3>全部成員名單</h3>
       <input id="memberSearch" class="member-search" placeholder="搜尋成員名或技能..." oninput="renderMemberList(); saveState();" />
@@ -405,12 +290,11 @@
       <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
     </div>
 
-    <!-- 右側固定欄 -->
+    <!-- 右側 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
         <button class="float-btn danger" onclick="requestSave()">儲存</button>
         <button class="float-btn" onclick="compare()">比對</button>
-        <!-- (3) 新增清除標示 -->
         <button class="float-btn secondary" onclick="clearCompareMarks()">清除標示</button>
         <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
         <button class="float-btn secondary" onclick="undoCopy()">還原</button>
@@ -424,7 +308,7 @@
     </div>
   </div>
 
-  <!-- (4) 登入 modal -->
+  <!-- 登入 modal -->
   <div id="loginModal">
     <div class="modal-card">
       <h3>請先登入</h3>
@@ -442,17 +326,17 @@
     const STORAGE_KEY = "guildCompareV11State";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
 
-    // (4) 簡單登入資料
+    // 登入帳密
     const ACCOUNTS = {
       dabai: "0416",
       baoan: "1370",
       stitch: "50433"
     };
-    const LOGIN_TTL = 20 * 60 * 1000; // 20 分鐘內不用再登
+    const LOGIN_TTL = 20 * 60 * 1000;
     let currentUser = null;
     let lastLoginTime = 0;
 
-    // (5) 框線顏色對應
+    // 框線顏色
     const OUTLINE_CLASS = {
       dabai: "outline-dabai",
       baoan: "outline-baoan",
@@ -462,13 +346,12 @@
     let lastKnownUpdatedAt = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
-    // (1)(2) 調整顏色：龍吟暗一點、神相亮一點
     const roleColors = {
       "九靈": "#d8b4fe",
       "鐵衣": "#fdba74",
       "素問": "#f9a8d4",
-      "龍吟": "#92d46d",   // was #bef264
-      "神相": "#3b82f6",   // was #1d4ed8
+      "龍吟": "#92d46d",     // 暗一點
+      "神相": "#3b82f6",     // 亮一點
       "碎夢": "#7dd3fc",
       "血河": "#f43f5e"
     };
@@ -562,11 +445,13 @@
       }
     }
 
+    // 輸入有改 → 標 dirty
     function handlePanelInputChange(input){
-      clearHighlightOnEdit(input);
       input.dataset.dirty = "1";
+      clearHighlightOnEdit(input);
       saveState();
     }
+    function markDirty(el){ if (el) el.dataset.dirty = "1"; }
 
     function createMemberInputs(side){
       let html = "";
@@ -581,10 +466,9 @@
             </div>
           `;
         } else {
-          const uid = "p-" + side + "-" + Math.random().toString(36).slice(2,8);
           html += `
             <div class="member-row">
-              <input data-role="name" data-side="${side}" data-uid="${uid}" draggable="true"
+              <input data-role="name" data-side="${side}" draggable="true"
                 ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
                 oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" placeholder="成員${i}">
             </div>
@@ -650,6 +534,7 @@
       return block;
     }
 
+    // 架子
     teams.forEach(t => {
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
@@ -965,9 +850,76 @@
       });
     }
 
-    // (4) markDirty
-    function markDirty(el){
-      if(el) el.dataset.dirty = "1";
+    // 收集這次要畫的框線，存到 payload
+    function collectDirtyMarks() {
+      const marks = [];
+
+      // 本週面板的格子
+      thisWeekPanel.querySelectorAll("[data-dirty='1']").forEach(el => {
+        const teamBlock = el.closest(".team-block");
+        if (teamBlock) {
+          const team = teamBlock.dataset.team;
+          if (el.classList.contains("team-tag-select")) {
+            marks.push({type:"team-tag", team});
+          } else {
+            const squadEl = el.closest(".squad");
+            if (squadEl) {
+              const squadIdx = Array.from(squadEl.parentElement.children).indexOf(squadEl);
+              const nameInputs = squadEl.querySelectorAll("input[data-role='name']");
+              const memberIdx = Array.from(nameInputs).indexOf(el);
+              if (memberIdx !== -1) {
+                marks.push({type:"member", team, squad: squadIdx, member: memberIdx});
+              }
+            }
+          }
+        }
+      });
+
+      // 替補
+      subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
+        const row = el.closest(".substitute-row");
+        if (row) {
+          const idx = Array.from(subsList.children).indexOf(row);
+          marks.push({type:"sub", index: idx});
+        }
+      });
+
+      return marks;
+    }
+
+    // 把框線畫到畫面上（大家都能看到）
+    function renderRecentMarks(recentMarks) {
+      clearAllOutlines();
+      if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
+      const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
+
+      recentMarks.marks.forEach(m => {
+        if (m.type === "member") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (!block) return;
+          const squads = block.querySelectorAll(".squads .squad");
+          const sq = squads[m.squad];
+          if (!sq) return;
+          const names = sq.querySelectorAll("input[data-role='name']");
+          const inp = names[m.member];
+          if (inp) inp.classList.add(cls);
+        } else if (m.type === "team-tag") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (block) {
+            const sel = block.querySelector(".team-tag-select");
+            if (sel) sel.classList.add(cls);
+          }
+        } else if (m.type === "sub") {
+          const row = subsList.children[m.index];
+          if (row) row.classList.add(cls);
+        }
+      });
+    }
+
+    function clearAllOutlines(){
+      document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
+        el.classList.remove("outline-dabai","outline-baoan","outline-stitch");
+      });
     }
 
     function dropMember(ev){
@@ -978,21 +930,18 @@
       const member = JSON.parse(data);
       const target = ev.target;
 
-      // (4) 反向互換：面板 → 替補
+      // 替補 ← 面板：要互換
       if(target.classList.contains("sub-name")){
         if (member.fromPanel && draggingPanelInput) {
-          // swap
           const oldName = target.value.trim();
           const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
           const oldJob = getJobByName(oldName) || target.dataset.job || "";
 
-          // 放面板的進來
           target.value = member.name;
           applyJobColor(target, member.job);
           target.parentElement.querySelector(".sub-skill").value = member.skill || "";
           markDirty(target);
 
-          // 面板那格換成原本替補的
           draggingPanelInput.value = oldName;
           applyJobColor(draggingPanelInput, oldJob);
           const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
@@ -1003,7 +952,6 @@
           saveState();
           return;
         } else {
-          // 原本的：替補 ← 送進來
           target.value = member.name;
           applyJobColor(target, member.job);
           const sk = target.parentElement.querySelector(".sub-skill");
@@ -1019,6 +967,7 @@
         if(targetSide === "last") return;
         const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
 
+        // 同面板互換
         if(member.fromPanel && member.side === targetSide && draggingPanelInput){
           const src = draggingPanelInput;
           if(src === target) return;
@@ -1053,6 +1002,7 @@
           return;
         }
 
+        // 替補 → 面板 且面板原本有值 → 替補那個被換回去
         if(member.fromSub !== undefined && target.value.trim() !== ""){
           const oldName = target.value.trim();
           const oldJob = target.dataset.job || getJobByName(oldName) || "";
@@ -1070,6 +1020,7 @@
           }
         }
 
+        // 不同面板不交換
         if(member.fromPanel && member.side !== targetSide){
           return;
         }
@@ -1180,25 +1131,23 @@
       return arr;
     }
 
-    function saveState() {
+    function saveState(){
       const state = {
         allMembers,
         lastWeek: getPanelData(lastWeekPanel),
         thisWeek: getPanelData(thisWeekPanel),
         subs: getSubsData()
       };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
     }
 
-    function fetchWithTimeout(url, ms = 3000) {
+    function fetchWithTimeout(url, ms=3000){
       const ctrl = new AbortController();
-      const id = setTimeout(() => ctrl.abort(), ms);
-      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+      const id = setTimeout(()=>ctrl.abort(), ms);
+      return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
     }
 
-    async function loadState() {
+    async function loadState(){
       renderRoleTabs();
       renderMemberList();
 
@@ -1207,7 +1156,7 @@
         try {
           const localState = JSON.parse(s);
           applyStateToPage(localState, true);
-        } catch (e) {}
+        } catch(e){}
       }
 
       try {
@@ -1219,21 +1168,17 @@
             applyStateToPage(data.payload, false);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
           }
-          if (data.updatedAt) {
-            lastKnownUpdatedAt = data.updatedAt;
-          }
+          if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
         }
-      } catch (err) {
-        console.warn("雲端讀取逾時或失敗，先用本機資料", err);
-      }
+      } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
 
       startVersionWatcher();
     }
 
-    function applyStateToPage(state, fromLocal) {
+    function applyStateToPage(state, fromLocal){
       if (state.allMembers && Array.isArray(state.allMembers)) {
         allMembers = state.allMembers;
-        const maxId = allMembers.reduce((m, c) => Math.max(m, c.id || 0), 12);
+        const maxId = allMembers.reduce((m,c)=>Math.max(m,c.id||0),12);
         nextMemberId = maxId + 1;
       }
       renderMemberList();
@@ -1250,9 +1195,16 @@
         subsList.innerHTML = "";
         state.subs.forEach(su => createSubRow(su.name, su.skill));
       }
+
+      // 把最新儲存的框線畫出來
+      if (state.recentMarks) {
+        renderRecentMarks(state.recentMarks);
+      } else {
+        clearAllOutlines();
+      }
     }
 
-    // (4) 儲存流程改成先檢查登入
+    // 儲存流程要先登入
     function requestSave(){
       const now = Date.now();
       if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
@@ -1261,7 +1213,6 @@
         showLogin();
       }
     }
-
     function showLogin(){
       document.getElementById("loginMsg").textContent = "";
       document.getElementById("loginUser").value = "";
@@ -1269,9 +1220,7 @@
       document.getElementById("loginModal").style.display = "flex";
       document.getElementById("loginUser").focus();
     }
-    function closeLogin(){
-      document.getElementById("loginModal").style.display = "none";
-    }
+    function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
     function doLogin(){
       const u = document.getElementById("loginUser").value.trim();
       const p = document.getElementById("loginPass").value.trim();
@@ -1285,13 +1234,7 @@
       }
     }
 
-    function clearAllOutlines(){
-      document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
-        el.classList.remove("outline-dabai","outline-baoan","outline-stitch");
-      });
-    }
-
-    function doSaveToBackend() {
+    function doSaveToBackend(){
       const state = {
         allMembers,
         lastWeek: getPanelData(lastWeekPanel),
@@ -1299,7 +1242,14 @@
         subs: getSubsData()
       };
 
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      // 把這次的標示帶進去存
+      const marks = collectDirtyMarks();
+      state.recentMarks = {
+        user: currentUser || "unknown",
+        marks
+      };
+
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
 
       fetch(REMOTE_API, {
         method: "POST",
@@ -1308,29 +1258,23 @@
           payload: state
         })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(res=>res.json())
+      .then(data=>{
         if (data && data.success) {
           alert("已儲存到後台");
 
-          // (5) 儲存後，把這次有動過的格子畫線
-          clearAllOutlines();
-          if (currentUser && OUTLINE_CLASS[currentUser]) {
-            document.querySelectorAll("[data-dirty='1']").forEach(el=>{
-              el.classList.add(OUTLINE_CLASS[currentUser]);
-              el.removeAttribute("data-dirty");
-            });
-          } else {
-            // 沒登入或沒有對應色，就清掉 dirty
-            document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-          }
+          // 清掉所有舊的框線，再畫這次的
+          renderRecentMarks(state.recentMarks);
+
+          // 清掉 dirty
+          document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
 
         } else {
           alert("後台有回應但不是 success，請看 console");
           console.log(data);
         }
       })
-      .catch(err => {
+      .catch(err=>{
         alert("無法連到後台，請檢查 Apps Script 部署權限");
         console.error(err);
       });
@@ -1381,8 +1325,6 @@
         }
       });
     }
-
-    // (3) 清除標示
     function clearCompareMarks(){
       document.querySelectorAll(".highlight-new, .highlight-missing").forEach(inp=>{
         inp.classList.remove("highlight-new","highlight-missing");
@@ -1398,7 +1340,6 @@
       saveState();
       alert("已將本週名單的內容覆蓋到上週。");
     }
-
     function undoCopy(){
       if(!lastSnapshot){
         alert("沒有可還原的內容。");
@@ -1410,9 +1351,9 @@
       alert("已還原到覆蓋前的上週名單。");
     }
 
-    function startVersionWatcher() {
+    function startVersionWatcher(){
       const INTERVAL = 4000;
-      setInterval(async () => {
+      setInterval(async ()=>{
         try {
           const res = await fetch(REMOTE_API + "?action=version");
           const data = await res.json();
@@ -1423,7 +1364,6 @@
               return;
             }
             if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
-              console.log("偵測到雲端資料更新，正在重新讀取...");
               const fullRes = await fetch(REMOTE_API + "?action=get");
               const fullData = await fullRes.json();
               if (fullData && fullData.success && fullData.payload) {
@@ -1433,15 +1373,13 @@
               }
             }
           }
-        } catch (err) {
+        } catch(err){
           console.warn("檢查版本失敗", err);
         }
       }, INTERVAL);
     }
 
-    /* ========= 下載圖片 (含高解析) ========= */
-
-    // 圓角矩形
+    /* ========= 下載圖片 (跟前一版一致，有高解析) ========= */
     function fillRoundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -1456,18 +1394,13 @@
       ctx.closePath();
       ctx.fill();
     }
-
-    // 給某團算寬度 (2) 小隊數量不足就變窄
     function getTeamCanvasWidth(team) {
       const basePad = 8;
       const gap = 4;
-      const squadCount = Math.min(6, team.squads ? team.squads.length : 0);
-      const realSquadCount = squadCount === 0 ? 6 : squadCount;
-      // 一隊至少 3 小隊 → 跟畫面一致：這裡就直接用 realSquadCount
+      const squadCount = Math.min(6, team.squads ? team.squads.length : 0) || 6;
       const squadWidth = 100;
-      return basePad * 2 + realSquadCount * squadWidth + (realSquadCount - 1) * gap;
+      return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
     }
-
     function downloadThisWeekImage() {
       const data = getPanelData(thisWeekPanel);
       const tagOrder = ["一團","二團","三團","四團"];
@@ -1481,7 +1414,6 @@
       const gapY = 30;
       const cols = 2;
 
-      // 算每行最大寬
       const rowWidths = [];
       grouped.forEach(group => {
         let col = 0;
@@ -1506,7 +1438,7 @@
       const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
       const baseHeight = 50 + rows * (teamHeight + gapY);
 
-      const SCALE = 2; // 高解析倍數
+      const SCALE = 2;
       const canvas = document.createElement("canvas");
       canvas.width = baseWidth * SCALE;
       canvas.height = baseHeight * SCALE;
@@ -1527,8 +1459,7 @@
         let x = gapX;
         group.teams.forEach(team => {
           const tw = getTeamCanvasWidth(team);
-          const y = currentY;
-          drawTeamBlockImage(ctx, team, x, y, tw, teamHeight);
+          drawTeamBlockImage(ctx, team, x, currentY, tw, teamHeight);
           if (col === 0) {
             col = 1;
             x += tw + gapX;
@@ -1538,9 +1469,7 @@
             currentY += teamHeight + gapY;
           }
         });
-        if (col === 1) {
-          currentY += teamHeight + gapY;
-        }
+        if (col === 1) currentY += teamHeight + gapY;
       });
 
       const link = document.createElement("a");
@@ -1548,16 +1477,13 @@
       link.href = canvas.toDataURL("image/png");
       link.click();
     }
-
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
-      // 外框
       ctx.fillStyle = "#ffffff";
       fillRoundRect(ctx, x, y, w, h, 12);
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 1;
       ctx.strokeRect(x, y, w, h);
 
-      // header
       const headColor = teamColorByName(team.team);
       ctx.fillStyle = headColor;
       ctx.beginPath();
@@ -1592,7 +1518,6 @@
         ctx.strokeStyle = "#e2e8f0";
         ctx.strokeRect(sx, sy, squadWidth, squadHeight);
 
-        // 小隊標題
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(sx, sy, squadWidth, 22);
         ctx.strokeStyle = "#e2e8f0";
@@ -1613,7 +1538,7 @@
             ctx.fillStyle = jobColor;
             ctx.fillRect(sx, rowY, 4, 18);
 
-            ctx.fillStyle = jobColor; // 名字也吃職業色
+            ctx.fillStyle = jobColor;
             ctx.font = "bold 11px system-ui";
             ctx.fillText(mem.name, sx + 6, rowY + 13);
           }

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v9 (fast)</title>
+  <title>幫戰名單比對工具 v9 (fast + tag + download)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -151,6 +151,20 @@
       justify-content: space-between;
       align-items: center;
       font-size: 0.9rem;
+      gap: .5rem;
+    }
+    .team-head-left {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .team-tag-select {
+      font-size: .65rem;
+      border-radius: .35rem;
+      border: none;
+      padding: .15rem .35rem;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
     }
     .team-head .head-actions { display:flex; gap:.35rem; }
     .head-add-btn {
@@ -261,6 +275,14 @@
       font-size: 0.65rem;
       border-radius: 999px;
     }
+
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+    }
+
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
       #allMembersPanel, .right-sticky-wrap { position: static; }
@@ -271,6 +293,7 @@
   <h1>幫戰名單比對工具 v9</h1>
 
   <div class="layout">
+    <!-- 左側全部成員 -->
     <div class="panel" id="allMembersPanel">
       <h3>全部成員名單</h3>
       <input id="memberSearch" class="member-search" placeholder="搜尋成員名或技能..." oninput="renderMemberList(); saveState();" />
@@ -301,16 +324,22 @@
       </div>
     </div>
 
+    <!-- 上週 -->
     <div class="panel" id="lastWeek">
       <h3>上週名單（只讀）</h3>
       <small style="font-size:.7rem;color:#64748b;">只能透過「本週名單覆蓋上週」更新，不可手動編輯。</small>
     </div>
 
+    <!-- 本週 -->
     <div class="panel" id="thisWeek">
-      <h3>本週名單</h3>
+      <div class="panel-title-row">
+        <h3 style="margin:0;">本週名單</h3>
+        <button class="float-btn secondary" onclick="downloadThisWeekImage()" style="background:#0f766e;">下載圖片</button>
+      </div>
       <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
     </div>
 
+    <!-- 右側固定欄 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
         <button class="float-btn secondary" onclick="saveToBackend()">儲存</button>
@@ -330,7 +359,7 @@
   <script>
     const STORAGE_KEY = "guildCompareV9State";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
-let lastKnownUpdatedAt = null;
+    let lastKnownUpdatedAt = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -376,7 +405,6 @@ let lastKnownUpdatedAt = null;
     let dragSuccess = false;
     let dragPreviewEl = null;
 
-    /* ========== 小工具：深度比較，避免重畫 ========== */
     function sameJSON(a, b) {
       return JSON.stringify(a) === JSON.stringify(b);
     }
@@ -472,6 +500,16 @@ let lastKnownUpdatedAt = null;
       return html;
     }
 
+    // 新增：團別選單 html
+    function createGroupTagSelect(selected="一團") {
+      const opts = ["一團","二團","三團","四團"];
+      return `
+        <select class="team-tag-select" onchange="saveState()">
+          ${opts.map(o => `<option value="${o}" ${o===selected?'selected':''}>${o}</option>`).join("")}
+        </select>
+      `;
+    }
+
     function createSquad(idx, side, teamName){
       const sq = document.createElement("div");
       sq.className = "squad";
@@ -484,7 +522,7 @@ let lastKnownUpdatedAt = null;
       return sq;
     }
 
-    function createTeamBlock(side, teamName){
+    function createTeamBlock(side, teamName, tag="一團"){
       const block = document.createElement("div");
       block.className = "team-block";
       block.dataset.team = teamName;
@@ -492,7 +530,10 @@ let lastKnownUpdatedAt = null;
       const headColor = teamColorByName(teamName);
       block.innerHTML = `
         <div class="team-head" style="background:${headColor}">
-          <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
+          <div class="team-head-left">
+            <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
+            ${createGroupTagSelect(tag)}
+          </div>
           <div class="head-actions">
             ${side==="this"
               ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>`
@@ -510,7 +551,7 @@ let lastKnownUpdatedAt = null;
       return block;
     }
 
-    // 先把架子搭起來，這樣一進頁就看得到東西
+    // 把架子搭起來
     teams.forEach(t => {
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
@@ -913,6 +954,8 @@ let lastKnownUpdatedAt = null;
       const data = [];
       panelEl.querySelectorAll(".team-block").forEach(block=>{
         const team = block.dataset.team;
+        const tagSelect = block.querySelector(".team-tag-select");
+        const groupTag = tagSelect ? tagSelect.value : "一團";
         const squads = [];
         block.querySelectorAll(".squads .squad").forEach(sq=>{
           const members = [];
@@ -927,7 +970,7 @@ let lastKnownUpdatedAt = null;
           });
           squads.push({members});
         });
-        data.push({team, squads});
+        data.push({team, tag: groupTag, squads});
       });
       return data;
     }
@@ -936,6 +979,10 @@ let lastKnownUpdatedAt = null;
       data.forEach(teamData=>{
         const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
         if(!block) return;
+        const tagSelect = block.querySelector(".team-tag-select");
+        if (tagSelect && teamData.tag) {
+          tagSelect.value = teamData.tag;
+        }
         const squadsContainer = block.querySelector(".squads");
         let currentCount = squadsContainer.children.length;
         const neededCount = teamData.squads.length;
@@ -1004,7 +1051,6 @@ let lastKnownUpdatedAt = null;
       } catch (e) {}
     }
 
-    // fetch with timeout 3s  ← 這個是為了不要卡太久
     function fetchWithTimeout(url, ms = 3000) {
       const ctrl = new AbortController();
       const id = setTimeout(() => ctrl.abort(), ms);
@@ -1012,43 +1058,36 @@ let lastKnownUpdatedAt = null;
     }
 
     async function loadState() {
-  // 1. 先畫左邊 tab + 成員
-  renderRoleTabs();
-  renderMemberList();
+      renderRoleTabs();
+      renderMemberList();
 
-  // 2. 如果本機有，先套
-  const s = localStorage.getItem(STORAGE_KEY);
-  if (s) {
-    try {
-      const localState = JSON.parse(s);
-      applyStateToPage(localState, true);
-    } catch (e) {}
-  }
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) {
+        try {
+          const localState = JSON.parse(s);
+          applyStateToPage(localState, true);
+        } catch (e) {}
+      }
 
-  // 3. 再去雲端拿，但不要讓它卡畫面
-  try {
-    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-    const data = await res.json();
-    if (data && data.success && data.payload) {
-      const currentLocal = localStorage.getItem(STORAGE_KEY);
-      // 如果雲端和現在的不同才要重畫
-      if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-        applyStateToPage(data.payload, false);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+      try {
+        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+        const data = await res.json();
+        if (data && data.success && data.payload) {
+          const currentLocal = localStorage.getItem(STORAGE_KEY);
+          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
+            applyStateToPage(data.payload, false);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+          }
+          if (data.updatedAt) {
+            lastKnownUpdatedAt = data.updatedAt;
+          }
+        }
+      } catch (err) {
+        console.warn("雲端讀取逾時或失敗，先用本機資料", err);
       }
-      // ⬇️ 新增：把雲端回來的 updatedAt 記下來
-      if (data.updatedAt) {
-        lastKnownUpdatedAt = data.updatedAt;
-      }
+
+      startVersionWatcher();
     }
-  } catch (err) {
-    console.warn("雲端讀取逾時或失敗，先用本機資料", err);
-  }
-
-  // ⬇️ 新增：啟動版本偵測，每幾秒檢查一次
-  startVersionWatcher();
-}
-
 
     function applyStateToPage(state, fromLocal) {
       if (state.allMembers && Array.isArray(state.allMembers)) {
@@ -1170,50 +1209,124 @@ let lastKnownUpdatedAt = null;
       alert("已還原到覆蓋前的上週名單。");
     }
 
-
-
-
-    
-function startVersionWatcher() {
-  const INTERVAL = 4000; // 每4秒檢查一次，可改成10000(10秒)
-
-  setInterval(async () => {
-    try {
-      const res = await fetch(REMOTE_API + "?action=version");
-      const data = await res.json();
-      if (data && data.success) {
-        const serverUpdatedAt = data.updatedAt || null;
-
-        // 第一次執行：只記錄，不比較
-        if (!lastKnownUpdatedAt) {
-          lastKnownUpdatedAt = serverUpdatedAt;
-          return;
-        }
-
-        // 偵測到有人在雲端按「儲存」
-        if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
-          console.log("偵測到雲端資料更新，正在重新讀取...");
-          const fullRes = await fetch(REMOTE_API + "?action=get");
-          const fullData = await fullRes.json();
-          if (fullData && fullData.success && fullData.payload) {
-            applyStateToPage(fullData.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
-            lastKnownUpdatedAt = serverUpdatedAt;
+    function startVersionWatcher() {
+      const INTERVAL = 4000;
+      setInterval(async () => {
+        try {
+          const res = await fetch(REMOTE_API + "?action=version");
+          const data = await res.json();
+          if (data && data.success) {
+            const serverUpdatedAt = data.updatedAt || null;
+            if (!lastKnownUpdatedAt) {
+              lastKnownUpdatedAt = serverUpdatedAt;
+              return;
+            }
+            if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
+              console.log("偵測到雲端資料更新，正在重新讀取...");
+              const fullRes = await fetch(REMOTE_API + "?action=get");
+              const fullData = await fullRes.json();
+              if (fullData && fullData.success && fullData.payload) {
+                applyStateToPage(fullData.payload, false);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
+                lastKnownUpdatedAt = serverUpdatedAt;
+              }
+            }
           }
+        } catch (err) {
+          console.warn("檢查版本失敗", err);
         }
-      }
-    } catch (err) {
-      console.warn("檢查版本失敗", err);
+      }, INTERVAL);
     }
-  }, INTERVAL);
-}
 
+    // 新功能：下載本週名單成圖片
+    async function downloadThisWeekImage() {
+      // 取出本週資料（含 tag）
+      const thisData = getPanelData(thisWeekPanel); // [{team, tag, squads:[{members:[]}]}, ...]
+      // 依照 tag 分組，順序固定
+      const tagOrder = ["一團","二團","三團","四團"];
+      const grouped = tagOrder.map(tag => ({
+        tag,
+        teams: thisData.filter(t => (t.tag || "一團") === tag)
+      })).filter(g => g.teams.length > 0);
 
-    
+      // 簡單畫一張 canvas
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const width = 1600;
+      // 粗估高度：每一組 260 + 空白 30
+      const height = grouped.length * 280 + 80;
+      canvas.width = width;
+      canvas.height = height;
+
+      // 背景
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,width,height);
+
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "20px system-ui";
+      ctx.fillText("本週名單", 30, 40);
+
+      let y = 70;
+
+      grouped.forEach(group => {
+        // 標題：一團 / 二團 ...
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "16px system-ui";
+        ctx.fillText(group.tag, 30, y);
+
+        // 同一行多個團，橫向排
+        let x = 30;
+        const boxWidth = 360;
+        const boxGap = 20;
+        const boxHeight = 220;
+
+        group.teams.forEach(t => {
+          // 外框
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(x, y+10, boxWidth, boxHeight);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(x+1, y+11, boxWidth-2, boxHeight-2);
+
+          // 團名
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "15px system-ui";
+          ctx.fillText(t.team, x+12, y+35);
+
+          // 成員
+          ctx.font = "13px system-ui";
+          let innerY = y + 55;
+          t.squads.forEach((sq, sqIdx) => {
+            ctx.fillStyle = "#64748b";
+            ctx.fillText("第" + (sqIdx+1) + "隊", x+12, innerY);
+            innerY += 16;
+            sq.members.forEach(mem => {
+              if (mem.name) {
+                ctx.fillStyle = "#0f172a";
+                const label = mem.name + (mem.job ? "（"+mem.job+"）" : "") + (mem.skill ? " - "+mem.skill : "");
+                ctx.fillText(label, x+24, innerY);
+                innerY += 16;
+              }
+            });
+            innerY += 8;
+          });
+
+          x += boxWidth + boxGap;
+        });
+
+        y += 260; // 下一行留空
+      });
+
+      // 下載
+      const link = document.createElement("a");
+      link.download = "this-week.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
     // 初始化
     loadState();
-    
   </script>
 </body>
 </html>
-

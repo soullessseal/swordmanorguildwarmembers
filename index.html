@@ -996,8 +996,10 @@
       return arr;
     }
 
-   const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";  // ←換成剛剛部署拿到的網址
+// 這段只要出現一次就好
+const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
 
+// 存在地端（localStorage）
 function saveState() {
   const state = {
     allMembers,
@@ -1005,19 +1007,13 @@ function saveState() {
     thisWeek: getPanelData(thisWeekPanel),
     subs: getSubsData()
   };
-
-  // 只存本機，照你原本的行為
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
 }
 
-
-
-const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
-
+// 按鈕「儲存」要呼叫這個，才會丟到 Google
 function saveToBackend() {
-  // 先把最新畫面打包一次
   const state = {
     allMembers,
     lastWeek: getPanelData(lastWeekPanel),
@@ -1025,12 +1021,11 @@ function saveToBackend() {
     subs: getSubsData()
   };
 
-  // 也順便更新本機
+  // 先也存一份本機
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
 
-  // 再傳去後台
   fetch(REMOTE_API, {
     method: "POST",
     headers: {
@@ -1041,146 +1036,74 @@ function saveToBackend() {
       payload: state
     })
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data && data.success) {
-      alert("已儲存到後台");
-    } else {
-      alert("後台有回應但不是 success，請看 console");
-      console.log("後台回應：", data);
-    }
-  })
-  .catch(err => {
-    alert("無法連到後台，請檢查 Apps Script 部署權限");
-    console.error(err);
-  });
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.success) {
+        alert("已儲存到後台");
+      } else {
+        alert("後台有回應但不是 success，請看 console");
+        console.log(data);
+      }
+    })
+    .catch(err => {
+      alert("無法連到後台，請檢查 Apps Script 部署權限");
+      console.error(err);
+    });
 }
 
-
-    
-
-   async function loadState(){
-  // 1. 先讀本機，畫面先有東西
+// 載入時先讀本機，再讀雲端
+async function loadState() {
   const s = localStorage.getItem(STORAGE_KEY);
   if (s) {
     try {
-      const state = JSON.parse(s);
-      applyStateToPage(state);
-    } catch(e){}
+      applyStateToPage(JSON.parse(s));
+    } catch (e) {}
   } else {
-    // 沒本機也要先把左邊角色畫出來
     renderRoleTabs();
     renderMemberList();
   }
 
-  // 2. 再試著讀雲端，成功就覆蓋
   try {
     const res = await fetch(REMOTE_API + "?action=get");
     const data = await res.json();
     if (data && data.success && data.payload) {
       applyStateToPage(data.payload);
-      // 同步一份回本機
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
     }
-  } catch(err) {
+  } catch (err) {
     console.warn("讀取後台失敗", err);
   }
 }
 
-// 幫手：把 state 套回你的畫面
-function applyStateToPage(state){
-  // 成員
-  if(state.allMembers && Array.isArray(state.allMembers)){
+// 把抓回來的 state 塞回畫面
+function applyStateToPage(state) {
+  if (state.allMembers && Array.isArray(state.allMembers)) {
     allMembers = state.allMembers;
-    const maxId = allMembers.reduce((m,c)=>Math.max(m, c.id||0), 12);
+    const maxId = allMembers.reduce((m, c) => Math.max(m, c.id || 0), 12);
     nextMemberId = maxId + 1;
   }
   renderRoleTabs();
   renderMemberList();
 
-  // 上週
-  if(state.lastWeek) {
+  if (state.lastWeek) {
     setPanelData(lastWeekPanel, state.lastWeek, "last");
     lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
   }
-  // 本週
-  if(state.thisWeek) {
+  if (state.thisWeek) {
     setPanelData(thisWeekPanel, state.thisWeek, "this");
     thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
   }
-  // 替補
-  if(state.subs){
+  if (state.subs) {
     subsList.innerHTML = "";
-    state.subs.forEach(su=>createSubRow(su.name, su.skill));
+    state.subs.forEach(su => createSubRow(su.name, su.skill));
   }
 }
 
-    function compare(){
-      document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        inp.classList.remove("highlight-new","highlight-missing");
-      });
-      const lastNames = [];
-      lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) lastNames.push({val:v, el:inp});
-      });
-      const thisNames = [];
-      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) thisNames.push({val:v, el:inp});
-      });
-
-      const lastSet = new Set(lastNames.map(x=>x.val));
-      const thisSet = new Set(thisNames.map(x=>x.val));
-
-      thisNames.forEach(obj=>{
-        if(!lastSet.has(obj.val)){
-          obj.el.classList.add("highlight-new");
-        }
-      });
-      lastNames.forEach(obj=>{
-        if(!thisSet.has(obj.val)){
-          obj.el.classList.add("highlight-missing");
-        }
-      });
-
-      subsList.querySelectorAll(".substitute-row").forEach(row=>{
-        const name = row.querySelector(".sub-name").value.trim();
-        const status = row.querySelector(".sub-status");
-        if(!name){ status.textContent=""; return; }
-        if(thisSet.has(name)){
-          status.textContent = "本週已上場 ✅";
-          status.style.color = "#16a34a";
-        } else {
-          status.textContent = "本週未上場";
-          status.style.color = "#b91c1c";
-        }
-      });
-    }
-
-    function copyThisToLast(){
-      if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
-      lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
-      const thisData = getPanelData(thisWeekPanel);
-      setPanelData(lastWeekPanel, thisData, "last");
-      saveState();
-      alert("已將本週名單的內容覆蓋到上週。");
-    }
-    function undoCopy(){
-      if(!lastSnapshot){
-        alert("沒有可還原的內容。");
-        return;
-      }
-      const data = JSON.parse(lastSnapshot);
-      setPanelData(lastWeekPanel, data, "last");
-      saveState();
-      alert("已還原到覆蓋前的上週名單。");
-    }
-
-    loadState();
+loadState();
   </script>
 </body>
 </html>
+
 
 
 

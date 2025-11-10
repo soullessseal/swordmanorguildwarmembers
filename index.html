@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v10.1 (fast)</title>
+  <title>幫戰名單比對工具 v11 (fast)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -72,7 +72,7 @@
     .float-btn.secondary {
       background: #1f2937;
     }
-    /* 儲存變紅 */
+    /* 儲存 = 紅 */
     .float-btn.danger {
       background: #ef4444;
     }
@@ -162,7 +162,6 @@
       align-items: center;
       gap: .4rem;
     }
-    /* 上面那排可選的團別 */
     .team-tag-select {
       font-size: .78rem;
       font-weight: 700;
@@ -179,7 +178,6 @@
       font-weight: 600;
       color: #0f172a;
     }
-    /* 上週的不能選 */
     .team-tag-label {
       background: rgba(255,255,255,0.95);
       color: #0f172a;
@@ -251,13 +249,13 @@
     .readonly-skill { background:#e2e8f0; }
     .locked-input { background:#e2e8f0; pointer-events:none; }
 
-    /* 比對後本週新上 → 綠加深 */
+    /* (3) 新的綠再深一點 */
     .highlight-new {
       background:#bbf7d0 !important;
       border:1px solid #166534 !important;
       color:#064e3b !important;
     }
-    /* 比對後上週缺 → 深紅 */
+    /* 深紅 */
     .highlight-missing {
       background:#fca5a5 !important;
       border:1px solid #b91c1c !important;
@@ -318,6 +316,40 @@
       background: #0f766e;
     }
 
+    /* (4) 登入視窗 */
+    #loginModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+    #loginModal .modal-card {
+      background: #fff;
+      border-radius: .75rem;
+      padding: 1.2rem 1.4rem;
+      width: 280px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.12);
+    }
+    #loginModal h3 {
+      margin: 0 0 .5rem;
+      font-size: 1.05rem;
+    }
+    #loginModal input {
+      width: 100%;
+      margin-bottom: .5rem;
+      padding: .35rem .4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: .4rem;
+    }
+
+    /* (5) 三個帳號的框線 */
+    .outline-dabai { outline: 2px solid #a855f7; outline-offset: 2px; }
+    .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
+    .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
+
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
       #allMembersPanel, .right-sticky-wrap { position: static; }
@@ -326,9 +358,10 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v10.1</h1>
+  <h1>幫戰名單比對工具 v11</h1>
 
   <div class="layout">
+    <!-- 左側全部成員 -->
     <div class="panel" id="allMembersPanel">
       <h3>全部成員名單</h3>
       <input id="memberSearch" class="member-search" placeholder="搜尋成員名或技能..." oninput="renderMemberList(); saveState();" />
@@ -359,21 +392,26 @@
       </div>
     </div>
 
+    <!-- 上週 -->
     <div class="panel" id="lastWeek">
       <h3>上週名單（只讀）</h3>
       <small style="font-size:.7rem;color:#64748b;">只能透過「本週名單覆蓋上週」更新，不可手動編輯。</small>
     </div>
 
+    <!-- 本週 -->
     <div class="panel" id="thisWeek">
       <h3>本週名單</h3>
       <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
       <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
     </div>
 
+    <!-- 右側固定欄 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
-        <button class="float-btn danger" onclick="saveToBackend()">儲存</button>
+        <button class="float-btn danger" onclick="requestSave()">儲存</button>
         <button class="float-btn" onclick="compare()">比對</button>
+        <!-- (3) 新增清除標示 -->
+        <button class="float-btn secondary" onclick="clearCompareMarks()">清除標示</button>
         <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
         <button class="float-btn secondary" onclick="undoCopy()">還原</button>
       </div>
@@ -386,18 +424,51 @@
     </div>
   </div>
 
+  <!-- (4) 登入 modal -->
+  <div id="loginModal">
+    <div class="modal-card">
+      <h3>請先登入</h3>
+      <input id="loginUser" placeholder="帳號" />
+      <input id="loginPass" placeholder="密碼" type="password" />
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+        <button class="float-btn secondary" onclick="closeLogin()">取消</button>
+        <button class="float-btn" onclick="doLogin()">登入</button>
+      </div>
+      <p id="loginMsg" style="color:#b91c1c;font-size:.7rem;margin-top:.4rem;"></p>
+    </div>
+  </div>
+
   <script>
-    const STORAGE_KEY = "guildCompareV9State";
+    const STORAGE_KEY = "guildCompareV11State";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
+
+    // (4) 簡單登入資料
+    const ACCOUNTS = {
+      dabai: "0416",
+      baoan: "1370",
+      stitch: "50433"
+    };
+    const LOGIN_TTL = 20 * 60 * 1000; // 20 分鐘內不用再登
+    let currentUser = null;
+    let lastLoginTime = 0;
+
+    // (5) 框線顏色對應
+    const OUTLINE_CLASS = {
+      dabai: "outline-dabai",
+      baoan: "outline-baoan",
+      stitch: "outline-stitch"
+    };
+
     let lastKnownUpdatedAt = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
+    // (1)(2) 調整顏色：龍吟暗一點、神相亮一點
     const roleColors = {
       "九靈": "#d8b4fe",
       "鐵衣": "#fdba74",
       "素問": "#f9a8d4",
-      "龍吟": "#bef264",
-      "神相": "#1d4ed8",
+      "龍吟": "#92d46d",   // was #bef264
+      "神相": "#3b82f6",   // was #1d4ed8
       "碎夢": "#7dd3fc",
       "血河": "#f43f5e"
     };
@@ -435,7 +506,7 @@
     let dragSuccess = false;
     let dragPreviewEl = null;
 
-    function sameJSON(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+    function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 
     function teamColorByName(name){
       if(name==="拆塔") return "#7f1d1d";
@@ -443,11 +514,7 @@
       if(name==="防守") return "#1e3a8a";
       return "#0f172a";
     }
-    function hexToRgb(hex) {
-      const s = hex.replace('#','');
-      const n = parseInt(s,16);
-      return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
-    }
+    function hexToRgb(hex){const s=hex.replace('#','');const n=parseInt(s,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
     function rgbToHsl(r,g,b){
       r/=255; g/=255; b/=255;
       const max=Math.max(r,g,b),min=Math.min(r,g,b);
@@ -495,6 +562,12 @@
       }
     }
 
+    function handlePanelInputChange(input){
+      clearHighlightOnEdit(input);
+      input.dataset.dirty = "1";
+      saveState();
+    }
+
     function createMemberInputs(side){
       let html = "";
       for(let i=1;i<=6;i++){
@@ -513,7 +586,7 @@
             <div class="member-row">
               <input data-role="name" data-side="${side}" data-uid="${uid}" draggable="true"
                 ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
-                oncontextmenu="clearPanelCell(event)" oninput="clearHighlightOnEdit(this); saveState();" placeholder="成員${i}">
+                oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" placeholder="成員${i}">
             </div>
             <div class="member-row">
               <input data-role="skill" class="readonly-skill" placeholder="" readonly>
@@ -527,7 +600,7 @@
     function createGroupTagSelect(selected="一團") {
       const opts = ["一團","二團","三團","四團"];
       return `
-        <select class="team-tag-select" onchange="saveState()">
+        <select class="team-tag-select" onchange="markDirty(this); saveState()">
           ${opts.map(o => `<option value="${o}" ${o===selected?'selected':''}>${o}</option>`).join("")}
         </select>
       `;
@@ -577,7 +650,6 @@
       return block;
     }
 
-    // 架子
     teams.forEach(t => {
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
@@ -600,6 +672,7 @@
       const count = sqs.children.length;
       sqs.appendChild(createSquad(count+1, side, teamName));
       adjustSquadWidths(block);
+      markDirty(block);
       saveState();
     }
 
@@ -611,6 +684,7 @@
         parent.removeChild(squad);
         renumberSquads(block);
         adjustSquadWidths(block);
+        markDirty(block);
         saveState();
       }
     }
@@ -620,6 +694,7 @@
       const input = e.target;
       if(input.dataset.role === "name" && input.dataset.side !== "last"){
         clearInputAndSkill(input);
+        markDirty(input);
         saveState();
       }
     }
@@ -646,8 +721,8 @@
       row.ondragstart = dragFromSub;
       row.innerHTML = `
         <input class="sub-name" placeholder="替補成員" value="${name}"
-          ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); saveState();">
-        <input class="sub-skill" placeholder="技能" value="${skill}" oninput="saveState()">
+          ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
+        <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
         <button class="del-btn" onclick="deleteSub(this)">刪</button>
         <span class="sub-status"></span>
       `;
@@ -715,7 +790,7 @@
 
       const sel = document.getElementById("pageSelect");
       sel.innerHTML = "";
-      for(let p=1;p<=totalPages && p<=10;p++){
+      for(let p=1;p<=totalPages && p<=8;p++){
         const opt = document.createElement("option");
         opt.value = p;
         opt.textContent = "第 " + p + " 頁";
@@ -842,8 +917,7 @@
       draggingPanelInput = input;
       draggingPanelSide = side;
       dragSuccess = false;
-      const uid = input.dataset.uid || "";
-      e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromPanel: true, side, uid}));
+      e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromPanel: true, side}));
       const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
       showDragPreview(`${name || "空欄位"} ${job? "(" + job + ")":""}`, color);
     }
@@ -891,6 +965,11 @@
       });
     }
 
+    // (4) markDirty
+    function markDirty(el){
+      if(el) el.dataset.dirty = "1";
+    }
+
     function dropMember(ev){
       ev.preventDefault();
       dragSuccess = true;
@@ -899,37 +978,37 @@
       const member = JSON.parse(data);
       const target = ev.target;
 
-      // 4. 這裡補：拖 panel → 替補，要互換
-      if (target.classList.contains("sub-name")) {
-        const subRow = target.parentElement;
-        const subSkillInput = subRow.querySelector(".sub-skill");
-        const oldSubName = target.value.trim();
-        const oldSubSkill = subSkillInput.value.trim();
-
+      // (4) 反向互換：面板 → 替補
+      if(target.classList.contains("sub-name")){
         if (member.fromPanel && draggingPanelInput) {
-          // 先把 panel 的丟到替補
+          // swap
+          const oldName = target.value.trim();
+          const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
+          const oldJob = getJobByName(oldName) || target.dataset.job || "";
+
+          // 放面板的進來
           target.value = member.name;
           applyJobColor(target, member.job);
-          subSkillInput.value = member.skill ? member.skill : "";
+          target.parentElement.querySelector(".sub-skill").value = member.skill || "";
+          markDirty(target);
 
-          // 再把原本替補的放回 panel
-          if (oldSubName) {
-            draggingPanelInput.value = oldSubName;
-            applyJobColor(draggingPanelInput, getJobByName(oldSubName));
-            const dSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-            if (dSkillRow && dSkillRow.querySelector("input[data-role='skill']")) {
-              dSkillRow.querySelector("input[data-role='skill']").value = oldSubSkill;
-            }
-          } else {
-            clearInputAndSkill(draggingPanelInput);
+          // 面板那格換成原本替補的
+          draggingPanelInput.value = oldName;
+          applyJobColor(draggingPanelInput, oldJob);
+          const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+          if (panelSkillRow && panelSkillRow.querySelector('input[data-role="skill"]')) {
+            panelSkillRow.querySelector('input[data-role="skill"]').value = oldSkill;
           }
+          markDirty(draggingPanelInput);
           saveState();
           return;
         } else {
-          // 原本的邏輯：其他來源丟進替補，單向覆蓋
+          // 原本的：替補 ← 送進來
           target.value = member.name;
           applyJobColor(target, member.job);
-          subSkillInput.value = member.skill ? member.skill : "";
+          const sk = target.parentElement.querySelector(".sub-skill");
+          if(sk) sk.value = member.skill ? member.skill : "";
+          markDirty(target);
           saveState();
           return;
         }
@@ -968,6 +1047,8 @@
           applyJobColor(target, srcJob);
           if(tgtSkillRow) tgtSkillRow.querySelector('input[data-role="skill"]').value = srcSkill || "";
           target.classList.remove("highlight-new","highlight-missing");
+          markDirty(src);
+          markDirty(target);
           saveState();
           return;
         }
@@ -985,6 +1066,7 @@
             subRow.querySelector(".sub-name").value = oldName;
             applyJobColor(subRow.querySelector(".sub-name"), oldJob);
             subRow.querySelector(".sub-skill").value = oldSkill;
+            markDirty(subRow.querySelector(".sub-name"));
           }
         }
 
@@ -1000,6 +1082,7 @@
         }
         target.classList.remove("highlight-new","highlight-missing");
         clearDuplicateInPanel(targetPanel, member.name, target);
+        markDirty(target);
         saveState();
       }
     }
@@ -1169,7 +1252,46 @@
       }
     }
 
-    function saveToBackend() {
+    // (4) 儲存流程改成先檢查登入
+    function requestSave(){
+      const now = Date.now();
+      if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
+        doSaveToBackend();
+      } else {
+        showLogin();
+      }
+    }
+
+    function showLogin(){
+      document.getElementById("loginMsg").textContent = "";
+      document.getElementById("loginUser").value = "";
+      document.getElementById("loginPass").value = "";
+      document.getElementById("loginModal").style.display = "flex";
+      document.getElementById("loginUser").focus();
+    }
+    function closeLogin(){
+      document.getElementById("loginModal").style.display = "none";
+    }
+    function doLogin(){
+      const u = document.getElementById("loginUser").value.trim();
+      const p = document.getElementById("loginPass").value.trim();
+      if (ACCOUNTS[u] && ACCOUNTS[u] === p) {
+        currentUser = u;
+        lastLoginTime = Date.now();
+        closeLogin();
+        doSaveToBackend();
+      } else {
+        document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+      }
+    }
+
+    function clearAllOutlines(){
+      document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
+        el.classList.remove("outline-dabai","outline-baoan","outline-stitch");
+      });
+    }
+
+    function doSaveToBackend() {
       const state = {
         allMembers,
         lastWeek: getPanelData(lastWeekPanel),
@@ -1190,6 +1312,19 @@
       .then(data => {
         if (data && data.success) {
           alert("已儲存到後台");
+
+          // (5) 儲存後，把這次有動過的格子畫線
+          clearAllOutlines();
+          if (currentUser && OUTLINE_CLASS[currentUser]) {
+            document.querySelectorAll("[data-dirty='1']").forEach(el=>{
+              el.classList.add(OUTLINE_CLASS[currentUser]);
+              el.removeAttribute("data-dirty");
+            });
+          } else {
+            // 沒登入或沒有對應色，就清掉 dirty
+            document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
+          }
+
         } else {
           alert("後台有回應但不是 success，請看 console");
           console.log(data);
@@ -1247,6 +1382,14 @@
       });
     }
 
+    // (3) 清除標示
+    function clearCompareMarks(){
+      document.querySelectorAll(".highlight-new, .highlight-missing").forEach(inp=>{
+        inp.classList.remove("highlight-new","highlight-missing");
+      });
+      subsList.querySelectorAll(".substitute-row .sub-status").forEach(s=>s.textContent="");
+    }
+
     function copyThisToLast(){
       if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
       lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
@@ -1296,9 +1439,9 @@
       }, INTERVAL);
     }
 
-    /* ===== 下載圖片相關：調字體、調寬度、跟職業顏色 ===== */
+    /* ========= 下載圖片 (含高解析) ========= */
 
-    // 畫圓角
+    // 圓角矩形
     function fillRoundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -1314,104 +1457,97 @@
       ctx.fill();
     }
 
-    // 根據小隊數量算這個團要多寬
+    // 給某團算寬度 (2) 小隊數量不足就變窄
     function getTeamCanvasWidth(team) {
-      const squads = team.squads || [];
-      const squadCount = Math.max(squads.length, 1);
-      const innerPad = 8;
+      const basePad = 8;
       const gap = 4;
+      const squadCount = Math.min(6, team.squads ? team.squads.length : 0);
+      const realSquadCount = squadCount === 0 ? 6 : squadCount;
+      // 一隊至少 3 小隊 → 跟畫面一致：這裡就直接用 realSquadCount
       const squadWidth = 100;
-      return innerPad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
+      return basePad * 2 + realSquadCount * squadWidth + (realSquadCount - 1) * gap;
     }
 
     function downloadThisWeekImage() {
-  const data = getPanelData(thisWeekPanel);
-  const tagOrder = ["一團","二團","三團","四團"];
-  const grouped = tagOrder.map(tag => ({
-    tag,
-    teams: data.filter(t => (t.tag || "一團") === tag)
-  })).filter(g => g.teams.length > 0);
+      const data = getPanelData(thisWeekPanel);
+      const tagOrder = ["一團","二團","三團","四團"];
+      const grouped = tagOrder.map(tag => ({
+        tag,
+        teams: data.filter(t => (t.tag || "一團") === tag)
+      })).filter(g => g.teams.length > 0);
 
-  const teamHeight = 272;
-  const gapX = 20;
-  const gapY = 30;
-  const cols = 2;
+      const teamHeight = 272;
+      const gapX = 20;
+      const gapY = 30;
+      const cols = 2;
 
-  // 先算每一行需要多寬
-  const rowWidths = [];
-  grouped.forEach(group => {
-    let col = 0;
-    let rowWidth = gapX;
-    group.teams.forEach(team => {
-      const tw = getTeamCanvasWidth(team);
-      if (col === 0) {
-        rowWidth += tw;
-        col = 1;
-      } else {
-        rowWidth += gapX + tw;
-        col = 0;
-        rowWidths.push(rowWidth + gapX);
-        rowWidth = gapX;
-      }
-    });
-    if (col === 1) {
-      rowWidths.push(rowWidth + gapX);
+      // 算每行最大寬
+      const rowWidths = [];
+      grouped.forEach(group => {
+        let col = 0;
+        let rowWidth = gapX;
+        group.teams.forEach(team => {
+          const tw = getTeamCanvasWidth(team);
+          if (col === 0) {
+            rowWidth += tw;
+            col = 1;
+          } else {
+            rowWidth += gapX + tw;
+            col = 0;
+            rowWidths.push(rowWidth + gapX);
+            rowWidth = gapX;
+          }
+        });
+        if (col === 1) {
+          rowWidths.push(rowWidth + gapX);
+        }
+      });
+      const baseWidth = Math.max(820, ...rowWidths);
+      const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
+      const baseHeight = 50 + rows * (teamHeight + gapY);
+
+      const SCALE = 2; // 高解析倍數
+      const canvas = document.createElement("canvas");
+      canvas.width = baseWidth * SCALE;
+      canvas.height = baseHeight * SCALE;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(SCALE, SCALE);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 22px system-ui";
+      ctx.fillText("本週名單", 20, 32);
+
+      let currentY = 50;
+
+      grouped.forEach(group => {
+        let col = 0;
+        let x = gapX;
+        group.teams.forEach(team => {
+          const tw = getTeamCanvasWidth(team);
+          const y = currentY;
+          drawTeamBlockImage(ctx, team, x, y, tw, teamHeight);
+          if (col === 0) {
+            col = 1;
+            x += tw + gapX;
+          } else {
+            col = 0;
+            x = gapX;
+            currentY += teamHeight + gapY;
+          }
+        });
+        if (col === 1) {
+          currentY += teamHeight + gapY;
+        }
+      });
+
+      const link = document.createElement("a");
+      link.download = "this-week.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
     }
-  });
-  const baseWidth = Math.max(820, ...rowWidths);
-  const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
-  const baseHeight = 50 + rows * (teamHeight + gapY);
-
-  // 🔥 想要高解析度就開這裡
-  const SCALE = 2; // 2 就是 2 倍解析度，要更大就 3
-
-  const canvas = document.createElement("canvas");
-  canvas.width = baseWidth * SCALE;
-  canvas.height = baseHeight * SCALE;
-
-  const ctx = canvas.getContext("2d");
-  // 把整個畫布的座標放大
-  ctx.scale(SCALE, SCALE);
-
-  // 背景白
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, baseWidth, baseHeight);
-
-  // 標題
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 22px system-ui";
-  ctx.fillText("本週名單", 20, 32);
-
-  let currentY = 50;
-
-  grouped.forEach(group => {
-    let col = 0;
-    let x = gapX;
-    group.teams.forEach(team => {
-      const tw = getTeamCanvasWidth(team);
-      const y = currentY;
-      // 這裡用原本的寬高（沒乘 SCALE），因為上面 scale 過了
-      drawTeamBlockImage(ctx, team, x, y, tw, teamHeight);
-      if (col === 0) {
-        col = 1;
-        x += tw + gapX;
-      } else {
-        col = 0;
-        x = gapX;
-        currentY += teamHeight + gapY;
-      }
-    });
-    if (col === 1) {
-      currentY += teamHeight + gapY;
-    }
-  });
-
-  const link = document.createElement("a");
-  link.download = "this-week.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
 
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
       // 外框
@@ -1435,31 +1571,28 @@
       ctx.closePath();
       ctx.fill();
 
-      // header 文字加粗加大
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 15px system-ui";
-      ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 12, y + 20);
+      ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 12, y + 21);
 
-      // 內容
       const contentY = y + 30;
       const innerPad = 8;
       const squads = team.squads || [];
-      const squadCount = Math.max(squads.length, 1);
       const gap = 4;
-      const squadWidth = 100;
+      const squadCount = Math.min(6, squads.length || 6);
+      const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
       const squadHeight = h - 30 - innerPad * 2;
 
       for (let i = 0; i < squadCount; i++) {
         const sx = x + innerPad + i * (squadWidth + gap);
         const sy = contentY + innerPad;
 
-        // 小隊框
         ctx.fillStyle = "#ffffff";
         fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
         ctx.strokeStyle = "#e2e8f0";
         ctx.strokeRect(sx, sy, squadWidth, squadHeight);
 
-        // 小隊標題加粗
+        // 小隊標題
         ctx.fillStyle = "#f8fafc";
         ctx.fillRect(sx, sy, squadWidth, 22);
         ctx.strokeStyle = "#e2e8f0";
@@ -1471,31 +1604,28 @@
         const squad = squads[i];
         let rowY = sy + 26;
         for (let m = 0; m < 6; m++) {
-          // name box
           ctx.fillStyle = "#e2e8f0";
           ctx.fillRect(sx, rowY, squadWidth, 18);
 
           if (squad && squad.members[m] && squad.members[m].name) {
             const mem = squad.members[m];
             const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-            // 左色條
             ctx.fillStyle = jobColor;
             ctx.fillRect(sx, rowY, 4, 18);
-            // 名字也上色 & 加粗
-            ctx.fillStyle = jobColor;
-            ctx.font = "bold 12px system-ui";
+
+            ctx.fillStyle = jobColor; // 名字也吃職業色
+            ctx.font = "bold 11px system-ui";
             ctx.fillText(mem.name, sx + 6, rowY + 13);
           }
 
           rowY += 18;
 
-          // skill box
           ctx.fillStyle = "#f8fafc";
           ctx.fillRect(sx, rowY, squadWidth, 14);
           ctx.strokeStyle = "#e2e8f0";
           ctx.strokeRect(sx, rowY, squadWidth, 14);
           if (squad && squad.members[m] && squad.members[m].skill) {
-            ctx.fillStyle = "#334155";
+            ctx.fillStyle = "#0f172a";
             ctx.font = "bold 10px system-ui";
             ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
           }
@@ -1509,5 +1639,3 @@
   </script>
 </body>
 </html>
-
-

@@ -1027,28 +1027,25 @@ function saveToBackend() {
   } catch (e) {}
 
   fetch(REMOTE_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      action: "save",
-      payload: state
-    })
+  method: "POST",
+  body: JSON.stringify({
+    action: "save",
+    payload: state
   })
-    .then(res => res.json())
-    .then(data => {
-      if (data && data.success) {
-        alert("已儲存到後台");
-      } else {
-        alert("後台有回應但不是 success，請看 console");
-        console.log(data);
-      }
-    })
-    .catch(err => {
-      alert("無法連到後台，請檢查 Apps Script 部署權限");
-      console.error(err);
-    });
+})
+  .then(res => res.json())
+  .then(data => {
+    if (data && data.success) {
+      alert("已儲存到後台");
+    } else {
+      alert("後台有回應但不是 success，請看 console");
+      console.log(data);
+    }
+  })
+  .catch(err => {
+    alert("無法連到後台，請檢查 Apps Script 部署權限");
+    console.error(err);
+  });
 }
 
 // 載入時先讀本機，再讀雲端
@@ -1103,6 +1100,7 @@ loadState();
   </script>
 </body>
 </html>
+
 
 
 

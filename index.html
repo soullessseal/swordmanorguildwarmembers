@@ -330,6 +330,7 @@
   <script>
     const STORAGE_KEY = "guildCompareV9State";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
+let lastKnownUpdatedAt = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -1011,35 +1012,43 @@
     }
 
     async function loadState() {
-      // 1. 先畫左邊 tab + 成員
-      renderRoleTabs();
-      renderMemberList();
+  // 1. 先畫左邊 tab + 成員
+  renderRoleTabs();
+  renderMemberList();
 
-      // 2. 如果本機有，先套
-      const s = localStorage.getItem(STORAGE_KEY);
-      if (s) {
-        try {
-          const localState = JSON.parse(s);
-          applyStateToPage(localState, true);
-        } catch (e) {}
+  // 2. 如果本機有，先套
+  const s = localStorage.getItem(STORAGE_KEY);
+  if (s) {
+    try {
+      const localState = JSON.parse(s);
+      applyStateToPage(localState, true);
+    } catch (e) {}
+  }
+
+  // 3. 再去雲端拿，但不要讓它卡畫面
+  try {
+    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+    const data = await res.json();
+    if (data && data.success && data.payload) {
+      const currentLocal = localStorage.getItem(STORAGE_KEY);
+      // 如果雲端和現在的不同才要重畫
+      if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
+        applyStateToPage(data.payload, false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
       }
-
-      // 3. 再去雲端拿，但不要讓它卡畫面
-      try {
-        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-        const data = await res.json();
-        if (data && data.success && data.payload) {
-          const currentLocal = localStorage.getItem(STORAGE_KEY);
-          // 如果雲端和現在的不同才要重畫
-          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-            applyStateToPage(data.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
-          }
-        }
-      } catch (err) {
-        console.warn("雲端讀取逾時或失敗，先用本機資料", err);
+      // ⬇️ 新增：把雲端回來的 updatedAt 記下來
+      if (data.updatedAt) {
+        lastKnownUpdatedAt = data.updatedAt;
       }
     }
+  } catch (err) {
+    console.warn("雲端讀取逾時或失敗，先用本機資料", err);
+  }
+
+  // ⬇️ 新增：啟動版本偵測，每幾秒檢查一次
+  startVersionWatcher();
+}
+
 
     function applyStateToPage(state, fromLocal) {
       if (state.allMembers && Array.isArray(state.allMembers)) {
@@ -1161,8 +1170,50 @@
       alert("已還原到覆蓋前的上週名單。");
     }
 
+
+
+
+    
+function startVersionWatcher() {
+  const INTERVAL = 4000; // 每4秒檢查一次，可改成10000(10秒)
+
+  setInterval(async () => {
+    try {
+      const res = await fetch(REMOTE_API + "?action=version");
+      const data = await res.json();
+      if (data && data.success) {
+        const serverUpdatedAt = data.updatedAt || null;
+
+        // 第一次執行：只記錄，不比較
+        if (!lastKnownUpdatedAt) {
+          lastKnownUpdatedAt = serverUpdatedAt;
+          return;
+        }
+
+        // 偵測到有人在雲端按「儲存」
+        if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
+          console.log("偵測到雲端資料更新，正在重新讀取...");
+          const fullRes = await fetch(REMOTE_API + "?action=get");
+          const fullData = await fullRes.json();
+          if (fullData && fullData.success && fullData.payload) {
+            applyStateToPage(fullData.payload, false);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
+            lastKnownUpdatedAt = serverUpdatedAt;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("檢查版本失敗", err);
+    }
+  }, INTERVAL);
+}
+
+
+    
     // 初始化
     loadState();
+    
   </script>
 </body>
 </html>
+

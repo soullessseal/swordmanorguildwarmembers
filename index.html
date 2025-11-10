@@ -349,6 +349,12 @@
   // 🔴 新增：自動輪詢的秒數 (你可以改 15000 = 15秒、30000 = 30秒)
   const POLL_INTERVAL = 15000;
 
+   function dragFromSub(e) {
+  const name = e.target.querySelector(".sub-name")?.value?.trim() || "";
+  const color = "#374151";
+  e.dataTransfer.setData("text/plain", name);
+  showDragPreview(name, color);
+}
   let allMembers = [
     {id:1, name: "四季春曉川", job: "九靈", skill: "左鈎天浩意"},
     {id:2, name: "狐戀雪", job: "素問", skill: "太極圖"},
@@ -790,6 +796,7 @@
   </script>
 </body>
 </html>
+
 
 
 

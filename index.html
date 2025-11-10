@@ -1095,11 +1095,95 @@ function applyStateToPage(state) {
     state.subs.forEach(su => createSubRow(su.name, su.skill));
   }
 }
+// 讓人眼睛變色的比對
+  function compare(){
+    // 先清掉舊的標記
+    document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      inp.classList.remove("highlight-new","highlight-missing");
+    });
 
+    // 收集上週
+    const lastNames = [];
+    lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if(v) lastNames.push(v);
+    });
+    const lastSet = new Set(lastNames);
+
+    // 收集本週
+    const thisNames = [];
+    thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if(v) thisNames.push({val:v, el:inp});
+    });
+    const thisSet = new Set(thisNames.map(x=>x.val));
+
+    // 本週有、上週沒有 → 綠
+    thisNames.forEach(obj=>{
+      if (obj.val && !lastSet.has(obj.val)) {
+        obj.el.classList.add("highlight-new");
+      }
+    });
+
+    // 上週有、本週沒有 → 要去上週那邊標紅
+    lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if (v && !thisSet.has(v)) {
+        inp.classList.add("highlight-missing");
+      }
+    });
+
+    // 替補那邊顯示「有沒有上場」
+    subsList.querySelectorAll(".substitute-row").forEach(row=>{
+      const name = row.querySelector(".sub-name").value.trim();
+      const status = row.querySelector(".sub-status");
+      if(!name){ status.textContent = ""; return; }
+      if(thisSet.has(name)){
+        status.textContent = "本週已上場 ✅";
+        status.style.color = "#16a34a";
+      } else {
+        status.textContent = "本週未上場";
+        status.style.color = "#b91c1c";
+      }
+    });
+  }
+
+  // 把本週整包覆蓋到上週
+  let lastSnapshot = null;   // 放在這裡讓兩個函式都能用
+  function copyThisToLast(){
+    if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+
+    // 先存一份目前上週，等一下可以還原
+    lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
+
+    // 取本週資料，塞進上週
+    const thisData = getPanelData(thisWeekPanel);
+    setPanelData(lastWeekPanel, thisData, "last");
+
+    // 存一下狀態（本機 + 你前面那個 saveState 會做的事）
+    saveState();
+
+    alert("已將本週名單的內容覆蓋到上週。");
+  }
+
+  // 還原成覆蓋前
+  function undoCopy(){
+    if(!lastSnapshot){
+      alert("沒有可還原的內容。");
+      return;
+    }
+    const data = JSON.parse(lastSnapshot);
+    setPanelData(lastWeekPanel, data, "last");
+    saveState();
+    alert("已還原到覆蓋前的上週名單。");
+  }
+
+  // 最後一行保持不變
 loadState();
   </script>
 </body>
 </html>
+
 
 
 

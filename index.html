@@ -995,43 +995,91 @@
       return arr;
     }
 
-    function saveState(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-    }
+   const REMOTE_API = "https://script.google.com/macros/s/你的網址/exec";  // ←換成剛剛部署拿到的網址
 
-    function loadState(){
-      const s = localStorage.getItem(STORAGE_KEY);
-      if(!s) return;
-      try {
-        const state = JSON.parse(s);
-        if(state.allMembers && Array.isArray(state.allMembers)){
-          allMembers = state.allMembers;
-          const maxId = allMembers.reduce((m,c)=>Math.max(m, c.id||0), 12);
-          nextMemberId = maxId + 1;
-        }
-        renderRoleTabs();
-        renderMemberList();
+function saveState(){
+  const state = {
+    allMembers,
+    lastWeek: getPanelData(lastWeekPanel),
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData()
+  };
 
-        if(state.lastWeek) {
-          setPanelData(lastWeekPanel, state.lastWeek, "last");
-          lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-        }
-        if(state.thisWeek) {
-          setPanelData(thisWeekPanel, state.thisWeek, "this");
-          thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-        }
-        if(state.subs){
-          subsList.innerHTML = "";
-          state.subs.forEach(su=>createSubRow(su.name, su.skill));
-        }
-      } catch(e){}
+  // 1. 先存到本機，保留你原本的行為
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e){}
+
+  // 2. 再存到雲端
+  fetch(REMOTE_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "save",
+      payload: state
+    })
+  }).catch(err => {
+    console.warn("儲存到後台失敗", err);
+  });
+}
+
+   async function loadState(){
+  // 1. 先讀本機，畫面先有東西
+  const s = localStorage.getItem(STORAGE_KEY);
+  if (s) {
+    try {
+      const state = JSON.parse(s);
+      applyStateToPage(state);
+    } catch(e){}
+  } else {
+    // 沒本機也要先把左邊角色畫出來
+    renderRoleTabs();
+    renderMemberList();
+  }
+
+  // 2. 再試著讀雲端，成功就覆蓋
+  try {
+    const res = await fetch(REMOTE_API + "?action=get");
+    const data = await res.json();
+    if (data && data.success && data.payload) {
+      applyStateToPage(data.payload);
+      // 同步一份回本機
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
     }
+  } catch(err) {
+    console.warn("讀取後台失敗", err);
+  }
+}
+
+// 幫手：把 state 套回你的畫面
+function applyStateToPage(state){
+  // 成員
+  if(state.allMembers && Array.isArray(state.allMembers)){
+    allMembers = state.allMembers;
+    const maxId = allMembers.reduce((m,c)=>Math.max(m, c.id||0), 12);
+    nextMemberId = maxId + 1;
+  }
+  renderRoleTabs();
+  renderMemberList();
+
+  // 上週
+  if(state.lastWeek) {
+    setPanelData(lastWeekPanel, state.lastWeek, "last");
+    lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+  }
+  // 本週
+  if(state.thisWeek) {
+    setPanelData(thisWeekPanel, state.thisWeek, "this");
+    thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+  }
+  // 替補
+  if(state.subs){
+    subsList.innerHTML = "";
+    state.subs.forEach(su=>createSubRow(su.name, su.skill));
+  }
+}
 
     function compare(){
       document.querySelectorAll("input[data-role='name']").forEach(inp=>{
@@ -1099,3 +1147,4 @@
   </script>
 </body>
 </html>
+

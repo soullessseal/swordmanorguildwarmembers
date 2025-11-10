@@ -335,6 +335,19 @@
   </div>
 
   <script>
+    const data = await res.json();
+    if (data && data.success) {
+      alert("已儲存到後台");
+    } else {
+      alert("後台回傳失敗，請開 F12 看 console");
+      console.log("後台回傳：", data);
+    }
+  } catch (err) {
+    alert("無法連到後台，請檢查 Apps Script 是否部署為『任何人都可存取』");
+    console.error(err);
+  }
+}
+
     const STORAGE_KEY = "guildCompareV8_2State";
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -1171,24 +1184,11 @@ async function saveToBackend() {
         payload: state
       })
     });
-
-    const data = await res.json();
-    if (data && data.success) {
-      alert("已儲存到後台");
-    } else {
-      alert("後台回傳失敗，請開 F12 看 console");
-      console.log("後台回傳：", data);
-    }
-  } catch (err) {
-    alert("無法連到後台，請檢查 Apps Script 是否部署為『任何人都可存取』");
-    console.error(err);
-  }
-}
-
     loadState();
   </script>
 </body>
 </html>
+
 
 
 

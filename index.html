@@ -874,7 +874,17 @@
           }
         }
       });
-
+      
+      // 記錄有改動小隊數量的團
+  thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
+    const team = block.dataset.team;
+    const count = block.querySelectorAll(".squad").length;
+    const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : count;
+    if (count !== orig) {
+      marks.push({ type: "squadChange", team });
+      block.dataset.lastSquadCount = count; // 更新記錄
+    }
+  });
       // 替補
       subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
         const row = el.closest(".substitute-row");
@@ -913,6 +923,11 @@
           const row = subsList.children[m.index];
           if (row) row.classList.add(cls);
         }
+        // 框出整個團
+    else if (m.type === "squadChange") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      if (block) block.classList.add(cls);
+    }
       });
     }
 
@@ -1564,3 +1579,4 @@
   </script>
 </body>
 </html>
+

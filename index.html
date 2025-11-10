@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v11.3 (fast)</title>
+  <title>幫戰名單比對工具 v12 (fast)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -152,7 +152,8 @@
       box-sizing: border-box; font-weight: 700;
     }
     .readonly-skill { background:#e2e8f0; }
-    .locked-input { background:#e2e8f0; pointer-events:none; }
+    /* 把 pointer-events 拿掉，讓上週也能點到跳搜尋 */
+    .locked-input { background:#e2e8f0; }
 
     /* 深一點的綠 + 紅 */
     .highlight-new {
@@ -235,6 +236,53 @@
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
     .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
 
+    /* 比對的人員標籤區塊 */
+    #comparePanel h3 { margin-top: 0; }
+    .compare-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
+    .compare-tag {
+      background:#e2e8f0;
+      border-radius:999px;
+      padding:.2rem .6rem;
+      font-size:.65rem;
+      cursor:pointer;
+    }
+    .compare-tag.muted {
+      background:#0f172a;
+      color:#fff;
+      opacity:.55;
+    }
+
+    /* 成員搜尋浮層 */
+    #memberPicker {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: .5rem;
+      box-shadow: 0 15px 30px rgba(15,23,42,.12);
+      width: 220px;
+      display: none;
+      z-index: 9999;
+      padding: .4rem;
+    }
+    #memberPicker input {
+      width: 100%;
+      margin-bottom: .35rem;
+      padding: .3rem .4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: .35rem;
+    }
+    #memberPicker .picker-list {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    #memberPicker .picker-item {
+      padding: .25rem .2rem;
+      border-radius: .35rem;
+      cursor: pointer;
+      font-size: .75rem;
+    }
+    #memberPicker .picker-item:hover { background: #e2e8f0; }
+
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
       #allMembersPanel, .right-sticky-wrap { position: static; }
@@ -243,7 +291,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v11.2</h1>
+  <h1>幫戰名單比對工具 v12</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -295,7 +343,7 @@
       <div class="right-actions-bar">
         <button class="float-btn danger" onclick="requestSave()">儲存</button>
         <button class="float-btn" onclick="compare()">比對</button>
-        <button class="float-btn secondary" onclick="clearCompareMarks()">清除標示</button>
+        <!-- 移除整體清除，改下方標籤個別清 -->
         <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
         <button class="float-btn secondary" onclick="undoCopy()">還原</button>
       </div>
@@ -305,7 +353,18 @@
         <div id="subsList"></div>
         <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
       </div>
+      <div class="panel" id="comparePanel">
+        <h3>待處理成員</h3>
+        <p style="font-size:.65rem;color:#475569;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
+        <div id="compareTags" class="compare-tags"></div>
+      </div>
     </div>
+  </div>
+
+  <!-- 成員搜尋浮層 -->
+  <div id="memberPicker">
+    <input id="pickerSearch" placeholder="搜尋成員..." oninput="filterPickerList()" />
+    <div class="picker-list" id="pickerList"></div>
   </div>
 
   <!-- 登入 modal -->
@@ -323,24 +382,23 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "guildCompareV11State";
+    const STORAGE_KEY = "guildCompareV12State";
+    const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
 
-    // 登入帳密
-    const ACCOUNTS = {
-      dabai: "0416",
-      baoan: "1370",
-      stitch: "50433"
-    };
-    const LOGIN_TTL = 20 * 60 * 1000;
+    // 1 小時
+    const LOGIN_TTL = 60 * 60 * 1000;
+
+    // 前端不放帳密，改由後端驗
+    // 你要在 Apps Script 做一個 action=login，回傳 {success:true, user:"dabai"} 這樣的格式
     let currentUser = null;
     let lastLoginTime = 0;
 
-    // 框線顏色
     const OUTLINE_CLASS = {
       dabai: "outline-dabai",
       baoan: "outline-baoan",
-      stitch: "outline-stitch"
+      stitch: "outline-stitch",
+      unknown: "outline-dabai"
     };
 
     let lastKnownUpdatedAt = null;
@@ -350,8 +408,8 @@
       "九靈": "#d8b4fe",
       "鐵衣": "#fdba74",
       "素問": "#f9a8d4",
-      "龍吟": "#92d46d",     // 暗一點
-      "神相": "#3b82f6",     // 亮一點
+      "龍吟": "#92d46d",
+      "神相": "#3b82f6",
       "碎夢": "#7dd3fc",
       "血河": "#f43f5e"
     };
@@ -383,11 +441,21 @@
     const memberList = document.getElementById("memberList");
     const searchInput = document.getElementById("memberSearch");
     const roleTabs = document.getElementById("roleTabs");
+    const compareTagsEl = document.getElementById("compareTags");
 
     let draggingPanelInput = null;
     let draggingPanelSide = null;
     let dragSuccess = false;
     let dragPreviewEl = null;
+
+    // 比對後可個別隱藏的人
+    const compareIgnore = new Set();
+
+    // 搜尋浮層用
+    let pickerTargetInput = null;
+    const memberPicker = document.getElementById("memberPicker");
+    const pickerList = document.getElementById("pickerList");
+    const pickerSearch = document.getElementById("pickerSearch");
 
     function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 
@@ -445,7 +513,6 @@
       }
     }
 
-    // 輸入有改 → 標 dirty
     function handlePanelInputChange(input){
       input.dataset.dirty = "1";
       clearHighlightOnEdit(input);
@@ -459,7 +526,7 @@
         if(side === "last"){
           html += `
             <div class="member-row">
-              <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" readonly>
+              <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" onclick="maybeOpenMemberPicker(event, this)" readonly>
             </div>
             <div class="member-row">
               <input data-role="skill" class="readonly-skill locked-input" placeholder="" readonly>
@@ -470,7 +537,7 @@
             <div class="member-row">
               <input data-role="name" data-side="${side}" draggable="true"
                 ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
-                oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" placeholder="成員${i}">
+                oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" onclick="maybeOpenMemberPicker(event, this)" placeholder="成員${i}">
             </div>
             <div class="member-row">
               <input data-role="skill" class="readonly-skill" placeholder="" readonly>
@@ -530,6 +597,8 @@
       for(let s=1;s<=3;s++){
         sqs.appendChild(createSquad(s, side, teamName));
       }
+      // 初始小隊數量記下來，之後增減才知道
+      block.dataset.lastSquadCount = "3";
       adjustSquadWidths(block);
       return block;
     }
@@ -555,9 +624,12 @@
       const side = block.dataset.side;
       const teamName = block.dataset.team;
       const count = sqs.children.length;
-      sqs.appendChild(createSquad(count+1, side, teamName));
+      const newSq = createSquad(count+1, side, teamName);
+      sqs.appendChild(newSq);
       adjustSquadWidths(block);
       markDirty(block);
+      // 新增的小隊也要能被框
+      block.dataset.lastSquadCount = String(count+1);
       saveState();
     }
 
@@ -570,6 +642,7 @@
         renumberSquads(block);
         adjustSquadWidths(block);
         markDirty(block);
+        block.dataset.lastSquadCount = String(parent.children.length);
         saveState();
       }
     }
@@ -603,6 +676,7 @@
       row.className = "substitute-row";
       row.draggable = true;
       row.dataset.subIndex = subCounter++;
+      row.dataset.dirty = "1"; // 新增的要被框出來
       row.ondragstart = dragFromSub;
       row.innerHTML = `
         <input class="sub-name" placeholder="替補成員" value="${name}"
@@ -850,7 +924,7 @@
       });
     }
 
-    // 收集這次要畫的框線，存到 payload
+    // 收集這次要畫的框線
     function collectDirtyMarks() {
       const marks = [];
 
@@ -874,17 +948,23 @@
           }
         }
       });
-      
-      // 記錄有改動小隊數量的團
-  thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
-    const team = block.dataset.team;
-    const count = block.querySelectorAll(".squad").length;
-    const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : count;
-    if (count !== orig) {
-      marks.push({ type: "squadChange", team });
-      block.dataset.lastSquadCount = count; // 更新記錄
-    }
-  });
+
+      // 檢查小隊數量變化 → 標整團 + 標新小隊
+      thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
+        const team = block.dataset.team;
+        const squ = block.querySelectorAll(".squad").length;
+        const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
+        if (squ !== orig) {
+          marks.push({ type: "squadChange", team });
+          if (squ > orig) {
+            for (let i = orig; i < squ; i++) {
+              marks.push({ type: "squadNew", team, squad: i });
+            }
+          }
+          block.dataset.lastSquadCount = String(squ);
+        }
+      });
+
       // 替補
       subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
         const row = el.closest(".substitute-row");
@@ -897,41 +977,51 @@
       return marks;
     }
 
-    // 把框線畫到畫面上（大家都能看到）
     function renderRecentMarks(recentMarks) {
-  clearAllOutlines();
-  if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
-  const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
+      clearAllOutlines();
+      if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
+      const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
 
-  recentMarks.marks.forEach(m => {
-    if (m.type === "member") {
-      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-      if (!block) return;
-      const squads = block.querySelectorAll(".squads .squad");
-      const sq = squads[m.squad];
-      if (!sq) return;
-      const names = sq.querySelectorAll("input[data-role='name']");
-      const inp = names[m.member];
-      if (inp) inp.classList.add(cls);
-    } 
-    else if (m.type === "team-tag") {
-      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-      if (block) {
-        const sel = block.querySelector(".team-tag-select");
-        if (sel) sel.classList.add(cls);
-      }
-    } 
-    else if (m.type === "sub") {
-      const row = subsList.children[m.index];
-      if (row) row.classList.add(cls);
+      recentMarks.marks.forEach(m => {
+        if (m.type === "member") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (!block) return;
+          const squads = block.querySelectorAll(".squads .squad");
+          const sq = squads[m.squad];
+          if (!sq) return;
+          const names = sq.querySelectorAll("input[data-role='name']");
+          const inp = names[m.member];
+          if (inp) inp.classList.add(cls);
+        } 
+        else if (m.type === "team-tag") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (block) {
+            const sel = block.querySelector(".team-tag-select");
+            if (sel) sel.classList.add(cls);
+          }
+        } 
+        else if (m.type === "sub") {
+          const row = subsList.children[m.index];
+          if (row) row.classList.add(cls);
+        }
+        else if (m.type === "squadChange") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (block) block.classList.add(cls);
+        }
+        else if (m.type === "squadNew") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (!block) return;
+          const squads = block.querySelectorAll(".squad");
+          const newsq = squads[m.squad];
+          if (newsq) {
+            // 框整個小隊
+            newsq.classList.add(cls);
+            const title = newsq.querySelector(".squad-title");
+            if (title) title.classList.add(cls);
+          }
+        }
+      });
     }
-    // 🔹 新增：框出整個團
-    else if (m.type === "squadChange") {
-      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-      if (block) block.classList.add(cls);
-    }
-  });
-}
 
     function clearAllOutlines(){
       document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
@@ -981,7 +1071,10 @@
 
       if(target.dataset && target.dataset.role === "name"){
         const targetSide = target.dataset.side;
-        if(targetSide === "last") return;
+        if(targetSide === "last") {
+          // 上週不允許拖進
+          return;
+        }
         const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
 
         // 同面板互換
@@ -1133,6 +1226,8 @@
           });
         });
         renumberSquads(block);
+        // 同步當下的小隊數量
+        block.dataset.lastSquadCount = String(neededCount || 3);
         adjustSquadWidths(block);
       });
     }
@@ -1167,6 +1262,15 @@
     async function loadState(){
       renderRoleTabs();
       renderMemberList();
+      // 讀登入狀態
+      const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
+      if (loginStr) {
+        try {
+          const obj = JSON.parse(loginStr);
+          currentUser = obj.user || null;
+          lastLoginTime = obj.time || 0;
+        } catch(e){}
+      }
 
       const s = localStorage.getItem(STORAGE_KEY);
       if (s) {
@@ -1213,7 +1317,6 @@
         state.subs.forEach(su => createSubRow(su.name, su.skill));
       }
 
-      // 把最新儲存的框線畫出來
       if (state.recentMarks) {
         renderRecentMarks(state.recentMarks);
       } else {
@@ -1221,7 +1324,6 @@
       }
     }
 
-    // 儲存流程要先登入
     function requestSave(){
       const now = Date.now();
       if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
@@ -1238,17 +1340,32 @@
       document.getElementById("loginUser").focus();
     }
     function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
+
     function doLogin(){
       const u = document.getElementById("loginUser").value.trim();
       const p = document.getElementById("loginPass").value.trim();
-      if (ACCOUNTS[u] && ACCOUNTS[u] === p) {
-        currentUser = u;
-        lastLoginTime = Date.now();
-        closeLogin();
-        doSaveToBackend();
-      } else {
-        document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
-      }
+      // 前端不存帳密，送到後端驗
+      fetch(REMOTE_API + "?action=login", {
+        method: "POST",
+        body: JSON.stringify({user: u, pass: p})
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if (data && data.success && data.user) {
+          currentUser = data.user;
+          lastLoginTime = Date.now();
+          // 存起來，重新整理也還在
+          localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
+          closeLogin();
+          doSaveToBackend();
+        } else {
+          document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+        }
+      })
+      .catch(err=>{
+        console.warn("login error", err);
+        document.getElementById("loginMsg").textContent = "登入失敗";
+      });
     }
 
     function doSaveToBackend(){
@@ -1259,7 +1376,6 @@
         subs: getSubsData()
       };
 
-      // 把這次的標示帶進去存
       const marks = collectDirtyMarks();
       state.recentMarks = {
         user: currentUser || "unknown",
@@ -1279,13 +1395,8 @@
       .then(data=>{
         if (data && data.success) {
           alert("已儲存到後台");
-
-          // 清掉所有舊的框線，再畫這次的
           renderRecentMarks(state.recentMarks);
-
-          // 清掉 dirty
           document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-
         } else {
           alert("後台有回應但不是 success，請看 console");
           console.log(data);
@@ -1298,6 +1409,7 @@
     }
 
     function compare(){
+      // 先清掉舊的紅綠
       document.querySelectorAll("input[data-role='name']").forEach(inp=>{
         inp.classList.remove("highlight-new","highlight-missing");
       });
@@ -1316,19 +1428,29 @@
       });
       const thisSet = new Set(thisNames.map(x=>x.val));
 
+      const newOnes = [];
+      const missingOnes = [];
+
       thisNames.forEach(obj=>{
         if (obj.val && !lastSet.has(obj.val)) {
-          obj.el.classList.add("highlight-new");
+          if (!compareIgnore.has(obj.val)) {
+            obj.el.classList.add("highlight-new");
+          }
+          newOnes.push(obj.val);
         }
       });
 
       lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
         const v = inp.value.trim();
         if (v && !thisSet.has(v)) {
-          inp.classList.add("highlight-missing");
+          if (!compareIgnore.has(v)) {
+            inp.classList.add("highlight-missing");
+          }
+          missingOnes.push(v);
         }
       });
 
+      // 替補判斷保持原樣
       subsList.querySelectorAll(".substitute-row").forEach(row=>{
         const name = row.querySelector(".sub-name").value.trim();
         const status = row.querySelector(".sub-status");
@@ -1341,12 +1463,37 @@
           status.style.color = "#b91c1c";
         }
       });
+
+      renderCompareTags(newOnes, missingOnes);
     }
-    function clearCompareMarks(){
-      document.querySelectorAll(".highlight-new, .highlight-missing").forEach(inp=>{
-        inp.classList.remove("highlight-new","highlight-missing");
+
+    function renderCompareTags(newList, missingList){
+      compareTagsEl.innerHTML = "";
+      const allNames = new Set([...newList, ...missingList]);
+      allNames.forEach(name=>{
+        const tag = document.createElement("div");
+        tag.className = "compare-tag" + (compareIgnore.has(name) ? " muted" : "");
+        tag.textContent = name;
+        tag.onclick = ()=>toggleCompareIgnore(name);
+        compareTagsEl.appendChild(tag);
       });
-      subsList.querySelectorAll(".substitute-row .sub-status").forEach(s=>s.textContent="");
+    }
+
+    function toggleCompareIgnore(name){
+      if (compareIgnore.has(name)) {
+        compareIgnore.delete(name);
+        // 恢復標示：找出該名在兩個面板中，依現在名單再跑一次比對
+      } else {
+        compareIgnore.add(name);
+        // 馬上把畫面上對應的人移除紅綠
+        document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+          if (inp.value.trim() === name) {
+            inp.classList.remove("highlight-new","highlight-missing");
+          }
+        });
+      }
+      // 重新算一次比對畫面
+      compare();
     }
 
     function copyThisToLast(){
@@ -1396,7 +1543,7 @@
       }, INTERVAL);
     }
 
-    /* ========= 下載圖片 (跟前一版一致，有高解析) ========= */
+    /* ========= 下載圖片 ========= */
     function fillRoundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -1554,7 +1701,6 @@
             const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
             ctx.fillStyle = jobColor;
             ctx.fillRect(sx, rowY, 4, 18);
-
             ctx.fillStyle = jobColor;
             ctx.font = "bold 11px system-ui";
             ctx.fillText(mem.name, sx + 6, rowY + 13);
@@ -1576,9 +1722,61 @@
       }
     }
 
+    /* ========= 成員搜尋浮層 ========= */
+    function maybeOpenMemberPicker(e, input){
+      if (input.value.trim() === "") {
+        openMemberPicker(input);
+      }
+    }
+    function openMemberPicker(input){
+      pickerTargetInput = input;
+      const rect = input.getBoundingClientRect();
+      memberPicker.style.left = (rect.left + window.scrollX) + "px";
+      memberPicker.style.top = (rect.bottom + window.scrollY + 4) + "px";
+      memberPicker.style.display = "block";
+      pickerSearch.value = "";
+      renderPickerList(allMembers);
+      pickerSearch.focus();
+    }
+    function renderPickerList(list){
+      pickerList.innerHTML = "";
+      list.forEach(m=>{
+        const item = document.createElement("div");
+        item.className = "picker-item";
+        item.textContent = m.name + (m.job? " ("+m.job+")": "");
+        item.onclick = ()=>selectMemberFromPicker(m);
+        pickerList.appendChild(item);
+      });
+    }
+    function filterPickerList(){
+      const kw = pickerSearch.value.trim();
+      const list = allMembers.filter(m=>!kw || m.name.includes(kw) || (m.skill && m.skill.includes(kw)));
+      renderPickerList(list);
+    }
+    function selectMemberFromPicker(m){
+      if (!pickerTargetInput) return;
+      pickerTargetInput.value = m.name;
+      applyJobColor(pickerTargetInput, m.job);
+      const skillRow = pickerTargetInput.parentElement.nextElementSibling;
+      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+        skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
+      }
+      pickerTargetInput.dataset.dirty = "1";
+      saveState();
+      closeMemberPicker();
+    }
+    function closeMemberPicker(){
+      memberPicker.style.display = "none";
+      pickerTargetInput = null;
+    }
+    document.addEventListener("click", function(e){
+      if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) {
+        closeMemberPicker();
+      }
+    });
+
     // 初始化
     loadState();
   </script>
 </body>
 </html>
-

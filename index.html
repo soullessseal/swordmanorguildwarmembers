@@ -998,7 +998,7 @@
 
    const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";  // ←換成剛剛部署拿到的網址
 
-function saveState(){
+function saveState() {
   const state = {
     allMembers,
     lastWeek: getPanelData(lastWeekPanel),
@@ -1006,12 +1006,31 @@ function saveState(){
     subs: getSubsData()
   };
 
-  // 1. 先存到本機，保留你原本的行為
+  // 只存本機，照你原本的行為
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch(e){}
+  } catch (e) {}
+}
 
-  // 2. 再存到雲端
+
+
+const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
+
+function saveToBackend() {
+  // 先把最新畫面打包一次
+  const state = {
+    allMembers,
+    lastWeek: getPanelData(lastWeekPanel),
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData()
+  };
+
+  // 也順便更新本機
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+
+  // 再傳去後台
   fetch(REMOTE_API, {
     method: "POST",
     headers: {
@@ -1021,10 +1040,24 @@ function saveState(){
       action: "save",
       payload: state
     })
-  }).catch(err => {
-    console.warn("儲存到後台失敗", err);
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data && data.success) {
+      alert("已儲存到後台");
+    } else {
+      alert("後台有回應但不是 success，請看 console");
+      console.log("後台回應：", data);
+    }
+  })
+  .catch(err => {
+    alert("無法連到後台，請檢查 Apps Script 部署權限");
+    console.error(err);
   });
 }
+
+
+    
 
    async function loadState(){
   // 1. 先讀本機，畫面先有東西
@@ -1148,5 +1181,6 @@ function applyStateToPage(state){
   </script>
 </body>
 </html>
+
 
 

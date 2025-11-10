@@ -271,7 +271,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單工具 v8.2</h1>
+  <h1>幫戰名單比對工具 v8.2</h1>
 
   <div class="layout">
     <!-- 左側全部成員 -->
@@ -320,7 +320,6 @@
     <!-- 右側固定欄 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
-        <button class="float-btn secondary" onclick="saveToBackend()">儲存</button>
         <button class="float-btn" onclick="compare()">比對</button>
         <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
         <button class="float-btn secondary" onclick="undoCopy()">還原</button>
@@ -335,19 +334,6 @@
   </div>
 
   <script>
-    const data = await res.json();
-    if (data && data.success) {
-      alert("已儲存到後台");
-    } else {
-      alert("後台回傳失敗，請開 F12 看 console");
-      console.log("後台回傳：", data);
-    }
-  } catch (err) {
-    alert("無法連到後台，請檢查 Apps Script 是否部署為『任何人都可存取』");
-    console.error(err);
-  }
-}
-
     const STORAGE_KEY = "guildCompareV8_2State";
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -1156,39 +1142,9 @@ function applyStateToPage(state){
       saveState();
       alert("已還原到覆蓋前的上週名單。");
     }
-const REMOTE_API = "https://script.google.com/macros/s/你的-webapp-網址/exec"; // 換成你自己的
 
-async function saveToBackend() {
-  // 1. 把現在畫面的資料全部打包
-  const state = {
-    allMembers,
-    lastWeek: getPanelData(lastWeekPanel),
-    thisWeek: getPanelData(thisWeekPanel),
-    subs: getSubsData()
-  };
-
-  // 2. 也順便存一份到本機，保留你原本的行為
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {}
-
-  // 3. 傳到 Google Apps Script
-  try {
-    const res = await fetch(REMOTE_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        action: "save",
-        payload: state
-      })
-    });
     loadState();
   </script>
 </body>
 </html>
-
-
-
 

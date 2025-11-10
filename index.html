@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v9 (fast + tag + download)</title>
+  <title>幫戰名單比對工具 v9 (fast)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -158,13 +158,17 @@
       align-items: center;
       gap: .4rem;
     }
+    /* 看得見字的下拉 */
     .team-tag-select {
       font-size: .65rem;
       border-radius: .35rem;
       border: none;
       padding: .15rem .35rem;
-      background: rgba(255,255,255,0.2);
-      color: #fff;
+      background: rgba(255,255,255,0.95);
+      color: #0f172a;
+    }
+    .team-tag-select option {
+      color: #0f172a;
     }
     .team-head .head-actions { display:flex; gap:.35rem; }
     .head-add-btn {
@@ -276,16 +280,21 @@
       border-radius: 999px;
     }
 
-    .panel-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .5rem;
+    /* 讓本週面板可以放絕對定位的下載鈕，不影響高度 */
+    #thisWeek {
+      position: relative;
+    }
+    #downloadBtn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #0f766e;
     }
 
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
       #allMembersPanel, .right-sticky-wrap { position: static; }
+      #downloadBtn { position: static; margin-bottom: .5rem; }
     }
   </style>
 </head>
@@ -332,10 +341,8 @@
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
-      <div class="panel-title-row">
-        <h3 style="margin:0;">本週名單</h3>
-        <button class="float-btn secondary" onclick="downloadThisWeekImage()" style="background:#0f766e;">下載圖片</button>
-      </div>
+      <h3>本週名單</h3>
+      <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
       <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
     </div>
 
@@ -500,7 +507,6 @@
       return html;
     }
 
-    // 新增：團別選單 html
     function createGroupTagSelect(selected="一團") {
       const opts = ["一團","二團","三團","四團"];
       return `
@@ -551,7 +557,7 @@
       return block;
     }
 
-    // 把架子搭起來
+    // 架子
     teams.forEach(t => {
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
@@ -1238,91 +1244,139 @@
       }, INTERVAL);
     }
 
-    // 新功能：下載本週名單成圖片
-    async function downloadThisWeekImage() {
-      // 取出本週資料（含 tag）
-      const thisData = getPanelData(thisWeekPanel); // [{team, tag, squads:[{members:[]}]}, ...]
-      // 依照 tag 分組，順序固定
+    // 下載圖片：畫出跟表單一樣的格子
+    function downloadThisWeekImage() {
+      const data = getPanelData(thisWeekPanel);
       const tagOrder = ["一團","二團","三團","四團"];
       const grouped = tagOrder.map(tag => ({
         tag,
-        teams: thisData.filter(t => (t.tag || "一團") === tag)
+        teams: data.filter(t => (t.tag || "一團") === tag)
       })).filter(g => g.teams.length > 0);
 
-      // 簡單畫一張 canvas
+      // 兩個團並排，所以畫布寬一點
       const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      const teamWidth = 640;
+      const teamHeight = 320; // 足夠放 6 小隊
+      const gapX = 20;
+      const gapY = 40;
+      const cols = 2;
 
-      const width = 1600;
-      // 粗估高度：每一組 260 + 空白 30
-      const height = grouped.length * 280 + 80;
+      const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
+      const width = teamWidth * cols + gapX * (cols + 1);
+      const height = 60 + rows * (teamHeight + gapY);
+
       canvas.width = width;
       canvas.height = height;
+      const ctx = canvas.getContext("2d");
 
       // 背景
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0,0,width,height);
-
       ctx.fillStyle = "#0f172a";
-      ctx.font = "20px system-ui";
-      ctx.fillText("本週名單", 30, 40);
+      ctx.fillRect(0, 0, width, height);
 
-      let y = 70;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "20px system-ui";
+      ctx.fillText("本週名單", 20, 35);
+
+      let currentRowY = 60;
 
       grouped.forEach(group => {
-        // 標題：一團 / 二團 ...
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "16px system-ui";
-        ctx.fillText(group.tag, 30, y);
+        let colIndex = 0;
+        group.teams.forEach(team => {
+          const x = gapX + colIndex * (teamWidth + gapX);
+          const y = currentRowY;
 
-        // 同一行多個團，橫向排
-        let x = 30;
-        const boxWidth = 360;
-        const boxGap = 20;
-        const boxHeight = 220;
+          drawTeamBlockImage(ctx, team, x, y, teamWidth, teamHeight);
 
-        group.teams.forEach(t => {
-          // 外框
-          ctx.fillStyle = "#0f172a";
-          ctx.fillRect(x, y+10, boxWidth, boxHeight);
-
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(x+1, y+11, boxWidth-2, boxHeight-2);
-
-          // 團名
-          ctx.fillStyle = "#0f172a";
-          ctx.font = "15px system-ui";
-          ctx.fillText(t.team, x+12, y+35);
-
-          // 成員
-          ctx.font = "13px system-ui";
-          let innerY = y + 55;
-          t.squads.forEach((sq, sqIdx) => {
-            ctx.fillStyle = "#64748b";
-            ctx.fillText("第" + (sqIdx+1) + "隊", x+12, innerY);
-            innerY += 16;
-            sq.members.forEach(mem => {
-              if (mem.name) {
-                ctx.fillStyle = "#0f172a";
-                const label = mem.name + (mem.job ? "（"+mem.job+"）" : "") + (mem.skill ? " - "+mem.skill : "");
-                ctx.fillText(label, x+24, innerY);
-                innerY += 16;
-              }
-            });
-            innerY += 8;
-          });
-
-          x += boxWidth + boxGap;
+          colIndex++;
+          if (colIndex === cols) {
+            colIndex = 0;
+            currentRowY += teamHeight + gapY;
+          }
         });
-
-        y += 260; // 下一行留空
+        if (colIndex !== 0) {
+          currentRowY += teamHeight + gapY;
+        }
       });
 
-      // 下載
       const link = document.createElement("a");
       link.download = "this-week.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
+    }
+
+    // 把單一團畫出來，長得跟畫面差不多
+    function drawTeamBlockImage(ctx, team, x, y, w, h) {
+      // 外框
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x, y, w, h);
+
+      // header
+      const headColor = teamColorByName(team.team);
+      ctx.fillStyle = headColor;
+      ctx.fillRect(x, y, w, 30);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "14px system-ui";
+      ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 10, y + 20);
+
+      // 小隊區域
+      const contentY = y + 30;
+      const contentH = h - 30;
+      // 小隊最多抓 6
+      const squads = team.squads || [];
+      const squadCount = squads.length;
+      const maxSquads = Math.max(6, squadCount); // 保持跟畫面一樣 6 格寬
+      const gap = 4;
+      const innerPad = 8;
+      const squadWidth = (w - innerPad * 2 - gap * (6 - 1)) / 6;
+
+      for (let i = 0; i < 6; i++) {
+        const sx = x + innerPad + i * (squadWidth + gap);
+        const sy = contentY + innerPad;
+        // 小隊框
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx, sy, squadWidth, contentH - innerPad * 2);
+
+        // 小隊標題
+        ctx.fillStyle = "#f1f5f9";
+        ctx.fillRect(sx, sy, squadWidth, 22);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "12px system-ui";
+        ctx.fillText("第" + (i + 1) + "小隊", sx + 6, sy + 15);
+
+        const squad = squads[i];
+        // 6 格成員 (name + skill)
+        let rowY = sy + 26;
+        for (let m = 0; m < 6; m++) {
+          // name box
+          ctx.fillStyle = "#e2e8f0";
+          ctx.fillRect(sx, rowY, squadWidth, 18);
+
+          if (squad && squad.members[m] && squad.members[m].name) {
+            const mem = squad.members[m];
+            const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
+            // 左邊職業色條
+            ctx.fillStyle = jobColor;
+            ctx.fillRect(sx, rowY, 4, 18);
+
+            ctx.fillStyle = "#0f172a";
+            ctx.font = "11px system-ui";
+            ctx.fillText(mem.name, sx + 6, rowY + 13);
+          }
+
+          rowY += 18;
+
+          // skill box
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(sx, rowY, squadWidth, 14);
+          if (squad && squad.members[m] && squad.members[m].skill) {
+            ctx.fillStyle = "#475569";
+            ctx.font = "10px system-ui";
+            ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
+          }
+          rowY += 16;
+        }
+      }
     }
 
     // 初始化

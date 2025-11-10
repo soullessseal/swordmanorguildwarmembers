@@ -1325,86 +1325,93 @@
     }
 
     function downloadThisWeekImage() {
-      const data = getPanelData(thisWeekPanel);
-      const tagOrder = ["一團","二團","三團","四團"];
-      const grouped = tagOrder.map(tag => ({
-        tag,
-        teams: data.filter(t => (t.tag || "一團") === tag)
-      })).filter(g => g.teams.length > 0);
+  const data = getPanelData(thisWeekPanel);
+  const tagOrder = ["一團","二團","三團","四團"];
+  const grouped = tagOrder.map(tag => ({
+    tag,
+    teams: data.filter(t => (t.tag || "一團") === tag)
+  })).filter(g => g.teams.length > 0);
 
-      const teamHeight = 272;
-      const gapX = 20;
-      const gapY = 30;
-      const cols = 2;
+  const teamHeight = 272;
+  const gapX = 20;
+  const gapY = 30;
+  const cols = 2;
 
-      // 先算每一行需要多寬
-      const rowWidths = [];
-      grouped.forEach(group => {
-        let col = 0;
-        let rowWidth = gapX; // 左邊留白
-        group.teams.forEach(team => {
-          const tw = getTeamCanvasWidth(team);
-          if (col === 0) {
-            rowWidth += tw;
-            col = 1;
-          } else {
-            rowWidth += gapX + tw;
-            col = 0;
-            rowWidths.push(rowWidth + gapX);
-            rowWidth = gapX;
-          }
-        });
-        if (col === 1) {
-          rowWidths.push(rowWidth + gapX);
-        }
-      });
-      const canvasWidth = Math.max(820, ...rowWidths); // 不要太小
-
-      const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
-      const canvasHeight = 50 + rows * (teamHeight + gapY);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const ctx = canvas.getContext("2d");
-
-      // 背景白
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-      // (1) 標題加粗加大
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 22px system-ui";
-      ctx.fillText("本週名單", 20, 32);
-
-      let currentY = 50;
-
-      grouped.forEach(group => {
-        let col = 0;
-        let x = gapX;
-        group.teams.forEach(team => {
-          const tw = getTeamCanvasWidth(team);
-          const y = currentY;
-          drawTeamBlockImage(ctx, team, x, y, tw, teamHeight);
-          if (col === 0) {
-            col = 1;
-            x += tw + gapX;
-          } else {
-            col = 0;
-            x = gapX;
-            currentY += teamHeight + gapY;
-          }
-        });
-        if (col === 1) {
-          currentY += teamHeight + gapY;
-        }
-      });
-
-      const link = document.createElement("a");
-      link.download = "this-week.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+  // 先算每一行需要多寬
+  const rowWidths = [];
+  grouped.forEach(group => {
+    let col = 0;
+    let rowWidth = gapX;
+    group.teams.forEach(team => {
+      const tw = getTeamCanvasWidth(team);
+      if (col === 0) {
+        rowWidth += tw;
+        col = 1;
+      } else {
+        rowWidth += gapX + tw;
+        col = 0;
+        rowWidths.push(rowWidth + gapX);
+        rowWidth = gapX;
+      }
+    });
+    if (col === 1) {
+      rowWidths.push(rowWidth + gapX);
     }
+  });
+  const baseWidth = Math.max(820, ...rowWidths);
+  const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
+  const baseHeight = 50 + rows * (teamHeight + gapY);
+
+  // 🔥 想要高解析度就開這裡
+  const SCALE = 2; // 2 就是 2 倍解析度，要更大就 3
+
+  const canvas = document.createElement("canvas");
+  canvas.width = baseWidth * SCALE;
+  canvas.height = baseHeight * SCALE;
+
+  const ctx = canvas.getContext("2d");
+  // 把整個畫布的座標放大
+  ctx.scale(SCALE, SCALE);
+
+  // 背景白
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+  // 標題
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 22px system-ui";
+  ctx.fillText("本週名單", 20, 32);
+
+  let currentY = 50;
+
+  grouped.forEach(group => {
+    let col = 0;
+    let x = gapX;
+    group.teams.forEach(team => {
+      const tw = getTeamCanvasWidth(team);
+      const y = currentY;
+      // 這裡用原本的寬高（沒乘 SCALE），因為上面 scale 過了
+      drawTeamBlockImage(ctx, team, x, y, tw, teamHeight);
+      if (col === 0) {
+        col = 1;
+        x += tw + gapX;
+      } else {
+        col = 0;
+        x = gapX;
+        currentY += teamHeight + gapY;
+      }
+    });
+    if (col === 1) {
+      currentY += teamHeight + gapY;
+    }
+  });
+
+  const link = document.createElement("a");
+  link.download = "this-week.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
 
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
       // 外框
@@ -1502,3 +1509,4 @@
   </script>
 </body>
 </html>
+

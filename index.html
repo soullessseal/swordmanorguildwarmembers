@@ -899,37 +899,39 @@
 
     // 把框線畫到畫面上（大家都能看到）
     function renderRecentMarks(recentMarks) {
-      clearAllOutlines();
-      if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
-      const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
+  clearAllOutlines();
+  if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
+  const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
 
-      recentMarks.marks.forEach(m => {
-        if (m.type === "member") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (!block) return;
-          const squads = block.querySelectorAll(".squads .squad");
-          const sq = squads[m.squad];
-          if (!sq) return;
-          const names = sq.querySelectorAll("input[data-role='name']");
-          const inp = names[m.member];
-          if (inp) inp.classList.add(cls);
-        } else if (m.type === "team-tag") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (block) {
-            const sel = block.querySelector(".team-tag-select");
-            if (sel) sel.classList.add(cls);
-          }
-        } else if (m.type === "sub") {
-          const row = subsList.children[m.index];
-          if (row) row.classList.add(cls);
-        }
-        // 框出整個團
+  recentMarks.marks.forEach(m => {
+    if (m.type === "member") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      if (!block) return;
+      const squads = block.querySelectorAll(".squads .squad");
+      const sq = squads[m.squad];
+      if (!sq) return;
+      const names = sq.querySelectorAll("input[data-role='name']");
+      const inp = names[m.member];
+      if (inp) inp.classList.add(cls);
+    } 
+    else if (m.type === "team-tag") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      if (block) {
+        const sel = block.querySelector(".team-tag-select");
+        if (sel) sel.classList.add(cls);
+      }
+    } 
+    else if (m.type === "sub") {
+      const row = subsList.children[m.index];
+      if (row) row.classList.add(cls);
+    }
+    // 🔹 新增：框出整個團
     else if (m.type === "squadChange") {
       const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
       if (block) block.classList.add(cls);
     }
-      });
-    }
+  });
+}
 
     function clearAllOutlines(){
       document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
@@ -1579,4 +1581,5 @@
   </script>
 </body>
 </html>
+
 

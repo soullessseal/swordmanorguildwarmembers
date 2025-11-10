@@ -1342,37 +1342,31 @@
     function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
 
     function doLogin(){
-  const u = document.getElementById("loginUser").value.trim();
-  const p = document.getElementById("loginPass").value.trim();
-
-  fetch(REMOTE_API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "login",   // ← 一定要帶這行
-      user: u,
-      pass: p
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data && data.success && data.user) {
-      currentUser = data.user;
-      lastLoginTime = Date.now();
-      localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({
-        user: currentUser,
-        time: lastLoginTime
-      }));
-      closeLogin();
-      doSaveToBackend();
-    } else {
-      document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+      const u = document.getElementById("loginUser").value.trim();
+      const p = document.getElementById("loginPass").value.trim();
+      // 前端不存帳密，送到後端驗
+      fetch(REMOTE_API + "?action=login", {
+        method: "POST",
+        body: JSON.stringify({user: u, pass: p})
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if (data && data.success && data.user) {
+          currentUser = data.user;
+          lastLoginTime = Date.now();
+          // 存起來，重新整理也還在
+          localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
+          closeLogin();
+          doSaveToBackend();
+        } else {
+          document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+        }
+      })
+      .catch(err=>{
+        console.warn("login error", err);
+        document.getElementById("loginMsg").textContent = "登入失敗";
+      });
     }
-  })
-  .catch(err => {
-    console.warn("login error", err);
-    document.getElementById("loginMsg").textContent = "登入失敗";
-  });
-}
 
     function doSaveToBackend(){
       const state = {
@@ -1786,5 +1780,3 @@
   </script>
 </body>
 </html>
-
-

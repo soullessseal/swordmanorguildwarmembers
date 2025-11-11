@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12.4 </title>
+  <title>幫戰名單比對工具 v13 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -384,11 +384,16 @@
   border:1px solid #b91c1c;
   color:#7f1d1d;
 }
-    
+  /* 技能有內容時要變色 */
+input.skill-has {
+  background: #e0f2fe;   /* 淺藍 */
+  color: #0f172a;
+  font-weight: 600;
+}
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12.4 </h1>
+  <h1>幫戰名單比對工具 v13 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -447,9 +452,13 @@
       <div class="panel" id="subs">
         <h3>替補名單</h3>
         <p style="font-size:0.7rem;margin-top:0;">可拖進本週；拖進已有成員欄位會交換。</p>
-        <div id="subsList"></div>
-        <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
+        
+        <!-- V13更新替補列分頁 -->
+        <div id="subsList"></div> 
+<div class="pagination" id="subsPager"></div>
+<button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
       </div>
+      
       <div class="panel" id="comparePanel">
         <h3>待處理成員</h3>
         <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>  
@@ -482,7 +491,9 @@
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
-
+    let subsPage = 1;
+    const subsPerPage = 3;
+    
     // 1 小時
     const LOGIN_TTL = 60 * 60 * 1000;
 
@@ -941,8 +952,8 @@ setupPanelCarousel("thisWeek");
       input.classList.remove("highlight-new","highlight-missing");
     }
     
-/*V12.1再次嘗試調整框線*/
-    function createSubRow(name="", skill="", markDirty=false){
+/*V12.1調整框線*/ /*V13調整分頁*/
+    function createSubRow(name = "", skill = "", markDirty = false) {
   const row = document.createElement("div");
   row.className = "substitute-row";
   row.draggable = true;
@@ -962,12 +973,53 @@ setupPanelCarousel("thisWeek");
   subsList.appendChild(row);
 }
 
-    function addSub(){
-  createSubRow("", "", true);   // 這次真的新增 → 要框 V12.1修改
-  saveState();
+/* 把 subsList 裡的 row 做分頁顯示，下面產生頁碼按鈕 */
+function refreshSubsView() {
+  const rows = Array.from(subsList.children);
+  const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
+  if (subsPage > totalPages) subsPage = totalPages;
+
+  // 顯示當頁，其它隱藏
+  rows.forEach((row, idx) => {
+    const pageOfRow = Math.floor(idx / subsPerPage) + 1;
+    row.style.display = (pageOfRow === subsPage) ? "grid" : "none";
+  });
+
+  // 產生頁碼
+  const pager = document.getElementById("subsPager");
+  if (!pager) return;          // 沒有 pager 就跳過
+  pager.innerHTML = "";
+  for (let p = 1; p <= totalPages; p++) {
+    const btn = document.createElement("button");
+    btn.textContent = p;
+    btn.onclick = () => {
+      subsPage = p;
+      refreshSubsView();
+    };
+    btn.style.fontSize = ".65rem";
+    if (p === subsPage) {
+      btn.style.background = "#0f172a";
+      btn.style.color = "#fff";
+    }
+    pager.appendChild(btn);
+  }
 }
-    function deleteSub(btn){ subsList.removeChild(btn.parentElement); saveState(); }
-    for (let i = 0; i < 4; i++) createSubRow("", "", false); /*V12.1修改*/
+
+function addSub() {
+  createSubRow("", "", true);
+  saveState();
+  refreshSubsView();   // 新增後重畫
+}
+
+function deleteSub(btn) {
+  subsList.removeChild(btn.parentElement);
+  saveState();
+  refreshSubsView();   // 刪除後重畫
+}
+
+// 一開始先建立幾筆，再重畫一次
+for (let i = 0; i < 4; i++) createSubRow("", "", false);
+refreshSubsView();
 
     function renderRoleTabs(){
       roleTabs.innerHTML = "";
@@ -1193,6 +1245,17 @@ setupPanelCarousel("thisWeek");
       const job = getJobByName(name);
       applyJobColor(input, job);
     }
+
+    function setSkillInputValue(input, val) {
+  if (!input) return;
+  input.value = val || "";
+  if (val && val.trim() !== "") {
+    input.classList.add("skill-has");
+  } else {
+    input.classList.remove("skill-has");
+  }
+}
+    
     function clearDuplicateInPanel(panelEl, name, exceptInput){
       panelEl.querySelectorAll("input[data-role='name']").forEach(inp=>{
         if(inp !== exceptInput && inp.value.trim() === name){
@@ -1415,9 +1478,10 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
         target.value = member.name;
         applyJobColor(target, member.job);
         const srow = target.parentElement.nextElementSibling;
-        if(srow && srow.querySelector('input[data-role="skill"]')){
-          srow.querySelector('input[data-role="skill"]').value = member.skill ? member.skill : "";
-        }
+        if (srow && srow.querySelector('input[data-role="skill"]')){
+  setSkillInputValue(srow.querySelector('input[data-role="skill"]'), member.skill ? member.skill : "");
+}
+
         target.classList.remove("highlight-new","highlight-missing");
         clearDuplicateInPanel(targetPanel, member.name, target);
         markDirty(target);
@@ -1490,7 +1554,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
               }
               const skillRow = inp.parentElement.nextElementSibling;
               if(skillRow && skillRow.querySelector("input[data-role='skill']")){
-                skillRow.querySelector("input[data-role='skill']").value = member.skill ? member.skill : "";
+                setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
                 if(side==="last"){
                   const si = skillRow.querySelector("input[data-role='skill']");
                   si.readOnly = true;
@@ -2058,8 +2122,8 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   applyJobColor(pickerTargetInput, m.job);
   const skillRow = pickerTargetInput.parentElement.nextElementSibling;
   if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-    skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
-  }
+  setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || "");
+}
   pickerTargetInput.dataset.dirty = "1";
   saveState();
   closeMemberPicker();
@@ -2082,6 +2146,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

@@ -409,32 +409,35 @@ input.skill-has {
   font-weight: 600;
 }
 
-    /*手機板底部按鈕*/
-    @media (max-width: 900px) {
+   /* 手機板底部按鈕 */
+@media (max-width: 900px) {
   .right-actions-bar {
     position: fixed;
-    bottom: .6rem;
-    left: .7rem;
-    right: .7rem;
+    bottom: 1rem;              /* ← 黃色間距：調整底部距離 */
+    left: 1rem;                /* ← 黃色間距：調整左右邊距 */
+    right: 1rem;
     background: rgba(15, 23, 42, 0.95);
-    padding: .4rem .5rem;
+    padding: .6rem .8rem;      /* ← 調整內距，上下左右的空白感 */
     display: flex;
-    gap: .25rem;        /* ← 按鈕靠近一點 */
+    gap: .15rem;               /* ← 紅色間距：按鈕之間距離 */
     justify-content: space-between;
     z-index: 9999;
-    border-radius: .9rem;
-    height: 3.1rem;     /* ← 想多高改這裡 */
+    border-radius: 1rem;
+    height: 3.5rem;            /* ← 整條高度 */
     align-items: center;
   }
 
-  /* 按鈕自己也縮一點 
+  /* 按鈕放大 */
   .right-actions-bar .float-btn {
-    padding: .35rem .55rem;
-    font-size: .7rem;
-  }*/
+    flex: 1;
+    padding: .6rem .8rem;      /* ← 控制按鈕大小 */
+    font-size: .85rem;         /* ← 放大字體 */
+    font-weight: 600;
+    border-radius: .6rem;
+  }
 
   body {
-    padding-bottom: .4rem 4.5rem;  /* 底下留空，避免被遮到 */
+    padding-bottom: 5.2rem;    /* ← 底部留空避免被遮住 */
   }
 
   .right-sticky-wrap {
@@ -2254,6 +2257,7 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   </script>
 </body>
 </html>
+
 
 
 

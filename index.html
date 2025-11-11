@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12 (fast)</title>
+  <title>幫戰名單比對工具 v12.1 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -263,6 +263,7 @@
       display: none;
       z-index: 9999;
       padding: .4rem;
+      overflow: hidden;            /* ← V12.1新增：不要讓 input 超出去 */
     }
     #memberPicker input {
       width: 100%;
@@ -270,6 +271,7 @@
       padding: .3rem .4rem;
       border: 1px solid #cbd5e1;
       border-radius: .35rem;
+      box-sizing: border-box;      /* ← V12.1新增：扣掉 padding 的寬度 */
     }
     #memberPicker .picker-list {
       max-height: 180px;
@@ -288,10 +290,23 @@
       #allMembersPanel, .right-sticky-wrap { position: static; }
       #downloadBtn { position: static; margin-bottom: .5rem; }
     }
+
+    /* V12.1待處理成員的紅綠色 */
+.compare-tag.new-tag {
+  background:#bbf7d0;
+  border:1px solid #166534;
+  color:#064e3b;
+}
+.compare-tag.missing-tag {
+  background:#fca5a5;
+  border:1px solid #b91c1c;
+  color:#7f1d1d;
+}
+    
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12</h1>
+  <h1>幫戰名單比對工具 v12.1 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -355,7 +370,7 @@
       </div>
       <div class="panel" id="comparePanel">
         <h3>待處理成員</h3>
-        <p style="font-size:.65rem;color:#475569;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
+        <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>  
         <div id="compareTags" class="compare-tags"></div>
       </div>
     </div>
@@ -670,27 +685,34 @@
     function clearHighlightOnEdit(input){
       input.classList.remove("highlight-new","highlight-missing");
     }
+    
+/*V12.1再次嘗試調整框線*/
+    function createSubRow(name="", skill="", markDirty=false){
+  const row = document.createElement("div");
+  row.className = "substitute-row";
+  row.draggable = true;
+  row.dataset.subIndex = subCounter++;
+  if (markDirty) {
+    row.dataset.dirty = "1";
+  }
+  row.ondragstart = dragFromSub;
+  row.innerHTML = `
+    <input class="sub-name" placeholder="替補成員" value="${name}"
+      ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
+    <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
+    <button class="del-btn" onclick="deleteSub(this)">刪</button>
+    <span class="sub-status"></span>
+  `;
+  applyColorByName(row.querySelector(".sub-name"));
+  subsList.appendChild(row);
+}
 
-    function createSubRow(name="", skill=""){
-      const row = document.createElement("div");
-      row.className = "substitute-row";
-      row.draggable = true;
-      row.dataset.subIndex = subCounter++;
-      row.dataset.dirty = "1"; // 新增的要被框出來
-      row.ondragstart = dragFromSub;
-      row.innerHTML = `
-        <input class="sub-name" placeholder="替補成員" value="${name}"
-          ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
-        <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
-        <button class="del-btn" onclick="deleteSub(this)">刪</button>
-        <span class="sub-status"></span>
-      `;
-      applyColorByName(row.querySelector(".sub-name"));
-      subsList.appendChild(row);
-    }
-    function addSub(){ createSubRow(); saveState(); }
+    function addSub(){
+  createSubRow("", "", true);   // 這次真的新增 → 要框 V12.1修改
+  saveState();
+}
     function deleteSub(btn){ subsList.removeChild(btn.parentElement); saveState(); }
-    for(let i=0;i<4;i++) createSubRow();
+    for (let i = 0; i < 4; i++) createSubRow("", "", false); /*V12.1修改*/
 
     function renderRoleTabs(){
       roleTabs.innerHTML = "";
@@ -1313,9 +1335,10 @@
         thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
       }
       if (state.subs) {
-        subsList.innerHTML = "";
-        state.subs.forEach(su => createSubRow(su.name, su.skill));
-      }
+  subsList.innerHTML = "";
+  state.subs.forEach(su => createSubRow(su.name, su.skill, false));
+}  /*V12.1修改*/
+
 
       if (state.recentMarks) {
         renderRecentMarks(state.recentMarks);
@@ -1470,17 +1493,30 @@
       renderCompareTags(newOnes, missingOnes);
     }
 
+    
+/*V12.1調整紅綠色顯示排序*/
     function renderCompareTags(newList, missingList){
-      compareTagsEl.innerHTML = "";
-      const allNames = new Set([...newList, ...missingList]);
-      allNames.forEach(name=>{
-        const tag = document.createElement("div");
-        tag.className = "compare-tag" + (compareIgnore.has(name) ? " muted" : "");
-        tag.textContent = name;
-        tag.onclick = ()=>toggleCompareIgnore(name);
-        compareTagsEl.appendChild(tag);
-      });
-    }
+  compareTagsEl.innerHTML = "";
+
+  // 綠的先
+  newList.forEach(name => {
+    const tag = document.createElement("div");
+    tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
+    tag.textContent = name;
+    tag.onclick = () => toggleCompareIgnore(name);
+    compareTagsEl.appendChild(tag);
+  });
+
+  // 再紅的
+  missingList.forEach(name => {
+    const tag = document.createElement("div");
+    tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
+    tag.textContent = name;
+    tag.onclick = () => toggleCompareIgnore(name);
+    compareTagsEl.appendChild(tag);
+  });
+}
+
 
     function toggleCompareIgnore(name){
       if (compareIgnore.has(name)) {
@@ -1756,18 +1792,32 @@
       const list = allMembers.filter(m=>!kw || m.name.includes(kw) || (m.skill && m.skill.includes(kw)));
       renderPickerList(list);
     }
+
+    /*V12.1調整成員搜尋浮層的功能*/
     function selectMemberFromPicker(m){
-      if (!pickerTargetInput) return;
-      pickerTargetInput.value = m.name;
-      applyJobColor(pickerTargetInput, m.job);
-      const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-        skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
-      }
-      pickerTargetInput.dataset.dirty = "1";
-      saveState();
-      closeMemberPicker();
+  if (!pickerTargetInput) return;
+
+  // 1. 先把「本週」裡面已經有這個人的欄位清掉（但不要清目前這格）
+  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+    if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+      clearInputAndSkill(inp);
     }
+  });
+
+  // 2. 再把這格填上
+  pickerTargetInput.value = m.name;
+  applyJobColor(pickerTargetInput, m.job);
+  const skillRow = pickerTargetInput.parentElement.nextElementSibling;
+  if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+    skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
+  }
+  pickerTargetInput.dataset.dirty = "1";
+  saveState();
+  closeMemberPicker();
+}
+
+
+    
     function closeMemberPicker(){
       memberPicker.style.display = "none";
       pickerTargetInput = null;
@@ -1783,4 +1833,5 @@
   </script>
 </body>
 </html>
+
 

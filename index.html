@@ -493,7 +493,11 @@
 
   <script>
   /* ========= V13 手機版增強，不動桌機版 ========= */
-  (function injectV13MobileCSS() {
+ @media (max-width: 900px) {
+  :root {
+    --bottom-bar-h: calc(3.6rem + env(safe-area-inset-bottom, 0px));
+  }
+    (function injectV13MobileCSS() {
     const css = `
     @media (max-width: 900px) {
       /* 把原本 v12.2 那組橫向滾動的設定蓋掉，改由 JS 包起來滑一團一團 */
@@ -550,7 +554,10 @@
         background: rgba(15,23,42,.95);
         padding: .45rem .6rem calc(env(safe-area-inset-bottom,0) + .45rem);
         z-index: 9997;
+        height: var(--bottom-bar-h);                /* ← V13.1新增 */
+        box-sizing: border-box;                     /* ← V13.1新增 */
       }
+      
       #mobileBottomActions button {
         flex: 1 1 25%;
         background: #fff;
@@ -561,9 +568,11 @@
         color: #0f172a;
         padding: .35rem .3rem;
       }
-      body {
-        padding-bottom: 4.6rem !important; /* 給底部操作列空間 */
-      }
+      
+      /* body 要空出這麼高，才不會被蓋 */
+        body {
+        padding-bottom: var(--bottom-bar-h) !important;
+        }
 
       /* 右下兩顆圓按鈕：替、待 */
       .mobile-circle-btn {
@@ -582,8 +591,14 @@
         box-shadow: 0 10px 25px rgba(15,23,42,.2);
         cursor: pointer;
       }
-      #mobileSubsBtn { bottom: 4.45rem; }
-      #mobileCompareBtn { bottom: 8.3rem; }
+      
+      /* 右下兩顆圓的高度要避開底部 bar */
+      #mobileSubsBtn {
+        bottom: calc(var(--bottom-bar-h) + .6rem);
+        }
+      #mobileCompareBtn {
+        bottom: calc(var(--bottom-bar-h) + 3.25rem);  /* 再高一點，兩顆不會貼在一起 */
+        }
 
       /* 手機的浮出面板（替補 / 待處理） */
 @media (max-width: 900px) {
@@ -592,22 +607,22 @@
     transform: translateY(100%);      /* 一開始躲在下面 */
     transition: transform .25s ease-out;
   }
-  #subs.mobile-sheet-open,
-  #comparePanel.mobile-sheet-open {
-    display: block !important;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 3.3rem;
-    max-height: 33vh;
-    background: #fff;
-    border-radius: 1rem 1rem 0 0;
-    box-shadow: 0 -10px 30px rgba(15,23,42,.25);
-    overflow-y: auto;
-    z-index: 9999;
-    margin: 0;
-    transform: translateY(0);         /* 滑上來 */
-  }
+ #subs.mobile-sheet-open,
+#comparePanel.mobile-sheet-open {
+  display: block !important;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--bottom-bar-h);     /* ← 用同一個數字 */
+  max-height: 38vh;
+  background: #fff;
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: 0 -10px 30px rgba(15,23,42,.25);
+  overflow-y: auto;
+  z-index: 9999;
+  margin: 0;
+  padding-bottom: 1rem;            /* 內部也留一點 */
+}
 }
 
       /* 原本右側那條在手機是藏起來的，讓我們用浮出的 */
@@ -624,14 +639,25 @@
         display: none;
       }
 
-      /* 手機版各小隊不要再滑，跟桌機一樣排，但寬度要你說的版本 */
-      .team-block .squads {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow: hidden;
-        width: 100%;
-      }
-    }
+      /* 小隊改成會換行，不要橫向捲動 */
+  .team-block .squads {
+    display: flex;
+    flex-wrap: wrap;          /* 會自動換行 */
+    gap: .5rem;
+    width: 100%;
+  }
+
+  /* 一排最多兩個，螢幕就不會爆 */
+  .team-block .squads .squad {
+    flex: 0 0 calc(50% - .25rem);  /* 兩欄 */
+    min-width: 0;
+  }
+
+  /* 如果你有時候一隊很多小隊，想更密一點也可以再加這個：超過 4 個時變 3 欄 */
+  .team-block .squads .squad:nth-child(n+5) {
+    flex: 0 0 calc(33.333% - .25rem);
+  }
+}
     `;
     const el = document.createElement('style');
     el.innerHTML = css;
@@ -924,7 +950,7 @@
 
     if (window.innerWidth <= 900) {
       if (count <= 4) {
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(22% - 6px)"; });
+        squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
       } else {
         const pct = 100 / count;
         squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.5) + "%)"; });
@@ -1288,18 +1314,30 @@
     const color = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#0f172a";
     showDragPreview(`${m.name} (${m.job||""})`, color);
   }
+ 
+  /*V13.1修改*/
   function dragFromSub(e){
-    const row = e.currentTarget;
-    const name = row.querySelector(".sub-name").value.trim();
-    const skill = row.querySelector(".sub-skill").value.trim();
-    if(!name){ e.preventDefault(); return; }
-    const job = getJobByName(name) || row.querySelector(".sub-name").dataset.job || "";
-    // 手機拖出去要收掉
-    closeSubsSheetSilently();
-    e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromSub: row.dataset.subIndex}));
-    const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
-    showDragPreview(`${name} (${job||""})`, color);
-  }
+  const row = e.currentTarget;
+  const name = row.querySelector(".sub-name").value.trim();
+  const skill = row.querySelector(".sub-skill").value.trim();
+  if(!name){ e.preventDefault(); return; }
+  const job = getJobByName(name) || row.querySelector(".sub-name").dataset.job || "";
+
+  // ❌ 不要在這裡關面板，會讓 iOS 把 drag 取消
+  // closeSubsSheetSilently();
+
+  e.dataTransfer.setData("text/plain", JSON.stringify({
+    name,
+    skill,
+    job,
+    fromSub: row.dataset.subIndex
+  }));
+  const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
+  showDragPreview(`${name} (${job||""})`, color);
+}
+
+
+    
   function dragFromPanel(e){
     const input = e.target;
     if(input.dataset.side === "last") {
@@ -1549,7 +1587,11 @@
           markDirty(subRow.querySelector(".sub-name"));
         }
       }
-
+      /*V13.1*/
+      if (member.fromSub !== undefined && window.innerWidth <= 900) {
+          closeMobileSheets();  // 成功放進本週後再收面板，拖曳不會被打斷
+        }
+     
       if(member.fromPanel && member.side !== targetSide){
         return;
       }
@@ -2196,5 +2238,6 @@
 
 </body>
 </html>
+
 
 

@@ -1615,6 +1615,9 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
     function downloadThisWeekImage() {
   const data = getPanelData(thisWeekPanel);
   const tagOrder = ["一團","二團","三團","四團"];
+  const teamHeight = 272;
+  const gapX = 20;
+  const gapY = 30;
 
   // 先照 tag 分
   const grouped = tagOrder.map(tag => ({
@@ -1622,59 +1625,52 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
     teams: data.filter(t => (t.tag || "一團") === tag)
   })).filter(g => g.teams.length > 0);
 
-  const teamHeight = 272;
-  const gapX = 20;
-  const gapY = 30;
-
-  // 這是輸出圖片最大寬度，可依你實際需求調
-  const MAX_WIDTH = 1100;
-
-  // 先跑一遍算出總高度，順便把每個 group 的排版結果存起來
-  let totalHeight = 50; // 上面標題的空間
+  // ① 先量「每一團這一排需要多寬」
+  let neededWidths = [];
   grouped.forEach(group => {
-    let x = gapX;
-    let lines = [[]];      // 這個團有幾行
+    let rowWidth = gapX; // 左邊留點邊距 // 量寬
     group.teams.forEach(team => {
       const w = getTeamCanvasWidth(team);
-      // 放不下就換行
-      if (x + w + gapX > MAX_WIDTH) {
-        lines.push([]);
-        x = gapX;
-      }
-      lines[lines.length - 1].push({ team, width: w });
-      x += w + gapX;
+      rowWidth += w + gapX; // 區塊 + gap
     });
-    group._lines = lines; // 存起來，等等畫的時候用
-    totalHeight += lines.length * (teamHeight + gapY);
+    neededWidths.push(rowWidth);
   });
 
-  const canvas = document.createElement("canvas");
+  // 取全部團裡面最寬的那一排，當作整張圖寬度，最低給個 820
+  const maxWidth = Math.max(820, ...neededWidths);
+
+  // ② 算總高度（每一團一排）
+  let totalHeight = 50; // 上面標題
+  grouped.forEach(group => {
+    totalHeight += teamHeight + gapY;
+  });
+
   const SCALE = 2;
-  canvas.width = MAX_WIDTH * SCALE;
+  const canvas = document.createElement("canvas");
+  canvas.width = maxWidth * SCALE;
   canvas.height = totalHeight * SCALE;
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
 
   // 背景
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
+  ctx.fillRect(0, 0, maxWidth, totalHeight);
 
   // 標題
   ctx.fillStyle = "#0f172a";
   ctx.font = "bold 22px system-ui";
   ctx.fillText("本週名單", 20, 32);
 
+  // ③ 一團一排畫下去
   let currentY = 50;
-
   grouped.forEach(group => {
-    group._lines.forEach(line => {
-      let x = gapX;
-      line.forEach(item => {
-        drawTeamBlockImage(ctx, item.team, x, currentY, item.width, teamHeight);
-        x += item.width + gapX;
-      });
-      currentY += teamHeight + gapY;
+    let x = gapX;
+    group.teams.forEach(team => {
+      const w = getTeamCanvasWidth(team);
+      drawTeamBlockImage(ctx, team, x, currentY, w, teamHeight);
+      x += w + gapX;
     });
+    currentY += teamHeight + gapY;
   });
 
   const link = document.createElement("a");
@@ -1682,6 +1678,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
+
 
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
       ctx.fillStyle = "#ffffff";
@@ -1836,6 +1833,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

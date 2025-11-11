@@ -429,8 +429,12 @@ input.skill-has {
   gap: .5rem;
   margin-bottom: .3rem;
 }
+/* 這行是新的：把標題的底部空間拿掉，才會跟按鈕同一水平線 */
+.panel-title-row h3 {
+  margin: 0;
+}
 #downloadBtn {
-  position: static;   /* 把你原本的 absolute 覆蓋掉 */
+  position: static;
 }
     
   </style>
@@ -2231,6 +2235,7 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   </script>
 </body>
 </html>
+
 
 
 

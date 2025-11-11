@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12.1 </title>
+  <title>幫戰名單比對工具 v12.2 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -139,12 +139,82 @@
       border: 1px solid #e2e8f0;
       font-size: 0.78rem;
     }
-    .squad-del-btn {
-      position: absolute; top: 6px; right: 6px;
-      background: #ef4444; color: #fff; border: none;
-      border-radius: 0.5rem; font-size: 1.05rem; line-height: 1;
-      padding: 0.15rem 0.35rem; cursor: pointer;
-    }
+    .squad-del-btn { /*V12.2修改*/
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+}
+    @media (max-width: 600px) { /*V12.2新增*/
+  .squad-del-btn {
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 13px;
+  }
+}
+
+
+    /*V12.2新增小隊在手機上超過的部分可滑動*/
+    @media (max-width: 900px) {
+  /* 原本這裡是 overflow: hidden; 我們在手機把它打開，讓裡面可以滑 */
+  .team-block {
+    overflow-x: auto;
+  }
+
+  /* 讓裡面的橫向排版有寬度可以滑 */
+  .squads {
+    overflow-x: auto;
+    /* 讓內容照實際寬度排，不要被容器硬壓 */
+    width: max-content;
+  }
+
+  /* 每一小隊在手機上給它一個最小寬度，避免被壓扁到看不到 */
+  .squad {
+    min-width: 110px;
+  }
+}
+
+    /* V12.2新增 手機版本週上週 改成左右滑 */
+@media (max-width: 900px) {
+  /* 讓面板自己可以左右捲 */
+  #thisWeek,
+  #lastWeek {
+    overflow-x: auto;          /* 可以橫向滑 */
+    white-space: nowrap;       /* 裡面的東西排成一排 */
+  }
+
+  /* 每一團變成一張卡片橫排 */
+  #thisWeek .team-block,
+  #lastWeek .team-block {
+    display: inline-block;     /* 橫向一張一張 */
+    vertical-align: top;
+    white-space: normal;       /* 團裡面還是要能換行 */
+    width: 86vw;               /* 一張差不多跟螢幕一樣寬 */
+    min-width: 320px;          /* 最小不要太小 */
+    margin-right: 0.75rem;
+  }
+
+  /* 卡片裡頭原本是橫向很多小隊，要滑也可以 */
+  #thisWeek .team-block .squads,
+  #lastWeek .team-block .squads {
+    overflow-x: auto;
+    width: 100%;
+  }
+}
+
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input {
       width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem;
@@ -306,7 +376,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12.1 </h1>
+  <h1>幫戰名單比對工具 v12.2 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -578,7 +648,7 @@
       sq.dataset.squad = idx;
       sq.innerHTML = `
         <div class="squad-title">第${idx}小隊</div>
-        ${side==="this" ? `<button class="squad-del-btn" onclick="deleteThisSquad(this)">🗑</button>` : ""}
+        ${side==="this" ? `<button class="squad-del-btn" onclick="deleteThisSquad(this)">×</button>` : ""}
         ${createMemberInputs(side)}
       `;
       return sq;
@@ -1833,6 +1903,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

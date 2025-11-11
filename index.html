@@ -610,7 +610,7 @@
   if (width <= 768) {
     if (count <= 4) {
       squads.forEach(sq => {
-        sq.style.flex = "0 0 calc(20% - 6x)"; // 兩欄排列，較寬
+        sq.style.flex = "0 0 calc(20% - 6px)"; // 兩欄排列，較寬
       });
     } else {
       const pct = 100 / count;
@@ -2082,6 +2082,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

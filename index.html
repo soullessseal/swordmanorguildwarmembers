@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12.2 </title>
+  <title>幫戰名單比對工具 v13 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -376,7 +376,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12.2 </h1>
+  <h1>幫戰名單比對工具 v13 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -467,1439 +467,1677 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "guildCompareV12State";
-    const LOGIN_STORAGE_KEY = "guildCompareLogin";
-    const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
-
-    // 1 小時
-    const LOGIN_TTL = 60 * 60 * 1000;
-
-    // 前端不放帳密，改由後端驗
-    // 你要在 Apps Script 做一個 action=login，回傳 {success:true, user:"dabai"} 這樣的格式
-    let currentUser = null;
-    let lastLoginTime = 0;
-
-    const OUTLINE_CLASS = {
-      dabai: "outline-dabai",
-      baoan: "outline-baoan",
-      stitch: "outline-stitch",
-      unknown: "outline-dabai"
-    };
-
-    let lastKnownUpdatedAt = null;
-
-    const teams = ["進攻","拆塔","機動","防守"];
-    const roleColors = {
-      "九靈": "#d8b4fe",
-      "鐵衣": "#fdba74",
-      "素問": "#f9a8d4",
-      "龍吟": "#92d46d",
-      "神相": "#3b82f6",
-      "碎夢": "#7dd3fc",
-      "血河": "#f43f5e"
-    };
-
-    let allMembers = [
-      {id:1, name: "四季春曉川", job: "九靈", skill: "左鈎天浩意"},
-      {id:2, name: "狐戀雪", job: "素問", skill: "太極圖"},
-      {id:3, name: "翼歌", job: "龍吟", skill: "太極圖"},
-      {id:4, name: "木子維", job: "鐵衣", skill: ""},
-      {id:5, name: "給雀心裹", job: "神相", skill: ""},
-      {id:6, name: "玖靨", job: "血河", skill: ""},
-      {id:7, name: "阿妙", job: "素問", skill: ""},
-      {id:8, name: "小葉青", job: "碎夢", skill: ""},
-      {id:9, name: "破風", job: "血河", skill: "爆發"},
-      {id:10, name: "青珂", job: "龍吟", skill: ""},
-      {id:11, name: "煙雨", job: "九靈", skill: ""}
-    ];
-
-    let nextMemberId = 12;
-    let activeRoleFilter = "";
-    let lastSnapshot = null;
-    let memberPage = 1;
-    const pageSize = 8;
-    let subCounter = 0;
-
-    const lastWeekPanel = document.getElementById("lastWeek");
-    const thisWeekPanel = document.getElementById("thisWeek");
-    const subsList = document.getElementById("subsList");
-    const memberList = document.getElementById("memberList");
-    const searchInput = document.getElementById("memberSearch");
-    const roleTabs = document.getElementById("roleTabs");
-    const compareTagsEl = document.getElementById("compareTags");
-
-    let draggingPanelInput = null;
-    let draggingPanelSide = null;
-    let dragSuccess = false;
-    let dragPreviewEl = null;
-
-    // 比對後可個別隱藏的人
-    const compareIgnore = new Set();
-
-    // 搜尋浮層用
-    let pickerTargetInput = null;
-    const memberPicker = document.getElementById("memberPicker");
-    const pickerList = document.getElementById("pickerList");
-    const pickerSearch = document.getElementById("pickerSearch");
-
-    function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
-
-    function teamColorByName(name){
-      if(name==="拆塔") return "#7f1d1d";
-      if(name==="機動") return "#4c1d95";
-      if(name==="防守") return "#1e3a8a";
-      return "#0f172a";
-    }
-    function hexToRgb(hex){const s=hex.replace('#','');const n=parseInt(s,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
-    function rgbToHsl(r,g,b){
-      r/=255; g/=255; b/=255;
-      const max=Math.max(r,g,b),min=Math.min(r,g,b);
-      let h,s,l=(max+min)/2;
-      if(max===min){h=s=0;}
-      else{
-        const d=max-min;
-        s = l>0.5 ? d/(2-max-min) : d/(max+min);
-        switch(max){
-          case r: h=(g-b)/d+(g<b?6:0); break;
-          case g: h=(b-r)/d+2; break;
-          case b: h=(r-g)/d+4; break;
-        }
-        h/=6;
+  /* ========= V13 手機版增強，不動桌機版 ========= */
+  (function injectV13MobileCSS() {
+    const css = `
+    @media (max-width: 900px) {
+      /* 把原本 v12.2 那組橫向滾動的設定蓋掉，改由 JS 包起來滑一團一團 */
+      #thisWeek,
+      #lastWeek {
+        overflow: visible !important;
+        white-space: normal !important;
       }
-      return {h,s,l};
-    }
-    function hslToHex(h,s,l){
-      function f(n){
-        const k=(n+h*12)%12;
-        const a=s*Math.min(l,1-l);
-        const c=l-a*Math.max(-1, Math.min(k-3, Math.min(9-k,1)));
-        return Math.round(255*c).toString(16).padStart(2,'0');
+      #thisWeek .team-block,
+      #lastWeek .team-block {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin-right: 0 !important;
       }
-      return "#"+f(0)+f(8)+f(4);
+
+      /* 一團一團滑的容器 */
+      .mobile-team-wrap {
+        width: 100%;
+        overflow: hidden;
+      }
+      .mobile-team-track {
+        display: flex;
+        transition: transform .28s ease;
+        width: 100%;
+      }
+      .mobile-team-track .team-block {
+        flex: 0 0 100%;
+      }
+      .mobile-dots {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-top: .4rem;
+      }
+      .mobile-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #cbd5e1;
+      }
+      .mobile-dot.active {
+        background: #0f172a;
+      }
+
+      /* 手機底部四顆按鈕 */
+      #mobileBottomActions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        gap: .35rem;
+        background: rgba(15,23,42,.95);
+        padding: .45rem .6rem calc(env(safe-area-inset-bottom,0) + .45rem);
+        z-index: 9997;
+      }
+      #mobileBottomActions button {
+        flex: 1 1 25%;
+        background: #fff;
+        border: none;
+        border-radius: .5rem;
+        font-size: .72rem;
+        font-weight: 600;
+        color: #0f172a;
+        padding: .35rem .3rem;
+      }
+      body {
+        padding-bottom: 4.6rem !important; /* 給底部操作列空間 */
+      }
+
+      /* 右下兩顆圓按鈕：替、待 */
+      .mobile-circle-btn {
+        position: fixed;
+        right: .65rem;
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: #0ea5e9;
+        color: #fff;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9998;
+        box-shadow: 0 10px 25px rgba(15,23,42,.2);
+        cursor: pointer;
+      }
+      #mobileSubsBtn { bottom: 4.45rem; }
+      #mobileCompareBtn { bottom: 8.3rem; }
+
+      /* 手機的浮出面板（替補 / 待處理） */
+      #subs.mobile-sheet-open,
+      #comparePanel.mobile-sheet-open {
+        display: block !important;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 3.3rem;
+        max-height: 33vh;
+        background: #fff;
+        border-radius: 1rem 1rem 0 0;
+        box-shadow: 0 -10px 30px rgba(15,23,42,.25);
+        overflow-y: auto;
+        z-index: 9999;
+        margin: 0;
+      }
+      /* 原本右側那條在手機是藏起來的，讓我們用浮出的 */
+      .right-sticky-wrap {
+        display: none;
+      }
+
+      /* 背景遮罩 */
+      #mobileSheetMask {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.35);
+        z-index: 9996;
+        display: none;
+      }
+
+      /* 手機版各小隊不要再滑，跟桌機一樣排，但寬度要你說的版本 */
+      .team-block .squads {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow: hidden;
+        width: 100%;
+      }
     }
-    function darkenHex(hex, amt=0.25){
-      const {r,g,b} = hexToRgb(hex);
-      const {h,s,l} = rgbToHsl(r,g,b);
-      const nl = Math.max(0, l - amt);
-      return hslToHex(h,s,nl);
+    `;
+    const el = document.createElement('style');
+    el.innerHTML = css;
+    document.head.appendChild(el);
+  })();
+
+  const STORAGE_KEY = "guildCompareV12State";
+  const LOGIN_STORAGE_KEY = "guildCompareLogin";
+  const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
+
+  // 1 小時
+  const LOGIN_TTL = 60 * 60 * 1000;
+
+  let currentUser = null;
+  let lastLoginTime = 0;
+
+  const OUTLINE_CLASS = {
+    dabai: "outline-dabai",
+    baoan: "outline-baoan",
+    stitch: "outline-stitch",
+    unknown: "outline-dabai"
+  };
+
+  let lastKnownUpdatedAt = null;
+
+  const teams = ["進攻","拆塔","機動","防守"];
+  const roleColors = {
+    "九靈": "#d8b4fe",
+    "鐵衣": "#fdba74",
+    "素問": "#f9a8d4",
+    "龍吟": "#92d46d",
+    "神相": "#3b82f6",
+    "碎夢": "#7dd3fc",
+    "血河": "#f43f5e"
+  };
+
+  let allMembers = [
+    {id:1, name: "四季春曉川", job: "九靈", skill: "左鈎天浩意"},
+    {id:2, name: "狐戀雪", job: "素問", skill: "太極圖"},
+    {id:3, name: "翼歌", job: "龍吟", skill: "太極圖"},
+    {id:4, name: "木子維", job: "鐵衣", skill: ""},
+    {id:5, name: "給雀心裹", job: "神相", skill: ""},
+    {id:6, name: "玖靨", job: "血河", skill: ""},
+    {id:7, name: "阿妙", job: "素問", skill: ""},
+    {id:8, name: "小葉青", job: "碎夢", skill: ""},
+    {id:9, name: "破風", job: "血河", skill: "爆發"},
+    {id:10, name: "青珂", job: "龍吟", skill: ""},
+    {id:11, name: "煙雨", job: "九靈", skill: ""}
+  ];
+
+  let nextMemberId = 12;
+  let activeRoleFilter = "";
+  let lastSnapshot = null;
+  let memberPage = 1;
+  const pageSize = 8;
+  let subCounter = 0;
+
+  const lastWeekPanel = document.getElementById("lastWeek");
+  const thisWeekPanel = document.getElementById("thisWeek");
+  const subsList = document.getElementById("subsList");
+  const memberList = document.getElementById("memberList");
+  const searchInput = document.getElementById("memberSearch");
+  const roleTabs = document.getElementById("roleTabs");
+  const compareTagsEl = document.getElementById("compareTags");
+
+  let draggingPanelInput = null;
+  let draggingPanelSide = null;
+  let dragSuccess = false;
+  let dragPreviewEl = null;
+
+  // 比對後可個別隱藏的人
+  const compareIgnore = new Set();
+
+  // 搜尋浮層用
+  let pickerTargetInput = null;
+  const memberPicker = document.getElementById("memberPicker");
+  const pickerList = document.getElementById("pickerList");
+  const pickerSearch = document.getElementById("pickerSearch");
+
+  /* ========= 手機版：底部按鈕＋浮出面板 ========= */
+  function setupMobileFloatingUI() {
+    if (window.innerWidth > 900) return;
+
+    // 底部四顆
+    if (!document.getElementById("mobileBottomActions")) {
+      const bar = document.createElement("div");
+      bar.id = "mobileBottomActions";
+      bar.innerHTML = `
+        <button onclick="requestSave()">儲存</button>
+        <button onclick="compare()">比對</button>
+        <button onclick="copyThisToLast()">覆蓋上週</button>
+        <button onclick="undoCopy()">還原</button>
+      `;
+      document.body.appendChild(bar);
     }
 
-    function adjustSquadWidths(block) {
-      const squadsContainer = block.querySelector('.squads');
-      if (!squadsContainer) return;
-      const squads = squadsContainer.querySelectorAll('.squad');
-      const count = squads.length || 1;
+    // 右下兩顆
+    if (!document.getElementById("mobileSubsBtn")) {
+      const b1 = document.createElement("div");
+      b1.id = "mobileSubsBtn";
+      b1.className = "mobile-circle-btn";
+      b1.textContent = "替";
+      b1.onclick = () => toggleMobileSheet("subs");
+      document.body.appendChild(b1);
+    }
+    if (!document.getElementById("mobileCompareBtn")) {
+      const b2 = document.createElement("div");
+      b2.id = "mobileCompareBtn";
+      b2.className = "mobile-circle-btn";
+      b2.textContent = "待";
+      b2.onclick = () => toggleMobileSheet("comparePanel");
+      document.body.appendChild(b2);
+    }
 
+    // 遮罩
+    if (!document.getElementById("mobileSheetMask")) {
+      const m = document.createElement("div");
+      m.id = "mobileSheetMask";
+      m.onclick = () => closeMobileSheets();
+      document.body.appendChild(m);
+    }
+  }
+
+  function toggleMobileSheet(whichId) {
+    const panel = document.getElementById(whichId);
+    if (!panel) return;
+    closeMobileSheets();
+    panel.classList.add("mobile-sheet-open");
+    const mask = document.getElementById("mobileSheetMask");
+    if (mask) mask.style.display = "block";
+  }
+
+  function closeMobileSheets() {
+    const mask = document.getElementById("mobileSheetMask");
+    if (mask) mask.style.display = "none";
+    const subsPanel = document.getElementById("subs");
+    const cpPanel = document.getElementById("comparePanel");
+    if (subsPanel) subsPanel.classList.remove("mobile-sheet-open");
+    if (cpPanel) cpPanel.classList.remove("mobile-sheet-open");
+  }
+
+  // 拖替補時，如果是手機，要把浮窗關掉，但拖曳不受影響
+  function closeSubsSheetSilently() {
+    if (window.innerWidth > 900) return;
+    const subsPanel = document.getElementById("subs");
+    const mask = document.getElementById("mobileSheetMask");
+    if (subsPanel) subsPanel.classList.remove("mobile-sheet-open");
+    if (mask) mask.style.display = "none";
+  }
+
+  /* ========= 手機版：本週 / 上週 一團一團滑 ========= */
+  function setupMobileSliders() {
+    if (window.innerWidth > 900) return;
+    makePanelSlider(thisWeekPanel);
+    makePanelSlider(lastWeekPanel);
+  }
+
+  function makePanelSlider(panelEl) {
+    if (!panelEl) return;
+    // 避免重複包
+    if (panelEl.querySelector(".mobile-team-wrap")) return;
+
+    const teamBlocks = [...panelEl.querySelectorAll(".team-block")];
+    if (!teamBlocks.length) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "mobile-team-wrap";
+    const track = document.createElement("div");
+    track.className = "mobile-team-track";
+    teamBlocks.forEach(tb => track.appendChild(tb));
+    wrap.appendChild(track);
+    panelEl.appendChild(wrap);
+
+    // dots
+    const dots = document.createElement("div");
+    dots.className = "mobile-dots";
+    teamBlocks.forEach((_, i) => {
+      const d = document.createElement("div");
+      d.className = "mobile-dot" + (i === 0 ? " active" : "");
+      d.dataset.idx = i;
+      d.onclick = () => setSliderIndex(panelEl, i);
+      dots.appendChild(d);
+    });
+    panelEl.appendChild(dots);
+
+    panelEl.dataset.currentIdx = "0";
+
+    // touch 移動
+    let startX = 0;
+    let isDown = false;
+    let current = 0;
+    track.addEventListener("touchstart", e => {
+      isDown = true;
+      startX = e.touches[0].clientX;
+      current = parseInt(panelEl.dataset.currentIdx || "0", 10);
+    });
+    track.addEventListener("touchend", e => {
+      if (!isDown) return;
+      isDown = false;
+      const diff = e.changedTouches[0].clientX - startX;
+      const threshold = 40;
+      let target = current;
+      if (diff < -threshold) target = Math.min(teamBlocks.length - 1, current + 1);
+      else if (diff > threshold) target = Math.max(0, current - 1);
+      setSliderIndex(panelEl, target);
+    });
+  }
+
+  function setSliderIndex(panelEl, idx) {
+    const track = panelEl.querySelector(".mobile-team-track");
+    const dots = panelEl.querySelectorAll(".mobile-dot");
+    if (!track) return;
+    panelEl.dataset.currentIdx = String(idx);
+    track.style.transform = `translateX(-${idx * 100}%)`;
+    dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+  }
+
+  /* ========= 原本 v12.2 的 functions，下面開始 ========= */
+
+  function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+
+  function teamColorByName(name){
+    if(name==="拆塔") return "#7f1d1d";
+    if(name==="機動") return "#4c1d95";
+    if(name==="防守") return "#1e3a8a";
+    return "#0f172a";
+  }
+  function hexToRgb(hex){const s=hex.replace('#','');const n=parseInt(s,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+  function rgbToHsl(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);
+    let h,s,l=(max+min)/2;
+    if(max===min){h=s=0;}
+    else{
+      const d=max-min;
+      s = l>0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h=(g-b)/d+(g<b?6:0); break;
+        case g: h=(b-r)/d+2; break;
+        case b: h=(r-g)/d+4; break;
+      }
+      h/=6;
+    }
+    return {h,s,l};
+  }
+  function hslToHex(h,s,l){
+    function f(n){
+      const k=(n+h*12)%12;
+      const a=s*Math.min(l,1-l);
+      const c=l-a*Math.max(-1, Math.min(k-3, Math.min(9-k,1)));
+      return Math.round(255*c).toString(16).padStart(2,'0');
+    }
+    return "#"+f(0)+f(8)+f(4);
+  }
+  function darkenHex(hex, amt=0.25){
+    const {r,g,b} = hexToRgb(hex);
+    const {h,s,l} = rgbToHsl(r,g,b);
+    const nl = Math.max(0, l - amt);
+    return hslToHex(h,s,nl);
+  }
+
+  // ★這裡依你第 2 點改：手機寬度下用 22% / pct-2.5，桌機維持原本
+  function adjustSquadWidths(block) {
+    const squadsContainer = block.querySelector('.squads');
+    if (!squadsContainer) return;
+    const squads = squadsContainer.querySelectorAll('.squad');
+    const count = squads.length || 1;
+
+    if (window.innerWidth <= 900) {
       if (count <= 4) {
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
+        squads.forEach(sq => { sq.style.flex = "0 0 calc(22% - 6px)"; });
       } else {
         const pct = 100 / count;
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; });
+        squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.5) + "%)"; });
       }
+      return;
     }
 
-    function handlePanelInputChange(input){
-      input.dataset.dirty = "1";
-      clearHighlightOnEdit(input);
+    // 桌機版原本的
+    if (count <= 4) {
+      squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
+    } else {
+      const pct = 100 / count;
+      squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; });
+    }
+  }
+
+  function handlePanelInputChange(input){
+    input.dataset.dirty = "1";
+    clearHighlightOnEdit(input);
+    saveState();
+  }
+  function markDirty(el){ if (el) el.dataset.dirty = "1"; }
+
+  function createMemberInputs(side){
+    let html = "";
+    for(let i=1;i<=6;i++){
+      if(side === "last"){
+        html += `
+          <div class="member-row">
+            <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" onclick="maybeOpenMemberPicker(event, this)" readonly>
+          </div>
+          <div class="member-row">
+            <input data-role="skill" class="readonly-skill locked-input" placeholder="" readonly>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="member-row">
+            <input data-role="name" data-side="${side}" draggable="true"
+              ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
+              oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" onclick="maybeOpenMemberPicker(event, this)" placeholder="成員${i}">
+          </div>
+          <div class="member-row">
+            <input data-role="skill" class="readonly-skill" placeholder="" readonly>
+          </div>
+        `;
+      }
+    }
+    return html;
+  }
+
+  function createGroupTagSelect(selected="一團") {
+    const opts = ["一團","二團","三團","四團"];
+    return `
+      <select class="team-tag-select" onchange="markDirty(this); saveState()">
+        ${opts.map(o => `<option value="${o}" ${o===selected?'selected':''}>${o}</option>`).join("")}
+      </select>
+    `;
+  }
+
+  function createSquad(idx, side, teamName){
+    const sq = document.createElement("div");
+    sq.className = "squad";
+    sq.dataset.squad = idx;
+    sq.innerHTML = `
+      <div class="squad-title">第${idx}小隊</div>
+      ${side==="this" ? `<button class="squad-del-btn" onclick="deleteThisSquad(this)">×</button>` : ""}
+      ${createMemberInputs(side)}
+    `;
+    return sq;
+  }
+
+  function createTeamBlock(side, teamName, tag="一團"){
+    const block = document.createElement("div");
+    block.className = "team-block";
+    block.dataset.team = teamName;
+    block.dataset.side = side;
+    const headColor = teamColorByName(teamName);
+    block.innerHTML = `
+      <div class="team-head" style="background:${headColor}">
+        <div class="team-head-left">
+          <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
+          ${side==="last"
+            ? `<span class="team-tag-label">${tag}</span>`
+            : createGroupTagSelect(tag)
+          }
+        </div>
+        <div class="head-actions">
+          ${side==="this"
+            ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>`
+            : `<button class="head-add-btn disabled" disabled>＋ 新增小隊</button>`
+          }
+        </div>
+      </div>
+      <div class="squads"></div>
+    `;
+    const sqs = block.querySelector(".squads");
+    for(let s=1;s<=3;s++){
+      sqs.appendChild(createSquad(s, side, teamName));
+    }
+    block.dataset.lastSquadCount = "3";
+    adjustSquadWidths(block);
+    return block;
+  }
+
+  // 架子
+  teams.forEach(t => {
+    lastWeekPanel.appendChild(createTeamBlock("last", t));
+    thisWeekPanel.appendChild(createTeamBlock("this", t));
+  });
+
+  // 手機 UI 先掛一次
+  setupMobileFloatingUI();
+  setupMobileSliders();
+
+  function renumberSquads(block){
+    const sqs = block.querySelectorAll(".squad");
+    sqs.forEach((sq,idx)=>{
+      sq.dataset.squad = idx+1;
+      const title = sq.querySelector(".squad-title");
+      if(title) title.textContent = `第${idx+1}小隊`;
+    });
+  }
+
+  function addSquadToTeamFromHead(btn){
+    const block = btn.closest(".team-block");
+    const sqs = block.querySelector(".squads");
+    const side = block.dataset.side;
+    const teamName = block.dataset.team;
+    const count = sqs.children.length;
+    const newSq = createSquad(count + 1, side, teamName);
+    newSq.dataset.newlyAdded = "1";
+    sqs.appendChild(newSq);
+    adjustSquadWidths(block);
+    markDirty(block);
+    saveState();
+  }
+
+  function deleteThisSquad(btn){
+    const squad = btn.closest(".squad");
+    const block = btn.closest(".team-block");
+    const parent = squad.parentElement;
+    if(confirm("確定要刪除這個小隊嗎？")){
+      parent.removeChild(squad);
+      renumberSquads(block);
+      adjustSquadWidths(block);
+      markDirty(block);
+      block.dataset.lastSquadCount = String(parent.children.length);
       saveState();
     }
-    function markDirty(el){ if (el) el.dataset.dirty = "1"; }
+  }
 
-    function createMemberInputs(side){
-      let html = "";
-      for(let i=1;i<=6;i++){
-        if(side === "last"){
-          html += `
-            <div class="member-row">
-              <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" onclick="maybeOpenMemberPicker(event, this)" readonly>
-            </div>
-            <div class="member-row">
-              <input data-role="skill" class="readonly-skill locked-input" placeholder="" readonly>
-            </div>
-          `;
-        } else {
-          html += `
-            <div class="member-row">
-              <input data-role="name" data-side="${side}" draggable="true"
-                ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
-                oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" onclick="maybeOpenMemberPicker(event, this)" placeholder="成員${i}">
-            </div>
-            <div class="member-row">
-              <input data-role="skill" class="readonly-skill" placeholder="" readonly>
-            </div>
-          `;
-        }
-      }
-      return html;
+  function clearPanelCell(e){
+    e.preventDefault();
+    const input = e.target;
+    if(input.dataset.role === "name" && input.dataset.side !== "last"){
+      clearInputAndSkill(input);
+      markDirty(input);
+      saveState();
     }
-
-    function createGroupTagSelect(selected="一團") {
-      const opts = ["一團","二團","三團","四團"];
-      return `
-        <select class="team-tag-select" onchange="markDirty(this); saveState()">
-          ${opts.map(o => `<option value="${o}" ${o===selected?'selected':''}>${o}</option>`).join("")}
-        </select>
-      `;
+  }
+  function clearInputAndSkill(input){
+    input.value = "";
+    input.style.borderLeft = "";
+    input.style.color = "";
+    input.dataset.job = "";
+    const skillRow = input.parentElement.nextElementSibling;
+    if(skillRow && skillRow.querySelector("input[data-role='skill']")){
+      skillRow.querySelector("input[data-role='skill']").value = "";
     }
+    input.classList.remove("highlight-new","highlight-missing");
+  }
+  function clearHighlightOnEdit(input){
+    input.classList.remove("highlight-new","highlight-missing");
+  }
 
-    function createSquad(idx, side, teamName){
-      const sq = document.createElement("div");
-      sq.className = "squad";
-      sq.dataset.squad = idx;
-      sq.innerHTML = `
-        <div class="squad-title">第${idx}小隊</div>
-        ${side==="this" ? `<button class="squad-del-btn" onclick="deleteThisSquad(this)">×</button>` : ""}
-        ${createMemberInputs(side)}
-      `;
-      return sq;
+  function createSubRow(name="", skill="", markDirtyFlag=false){
+    const row = document.createElement("div");
+    row.className = "substitute-row";
+    row.draggable = true;
+    row.dataset.subIndex = subCounter++;
+    if (markDirtyFlag) {
+      row.dataset.dirty = "1";
     }
+    row.ondragstart = dragFromSub;
+    row.innerHTML = `
+      <input class="sub-name" placeholder="替補成員" value="${name}"
+        ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
+      <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
+      <button class="del-btn" onclick="deleteSub(this)">刪</button>
+      <span class="sub-status"></span>
+    `;
+    applyColorByName(row.querySelector(".sub-name"));
+    subsList.appendChild(row);
+  }
+  function addSub(){
+    createSubRow("", "", true);
+    saveState();
+  }
+  function deleteSub(btn){
+    subsList.removeChild(btn.parentElement);
+    saveState();
+  }
+  // 初始 4 列
+  for (let i = 0; i < 4; i++) createSubRow("", "", false);
 
-    function createTeamBlock(side, teamName, tag="一團"){
-      const block = document.createElement("div");
-      block.className = "team-block";
-      block.dataset.team = teamName;
-      block.dataset.side = side;
-      const headColor = teamColorByName(teamName);
-      block.innerHTML = `
-        <div class="team-head" style="background:${headColor}">
-          <div class="team-head-left">
-            <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
-            ${side==="last"
-              ? `<span class="team-tag-label">${tag}</span>`
-              : createGroupTagSelect(tag)
-            }
-          </div>
-          <div class="head-actions">
-            ${side==="this"
-              ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>`
-              : `<button class="head-add-btn disabled" disabled>＋ 新增小隊</button>`
-            }
-          </div>
+  function renderRoleTabs(){
+    roleTabs.innerHTML = "";
+    const allTab = document.createElement("div");
+    allTab.className = "role-tab" + (activeRoleFilter==="" ? " active" : "");
+    allTab.textContent = "全部";
+    allTab.style.background = "#e2e8f0";
+    allTab.onclick = ()=>{activeRoleFilter=""; memberPage=1; renderMemberList();};
+    roleTabs.appendChild(allTab);
+    Object.keys(roleColors).forEach(r=>{
+      const tab = document.createElement("div");
+      tab.className = "role-tab" + (activeRoleFilter===r ? " active" : "");
+      tab.textContent = r;
+      tab.style.background = roleColors[r];
+      tab.onclick = ()=>{activeRoleFilter=r; memberPage=1; renderMemberList();};
+      roleTabs.appendChild(tab);
+    });
+  }
+
+  function getFilteredMembers(){
+    const keyword = searchInput.value.trim();
+    return allMembers.filter(m=>{
+      const matchRole = !activeRoleFilter || m.job===activeRoleFilter;
+      const matchText = !keyword || m.name.includes(keyword) || (m.skill && m.skill.includes(keyword));
+      return matchRole && matchText;
+    });
+  }
+
+  function renderMemberList(){
+    const filtered = getFilteredMembers();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if(memberPage>totalPages) memberPage = totalPages;
+    const start = (memberPage-1)*pageSize;
+    const pageItems = filtered.slice(start, start+pageSize);
+
+    memberList.innerHTML = "";
+    pageItems.forEach(m=>{
+      const item = document.createElement("div");
+      item.className = "member-item";
+      item.draggable = true;
+      item.ondragstart = e => dragFromMemberList(e, m);
+      const darkColor = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#e2e8f0";
+      item.style.borderLeft = "4px solid " + darkColor;
+      item.innerHTML = `
+        <div class="member-left" data-id="${m.id}">
+          <div class="member-name" style="color:${darkColor}">${m.name}</div>
+          <div class="member-skill">${m.skill || ""}</div>
         </div>
-        <div class="squads"></div>
+        <div class="member-actions" id="member-actions-${m.id}">
+          <button onclick="startInlineEdit(${m.id})">編</button>
+          <button onclick="deleteMember(${m.id})">刪</button>
+        </div>
       `;
-      const sqs = block.querySelector(".squads");
-      for(let s=1;s<=3;s++){
-        sqs.appendChild(createSquad(s, side, teamName));
-      }
-      // 初始小隊數量記下來，之後增減才知道
-      block.dataset.lastSquadCount = "3";
-      adjustSquadWidths(block);
-      return block;
-    }
-
-    // 架子
-    teams.forEach(t => {
-      lastWeekPanel.appendChild(createTeamBlock("last", t));
-      thisWeekPanel.appendChild(createTeamBlock("this", t));
+      memberList.appendChild(item);
     });
 
-    function renumberSquads(block){
-      const sqs = block.querySelectorAll(".squad");
-      sqs.forEach((sq,idx)=>{
-        sq.dataset.squad = idx+1;
-        const title = sq.querySelector(".squad-title");
-        if(title) title.textContent = `第${idx+1}小隊`;
-      });
+    const sel = document.getElementById("pageSelect");
+    sel.innerHTML = "";
+    for(let p=1;p<=totalPages && p<=8;p++){
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = "第 " + p + " 頁";
+      if(p===memberPage) opt.selected = true;
+      sel.appendChild(opt);
     }
+  }
+  function prevPage(){ if(memberPage>1){ memberPage--; renderMemberList(); } }
+  function nextPage(){
+    const totalPages = Math.max(1, Math.ceil(getFilteredMembers().length / pageSize));
+    if(memberPage<totalPages){ memberPage++; renderMemberList(); }
+  }
+  function jumpPage(p){ memberPage = parseInt(p,10); renderMemberList(); }
 
-    
-/*V12.1再次嘗試調整*/
-    function addSquadToTeamFromHead(btn){
-  const block = btn.closest(".team-block");
-  const sqs = block.querySelector(".squads");
-  const side = block.dataset.side;
-  const teamName = block.dataset.team;
-  const count = sqs.children.length;
-  const newSq = createSquad(count + 1, side, teamName);
+  function toggleAddMember(){
+    const form = document.getElementById("addMemberForm");
+    form.style.display = form.style.display==="flex" ? "none" : "flex";
+  }
+  function addMember(){
+    const name = document.getElementById("newName").value.trim();
+    const job = document.getElementById("newJob").value;
+    const skill = document.getElementById("newSkill").value.trim();
+    if(!name || !job){ alert("成員名稱與職業必填"); return; }
+    allMembers.push({id: ++nextMemberId, name, job, skill});
+    document.getElementById("newName").value = "";
+    document.getElementById("newJob").value = "";
+    document.getElementById("newSkill").value = "";
+    renderMemberList();
+    document.getElementById("addMemberForm").style.display = "none";
+    saveState();
+  }
 
-  // 標記這個是「這次新增」的小隊，等一下 collectDirtyMarks 會圈它
-  newSq.dataset.newlyAdded = "1";
-
-  sqs.appendChild(newSq);
-  adjustSquadWidths(block);
-  markDirty(block);
-  // ⚠️ 不要在這裡動 block.dataset.lastSquadCount，讓儲存時才知道有多一個
-  saveState();
-}
-
-
-    function deleteThisSquad(btn){
-      const squad = btn.closest(".squad");
-      const block = btn.closest(".team-block");
-      const parent = squad.parentElement;
-      if(confirm("確定要刪除這個小隊嗎？")){
-        parent.removeChild(squad);
-        renumberSquads(block);
-        adjustSquadWidths(block);
-        markDirty(block);
-        block.dataset.lastSquadCount = String(parent.children.length);
-        saveState();
-      }
+  function startInlineEdit(id){
+    const item = [...memberList.querySelectorAll(".member-left")].find(div=>parseInt(div.dataset.id,10)===id);
+    if(!item) return;
+    const m = allMembers.find(x=>x.id===id);
+    const actionArea = document.getElementById(`member-actions-${id}`);
+    if(actionArea) actionArea.style.display = "none";
+    item.innerHTML = `
+      <input class="edit-input" id="edit-name-${id}" value="${m.name}">
+      <select class="edit-input" id="edit-job-${id}">
+        <option value="九靈" ${m.job==="九靈"?"selected":""}>九靈</option>
+        <option value="鐵衣" ${m.job==="鐵衣"?"selected":""}>鐵衣</option>
+        <option value="素問" ${m.job==="素問"?"selected":""}>素問</option>
+        <option value="龍吟" ${m.job==="龍吟"?"selected":""}>龍吟</option>
+        <option value="神相" ${m.job==="神相"?"selected":""}>神相</option>
+        <option value="碎夢" ${m.job==="碎夢"?"selected":""}>碎夢</option>
+        <option value="血河" ${m.job==="血河"?"selected":""}>血河</option>
+      </select>
+      <input class="edit-input" id="edit-skill-${id}" value="${m.skill||""}">
+      <div style="display:flex;gap:.3rem;">
+        <button class="float-btn" style="font-size:.65rem;padding:.2rem .4rem;" onclick="saveInlineEdit(${id})">儲存</button>
+        <button class="float-btn secondary" style="font-size:.65rem;padding:.2rem .4rem;" onclick="renderMemberList()">取消</button>
+      </div>
+    `;
+  }
+  function saveInlineEdit(id){
+    const name = document.getElementById("edit-name-"+id).value.trim();
+    const job = document.getElementById("edit-job-"+id).value.trim();
+    const skill = document.getElementById("edit-skill-"+id).value.trim();
+    const idx = allMembers.findIndex(x=>x.id===id);
+    if(idx>-1){
+      allMembers[idx] = {id, name, job, skill};
+      renderMemberList();
+      saveState();
     }
+  }
+  function deleteMember(id){
+    const idx = allMembers.findIndex(x=>x.id===id);
+    if(idx>-1){ allMembers.splice(idx,1); renderMemberList(); saveState(); }
+  }
 
-    function clearPanelCell(e){
+  function showDragPreview(text, color){
+    dragPreviewEl = document.createElement("div");
+    dragPreviewEl.className = "drag-preview";
+    dragPreviewEl.textContent = text;
+    dragPreviewEl.style.background = color || "#0f172a";
+    document.body.appendChild(dragPreviewEl);
+    document.addEventListener("dragover", movePreview);
+  }
+  function movePreview(e){
+    if(dragPreviewEl){
+      dragPreviewEl.style.left = e.pageX + 10 + "px";
+      dragPreviewEl.style.top = e.pageY + 10 + "px";
+    }
+  }
+  function hideDragPreview(){
+    if(dragPreviewEl){
+      document.body.removeChild(dragPreviewEl);
+      dragPreviewEl = null;
+      document.removeEventListener("dragover", movePreview);
+    }
+  }
+
+  function dragFromMemberList(e, m){
+    e.dataTransfer.setData("text/plain", JSON.stringify(m));
+    const color = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#0f172a";
+    showDragPreview(`${m.name} (${m.job||""})`, color);
+  }
+  function dragFromSub(e){
+    const row = e.currentTarget;
+    const name = row.querySelector(".sub-name").value.trim();
+    const skill = row.querySelector(".sub-skill").value.trim();
+    if(!name){ e.preventDefault(); return; }
+    const job = getJobByName(name) || row.querySelector(".sub-name").dataset.job || "";
+    // 手機拖出去要收掉
+    closeSubsSheetSilently();
+    e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromSub: row.dataset.subIndex}));
+    const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
+    showDragPreview(`${name} (${job||""})`, color);
+  }
+  function dragFromPanel(e){
+    const input = e.target;
+    if(input.dataset.side === "last") {
       e.preventDefault();
-      const input = e.target;
-      if(input.dataset.role === "name" && input.dataset.side !== "last"){
-        clearInputAndSkill(input);
-        markDirty(input);
-        saveState();
-      }
+      return;
     }
-    function clearInputAndSkill(input){
-      input.value = "";
+    const side = input.dataset.side;
+    const name = input.value.trim();
+    let skill = "";
+    const skillRow = input.parentElement.nextElementSibling;
+    if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
+      skill = skillRow.querySelector('input[data-role="skill"]').value;
+    }
+    const job = input.dataset.job || getJobByName(name) || "";
+    draggingPanelInput = input;
+    draggingPanelSide = side;
+    dragSuccess = false;
+    e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromPanel: true, side}));
+    const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
+    showDragPreview(`${name || "空欄位"} ${job? "(" + job + ")":""}`, color);
+  }
+  document.addEventListener("dragend", function(){
+    hideDragPreview();
+    if(draggingPanelInput && !dragSuccess){
+      clearInputAndSkill(draggingPanelInput);
+      saveState();
+    }
+    draggingPanelInput = null;
+    draggingPanelSide = null;
+  });
+
+  function allowDrop(ev){ ev.preventDefault(); }
+
+  function getJobByName(name){
+    const m = allMembers.find(x=>x.name===name);
+    return m ? m.job : "";
+  }
+  function applyJobColor(input, job){
+    if(!input) return;
+    if(job && roleColors[job]){
+      const dark = darkenHex(roleColors[job],0.25);
+      input.style.borderLeft = "6px solid " + dark;
+      input.style.color = dark;
+      input.style.fontWeight = "700";
+      input.dataset.job = job;
+    } else {
       input.style.borderLeft = "";
       input.style.color = "";
       input.dataset.job = "";
-      const skillRow = input.parentElement.nextElementSibling;
-      if(skillRow && skillRow.querySelector("input[data-role='skill']")){
-        skillRow.querySelector("input[data-role='skill']").value = "";
-      }
-      input.classList.remove("highlight-new","highlight-missing");
+      input.style.fontWeight = "700";
     }
-    function clearHighlightOnEdit(input){
-      input.classList.remove("highlight-new","highlight-missing");
-    }
-    
-/*V12.1再次嘗試調整框線*/
-    function createSubRow(name="", skill="", markDirty=false){
-  const row = document.createElement("div");
-  row.className = "substitute-row";
-  row.draggable = true;
-  row.dataset.subIndex = subCounter++;
-  if (markDirty) {
-    row.dataset.dirty = "1";
   }
-  row.ondragstart = dragFromSub;
-  row.innerHTML = `
-    <input class="sub-name" placeholder="替補成員" value="${name}"
-      ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
-    <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
-    <button class="del-btn" onclick="deleteSub(this)">刪</button>
-    <span class="sub-status"></span>
-  `;
-  applyColorByName(row.querySelector(".sub-name"));
-  subsList.appendChild(row);
-}
-
-    function addSub(){
-  createSubRow("", "", true);   // 這次真的新增 → 要框 V12.1修改
-  saveState();
-}
-    function deleteSub(btn){ subsList.removeChild(btn.parentElement); saveState(); }
-    for (let i = 0; i < 4; i++) createSubRow("", "", false); /*V12.1修改*/
-
-    function renderRoleTabs(){
-      roleTabs.innerHTML = "";
-      const allTab = document.createElement("div");
-      allTab.className = "role-tab" + (activeRoleFilter==="" ? " active" : "");
-      allTab.textContent = "全部";
-      allTab.style.background = "#e2e8f0";
-      allTab.onclick = ()=>{activeRoleFilter=""; memberPage=1; renderMemberList();};
-      roleTabs.appendChild(allTab);
-      Object.keys(roleColors).forEach(r=>{
-        const tab = document.createElement("div");
-        tab.className = "role-tab" + (activeRoleFilter===r ? " active" : "");
-        tab.textContent = r;
-        tab.style.background = roleColors[r];
-        tab.onclick = ()=>{activeRoleFilter=r; memberPage=1; renderMemberList();};
-        roleTabs.appendChild(tab);
-      });
-    }
-
-    function getFilteredMembers(){
-      const keyword = searchInput.value.trim();
-      return allMembers.filter(m=>{
-        const matchRole = !activeRoleFilter || m.job===activeRoleFilter;
-        const matchText = !keyword || m.name.includes(keyword) || (m.skill && m.skill.includes(keyword));
-        return matchRole && matchText;
-      });
-    }
-
-    function renderMemberList(){
-      const filtered = getFilteredMembers();
-      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-      if(memberPage>totalPages) memberPage = totalPages;
-      const start = (memberPage-1)*pageSize;
-      const pageItems = filtered.slice(start, start+pageSize);
-
-      memberList.innerHTML = "";
-      pageItems.forEach(m=>{
-        const item = document.createElement("div");
-        item.className = "member-item";
-        item.draggable = true;
-        item.ondragstart = e => dragFromMemberList(e, m);
-        const darkColor = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#e2e8f0";
-        item.style.borderLeft = "4px solid " + darkColor;
-        item.innerHTML = `
-          <div class="member-left" data-id="${m.id}">
-            <div class="member-name" style="color:${darkColor}">${m.name}</div>
-            <div class="member-skill">${m.skill || ""}</div>
-          </div>
-          <div class="member-actions" id="member-actions-${m.id}">
-            <button onclick="startInlineEdit(${m.id})">編</button>
-            <button onclick="deleteMember(${m.id})">刪</button>
-          </div>
-        `;
-        memberList.appendChild(item);
-      });
-
-      const sel = document.getElementById("pageSelect");
-      sel.innerHTML = "";
-      for(let p=1;p<=totalPages && p<=8;p++){
-        const opt = document.createElement("option");
-        opt.value = p;
-        opt.textContent = "第 " + p + " 頁";
-        if(p===memberPage) opt.selected = true;
-        sel.appendChild(opt);
+  function applyColorByName(input){
+    const name = input.value.trim();
+    const job = getJobByName(name);
+    applyJobColor(input, job);
+  }
+  function clearDuplicateInPanel(panelEl, name, exceptInput){
+    panelEl.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      if(inp !== exceptInput && inp.value.trim() === name){
+        clearInputAndSkill(inp);
       }
-    }
-    function prevPage(){ if(memberPage>1){ memberPage--; renderMemberList(); } }
-    function nextPage(){
-      const totalPages = Math.max(1, Math.ceil(getFilteredMembers().length / pageSize));
-      if(memberPage<totalPages){ memberPage++; renderMemberList(); }
-    }
-    function jumpPage(p){ memberPage = parseInt(p,10); renderMemberList(); }
-
-    function toggleAddMember(){
-      const form = document.getElementById("addMemberForm");
-      form.style.display = form.style.display==="flex" ? "none" : "flex";
-    }
-    function addMember(){
-      const name = document.getElementById("newName").value.trim();
-      const job = document.getElementById("newJob").value;
-      const skill = document.getElementById("newSkill").value.trim();
-      if(!name || !job){ alert("成員名稱與職業必填"); return; }
-      allMembers.push({id: ++nextMemberId, name, job, skill});
-      document.getElementById("newName").value = "";
-      document.getElementById("newJob").value = "";
-      document.getElementById("newSkill").value = "";
-      renderMemberList();
-      document.getElementById("addMemberForm").style.display = "none";
-      saveState();
-    }
-
-    function startInlineEdit(id){
-      const item = [...memberList.querySelectorAll(".member-left")].find(div=>parseInt(div.dataset.id,10)===id);
-      if(!item) return;
-      const m = allMembers.find(x=>x.id===id);
-      const actionArea = document.getElementById(`member-actions-${id}`);
-      if(actionArea) actionArea.style.display = "none";
-      item.innerHTML = `
-        <input class="edit-input" id="edit-name-${id}" value="${m.name}">
-        <select class="edit-input" id="edit-job-${id}">
-          <option value="九靈" ${m.job==="九靈"?"selected":""}>九靈</option>
-          <option value="鐵衣" ${m.job==="鐵衣"?"selected":""}>鐵衣</option>
-          <option value="素問" ${m.job==="素問"?"selected":""}>素問</option>
-          <option value="龍吟" ${m.job==="龍吟"?"selected":""}>龍吟</option>
-          <option value="神相" ${m.job==="神相"?"selected":""}>神相</option>
-          <option value="碎夢" ${m.job==="碎夢"?"selected":""}>碎夢</option>
-          <option value="血河" ${m.job==="血河"?"selected":""}>血河</option>
-        </select>
-        <input class="edit-input" id="edit-skill-${id}" value="${m.skill||""}">
-        <div style="display:flex;gap:.3rem;">
-          <button class="float-btn" style="font-size:.65rem;padding:.2rem .4rem;" onclick="saveInlineEdit(${id})">儲存</button>
-          <button class="float-btn secondary" style="font-size:.65rem;padding:.2rem .4rem;" onclick="renderMemberList()">取消</button>
-        </div>
-      `;
-    }
-    function saveInlineEdit(id){
-      const name = document.getElementById("edit-name-"+id).value.trim();
-      const job = document.getElementById("edit-job-"+id).value.trim();
-      const skill = document.getElementById("edit-skill-"+id).value.trim();
-      const idx = allMembers.findIndex(x=>x.id===id);
-      if(idx>-1){
-        allMembers[idx] = {id, name, job, skill};
-        renderMemberList();
-        saveState();
-      }
-    }
-    function deleteMember(id){
-      const idx = allMembers.findIndex(x=>x.id===id);
-      if(idx>-1){ allMembers.splice(idx,1); renderMemberList(); saveState(); }
-    }
-
-    function showDragPreview(text, color){
-      dragPreviewEl = document.createElement("div");
-      dragPreviewEl.className = "drag-preview";
-      dragPreviewEl.textContent = text;
-      dragPreviewEl.style.background = color || "#0f172a";
-      document.body.appendChild(dragPreviewEl);
-      document.addEventListener("dragover", movePreview);
-    }
-    function movePreview(e){
-      if(dragPreviewEl){
-        dragPreviewEl.style.left = e.pageX + 10 + "px";
-        dragPreviewEl.style.top = e.pageY + 10 + "px";
-      }
-    }
-    function hideDragPreview(){
-      if(dragPreviewEl){
-        document.body.removeChild(dragPreviewEl);
-        dragPreviewEl = null;
-        document.removeEventListener("dragover", movePreview);
-      }
-    }
-
-    function dragFromMemberList(e, m){
-      e.dataTransfer.setData("text/plain", JSON.stringify(m));
-      const color = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#0f172a";
-      showDragPreview(`${m.name} (${m.job||""})`, color);
-    }
-    function dragFromSub(e){
-      const row = e.currentTarget;
-      const name = row.querySelector(".sub-name").value.trim();
-      const skill = row.querySelector(".sub-skill").value.trim();
-      if(!name){ e.preventDefault(); return; }
-      const job = getJobByName(name) || row.querySelector(".sub-name").dataset.job || "";
-      e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromSub: row.dataset.subIndex}));
-      const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
-      showDragPreview(`${name} (${job||""})`, color);
-    }
-    function dragFromPanel(e){
-      const input = e.target;
-      if(input.dataset.side === "last") {
-        e.preventDefault();
-        return;
-      }
-      const side = input.dataset.side;
-      const name = input.value.trim();
-      let skill = "";
-      const skillRow = input.parentElement.nextElementSibling;
-      if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
-        skill = skillRow.querySelector('input[data-role="skill"]').value;
-      }
-      const job = input.dataset.job || getJobByName(name) || "";
-      draggingPanelInput = input;
-      draggingPanelSide = side;
-      dragSuccess = false;
-      e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromPanel: true, side}));
-      const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
-      showDragPreview(`${name || "空欄位"} ${job? "(" + job + ")":""}`, color);
-    }
-    document.addEventListener("dragend", function(){
-      hideDragPreview();
-      if(draggingPanelInput && !dragSuccess){
-        clearInputAndSkill(draggingPanelInput);
-        saveState();
-      }
-      draggingPanelInput = null;
-      draggingPanelSide = null;
     });
+  }
 
-    function allowDrop(ev){ ev.preventDefault(); }
+  function collectDirtyMarks() {
+    const marks = [];
 
-    function getJobByName(name){
-      const m = allMembers.find(x=>x.name===name);
-      return m ? m.job : "";
-    }
-    function applyJobColor(input, job){
-      if(!input) return;
-      if(job && roleColors[job]){
-        const dark = darkenHex(roleColors[job],0.25);
-        input.style.borderLeft = "6px solid " + dark;
-        input.style.color = dark;
-        input.style.fontWeight = "700";
-        input.dataset.job = job;
-      } else {
-        input.style.borderLeft = "";
-        input.style.color = "";
-        input.dataset.job = "";
-        input.style.fontWeight = "700";
-      }
-    }
-    function applyColorByName(input){
-      const name = input.value.trim();
-      const job = getJobByName(name);
-      applyJobColor(input, job);
-    }
-    function clearDuplicateInPanel(panelEl, name, exceptInput){
-      panelEl.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        if(inp !== exceptInput && inp.value.trim() === name){
-          clearInputAndSkill(inp);
-        }
-      });
-    }
-
-    // 收集這次要畫的框線
-    function collectDirtyMarks() {
-      const marks = [];
-
-      // 本週面板的格子
-      thisWeekPanel.querySelectorAll("[data-dirty='1']").forEach(el => {
-        const teamBlock = el.closest(".team-block");
-        if (teamBlock) {
-          const team = teamBlock.dataset.team;
-          if (el.classList.contains("team-tag-select")) {
-            marks.push({type:"team-tag", team});
-          } else {
-            const squadEl = el.closest(".squad");
-            if (squadEl) {
-              const squadIdx = Array.from(squadEl.parentElement.children).indexOf(squadEl);
-              const nameInputs = squadEl.querySelectorAll("input[data-role='name']");
-              const memberIdx = Array.from(nameInputs).indexOf(el);
-              if (memberIdx !== -1) {
-                marks.push({type:"member", team, squad: squadIdx, member: memberIdx});
-              }
+    thisWeekPanel.querySelectorAll("[data-dirty='1']").forEach(el => {
+      const teamBlock = el.closest(".team-block");
+      if (teamBlock) {
+        const team = teamBlock.dataset.team;
+        if (el.classList.contains("team-tag-select")) {
+          marks.push({type:"team-tag", team});
+        } else {
+          const squadEl = el.closest(".squad");
+          if (squadEl) {
+            const squadIdx = Array.from(squadEl.parentElement.children).indexOf(squadEl);
+            const nameInputs = squadEl.querySelectorAll("input[data-role='name']");
+            const memberIdx = Array.from(nameInputs).indexOf(el);
+            if (memberIdx !== -1) {
+              marks.push({type:"member", team, squad: squadIdx, member: memberIdx});
             }
           }
         }
-      });
+      }
+    });
 
-      
-      // 檢查小隊數量變化 → 只框有標記 newlyAdded 的小隊 V12.1改
-thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
-  const team = block.dataset.team;
-  const squads = block.querySelectorAll(".squad");
-  const squ = squads.length;
-  const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
-
-  // 找出有標記 newlyAdded 的小隊 → 個別框
-  squads.forEach((sqEl, idx) => {
-    if (sqEl.dataset.newlyAdded === "1") {
-      marks.push({ type: "squadNew", team, squad: idx });
-      delete sqEl.dataset.newlyAdded; // 用完就清掉
-    }
-  });
-
-  // 儲存這次的小隊數量當基準
-  block.dataset.lastSquadCount = String(squ);
-});
-
-
-
-      // 替補
-      subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
-        const row = el.closest(".substitute-row");
-        if (row) {
-          const idx = Array.from(subsList.children).indexOf(row);
-          marks.push({type:"sub", index: idx});
+    thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
+      const team = block.dataset.team;
+      const squads = block.querySelectorAll(".squad");
+      squads.forEach((sqEl, idx) => {
+        if (sqEl.dataset.newlyAdded === "1") {
+          marks.push({ type: "squadNew", team, squad: idx });
+          delete sqEl.dataset.newlyAdded;
         }
       });
+      block.dataset.lastSquadCount = String(squads.length);
+    });
 
-      return marks;
-    }
+    subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
+      const row = el.closest(".substitute-row");
+      if (row) {
+        const idx = Array.from(subsList.children).indexOf(row);
+        marks.push({type:"sub", index: idx});
+      }
+    });
 
-    function renderRecentMarks(recentMarks) {
-      clearAllOutlines();
-      if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
-      const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
-
-      recentMarks.marks.forEach(m => {
-        if (m.type === "member") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (!block) return;
-          const squads = block.querySelectorAll(".squads .squad");
-          const sq = squads[m.squad];
-          if (!sq) return;
-          const names = sq.querySelectorAll("input[data-role='name']");
-          const inp = names[m.member];
-          if (inp) inp.classList.add(cls);
-        } 
-        else if (m.type === "team-tag") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (block) {
-            const sel = block.querySelector(".team-tag-select");
-            if (sel) sel.classList.add(cls);
-          }
-        } 
-        else if (m.type === "sub") {
-          const row = subsList.children[m.index];
-          if (row) row.classList.add(cls);
-        }
-        else if (m.type === "squadNew") {  //V12.1改mark標示
-  const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-  if (!block) return;
-  const squads = block.querySelectorAll(".squad");
-  const newsq = squads[m.squad];
-  if (newsq) {
-    const title = newsq.querySelector(".squad-title");
-    if (title) title.classList.add(cls);  // 只圈「第X小隊」
+    return marks;
   }
-}
-      });
-    }
 
-    function clearAllOutlines(){
-      document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
-        el.classList.remove("outline-dabai","outline-baoan","outline-stitch");
-      });
-    }
+  function renderRecentMarks(recentMarks) {
+    clearAllOutlines();
+    if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
+    const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
 
-    function dropMember(ev){
-      ev.preventDefault();
-      dragSuccess = true;
-      const data = ev.dataTransfer.getData("text/plain");
-      if(!data) return;
-      const member = JSON.parse(data);
-      const target = ev.target;
-
-      // 替補 ← 面板：要互換
-      if(target.classList.contains("sub-name")){
-        if (member.fromPanel && draggingPanelInput) {
-          const oldName = target.value.trim();
-          const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
-          const oldJob = getJobByName(oldName) || target.dataset.job || "";
-
-          target.value = member.name;
-          applyJobColor(target, member.job);
-          target.parentElement.querySelector(".sub-skill").value = member.skill || "";
-          markDirty(target);
-
-          draggingPanelInput.value = oldName;
-          applyJobColor(draggingPanelInput, oldJob);
-          const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-          if (panelSkillRow && panelSkillRow.querySelector('input[data-role="skill"]')) {
-            panelSkillRow.querySelector('input[data-role="skill"]').value = oldSkill;
-          }
-          markDirty(draggingPanelInput);
-          saveState();
-          return;
-        } else {
-          target.value = member.name;
-          applyJobColor(target, member.job);
-          const sk = target.parentElement.querySelector(".sub-skill");
-          if(sk) sk.value = member.skill ? member.skill : "";
-          markDirty(target);
-          saveState();
-          return;
+    recentMarks.marks.forEach(m => {
+      if (m.type === "member") {
+        const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+        if (!block) return;
+        const squads = block.querySelectorAll(".squad");
+        const sq = squads[m.squad];
+        if (!sq) return;
+        const names = sq.querySelectorAll("input[data-role='name']");
+        const inp = names[m.member];
+        if (inp) inp.classList.add(cls);
+      } else if (m.type === "team-tag") {
+        const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+        if (block) {
+          const sel = block.querySelector(".team-tag-select");
+          if (sel) sel.classList.add(cls);
+        }
+      } else if (m.type === "sub") {
+        const row = subsList.children[m.index];
+        if (row) row.classList.add(cls);
+      } else if (m.type === "squadNew") {
+        const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+        if (!block) return;
+        const squads = block.querySelectorAll(".squad");
+        const newsq = squads[m.squad];
+        if (newsq) {
+          const title = newsq.querySelector(".squad-title");
+          if (title) title.classList.add(cls);
         }
       }
+    });
+  }
+  function clearAllOutlines(){
+    document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
+      el.classList.remove("outline-dabai","outline-baoan","outline-stitch");
+    });
+  }
 
-      if(target.dataset && target.dataset.role === "name"){
-        const targetSide = target.dataset.side;
-        if(targetSide === "last") {
-          // 上週不允許拖進
-          return;
-        }
-        const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
+  function dropMember(ev){
+    ev.preventDefault();
+    dragSuccess = true;
+    const data = ev.dataTransfer.getData("text/plain");
+    if(!data) return;
+    const member = JSON.parse(data);
+    const target = ev.target;
 
-        // 同面板互換
-        if(member.fromPanel && member.side === targetSide && draggingPanelInput){
-          const src = draggingPanelInput;
-          if(src === target) return;
-          const srcName = src.value.trim();
-          const srcJob = src.dataset.job || getJobByName(srcName) || "";
-          let srcSkill = "";
-          const srcSkillRow = src.parentElement.nextElementSibling;
-          if(srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')){
-            srcSkill = srcSkillRow.querySelector('input[data-role="skill"]').value;
-          }
-
-          const tgtName = target.value.trim();
-          const tgtJob = target.dataset.job || getJobByName(tgtName) || "";
-          let tgtSkill = "";
-          const tgtSkillRow = target.parentElement.nextElementSibling;
-          if(tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')){
-            tgtSkill = tgtSkillRow.querySelector('input[data-role="skill"]').value;
-          }
-
-          src.value = tgtName;
-          applyJobColor(src, tgtJob);
-          if(srcSkillRow) srcSkillRow.querySelector('input[data-role="skill"]').value = tgtSkill || "";
-          src.classList.remove("highlight-new","highlight-missing");
-
-          target.value = srcName;
-          applyJobColor(target, srcJob);
-          if(tgtSkillRow) tgtSkillRow.querySelector('input[data-role="skill"]').value = srcSkill || "";
-          target.classList.remove("highlight-new","highlight-missing");
-          markDirty(src);
-          markDirty(target);
-          saveState();
-          return;
-        }
-
-        // 替補 → 面板 且面板原本有值 → 替補那個被換回去
-        if(member.fromSub !== undefined && target.value.trim() !== ""){
-          const oldName = target.value.trim();
-          const oldJob = target.dataset.job || getJobByName(oldName) || "";
-          let oldSkill = "";
-          const skillRow = target.parentElement.nextElementSibling;
-          if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
-            oldSkill = skillRow.querySelector('input[data-role="skill"]').value;
-          }
-          const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
-          if(subRow){
-            subRow.querySelector(".sub-name").value = oldName;
-            applyJobColor(subRow.querySelector(".sub-name"), oldJob);
-            subRow.querySelector(".sub-skill").value = oldSkill;
-            markDirty(subRow.querySelector(".sub-name"));
-          }
-        }
-
-        // 不同面板不交換
-        if(member.fromPanel && member.side !== targetSide){
-          return;
-        }
+    if(target.classList.contains("sub-name")){
+      if (member.fromPanel && draggingPanelInput) {
+        const oldName = target.value.trim();
+        const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
+        const oldJob = getJobByName(oldName) || target.dataset.job || "";
 
         target.value = member.name;
         applyJobColor(target, member.job);
-        const srow = target.parentElement.nextElementSibling;
-        if(srow && srow.querySelector('input[data-role="skill"]')){
-          srow.querySelector('input[data-role="skill"]').value = member.skill ? member.skill : "";
+        target.parentElement.querySelector(".sub-skill").value = member.skill || "";
+        markDirty(target);
+
+        draggingPanelInput.value = oldName;
+        applyJobColor(draggingPanelInput, oldJob);
+        const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+        if (panelSkillRow && panelSkillRow.querySelector('input[data-role="skill"]')) {
+          panelSkillRow.querySelector('input[data-role="skill"]').value = oldSkill;
         }
-        target.classList.remove("highlight-new","highlight-missing");
-        clearDuplicateInPanel(targetPanel, member.name, target);
+        markDirty(draggingPanelInput);
+        saveState();
+        return;
+      } else {
+        target.value = member.name;
+        applyJobColor(target, member.job);
+        const sk = target.parentElement.querySelector(".sub-skill");
+        if(sk) sk.value = member.skill ? member.skill : "";
         markDirty(target);
         saveState();
-      }
-    }
-
-    function getPanelData(panelEl){
-      const data = [];
-      panelEl.querySelectorAll(".team-block").forEach(block=>{
-        const team = block.dataset.team;
-        const tagSelect = block.querySelector(".team-tag-select");
-        const label = block.querySelector(".team-tag-label");
-        const groupTag = tagSelect ? tagSelect.value : (label ? label.textContent.trim() : "一團");
-        const squads = [];
-        block.querySelectorAll(".squads .squad").forEach(sq=>{
-          const members = [];
-          sq.querySelectorAll("input[data-role='name']").forEach(nameInput=>{
-            const skillRow = nameInput.parentElement.nextElementSibling;
-            const skillInput = skillRow ? skillRow.querySelector("input[data-role='skill']") : null;
-            members.push({
-              name: nameInput.value.trim(),
-              job: nameInput.dataset.job || "",
-              skill: skillInput ? (skillInput.value.trim() || "") : ""
-            });
-          });
-          squads.push({members});
-        });
-        data.push({team, tag: groupTag, squads});
-      });
-      return data;
-    }
-
-    function setPanelData(panelEl, data, side){
-      data.forEach(teamData=>{
-        const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
-        if(!block) return;
-        if (side === "this") {
-          const tagSelect = block.querySelector(".team-tag-select");
-          if (tagSelect && teamData.tag) tagSelect.value = teamData.tag;
-        } else {
-          const label = block.querySelector(".team-tag-label");
-          if (label && teamData.tag) label.textContent = teamData.tag;
-        }
-        const squadsContainer = block.querySelector(".squads");
-        let currentCount = squadsContainer.children.length;
-        const neededCount = teamData.squads.length;
-        while(currentCount < neededCount){
-          squadsContainer.appendChild(createSquad(currentCount+1, side, teamData.team));
-          currentCount++;
-        }
-        while(squadsContainer.children.length > neededCount){
-          squadsContainer.removeChild(squadsContainer.lastElementChild);
-        }
-        teamData.squads.forEach((sqData, idx)=>{
-          const sqEl = squadsContainer.children[idx];
-          const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
-          nameInputs.forEach((inp, mIdx)=>{
-            const member = sqData.members[mIdx];
-            if(member){
-              inp.value = member.name || "";
-              if(side==="last"){
-                inp.classList.add("locked-input");
-                inp.readOnly = true;
-              }
-              if(member.job){
-                applyJobColor(inp, member.job);
-              } else {
-                applyColorByName(inp);
-              }
-              const skillRow = inp.parentElement.nextElementSibling;
-              if(skillRow && skillRow.querySelector("input[data-role='skill']")){
-                skillRow.querySelector("input[data-role='skill']").value = member.skill ? member.skill : "";
-                if(side==="last"){
-                  const si = skillRow.querySelector("input[data-role='skill']");
-                  si.readOnly = true;
-                  si.classList.add("locked-input");
-                }
-              }
-            } else {
-              clearInputAndSkill(inp);
-            }
-          });
-        });
-        renumberSquads(block);
-        // 同步當下的小隊數量
-        block.dataset.lastSquadCount = String(neededCount || 3);
-        adjustSquadWidths(block);
-      });
-    }
-
-    function getSubsData(){
-      const arr = [];
-      subsList.querySelectorAll(".substitute-row").forEach(row=>{
-        arr.push({
-          name: row.querySelector(".sub-name").value.trim(),
-          skill: row.querySelector(".sub-skill").value.trim()
-        });
-      });
-      return arr;
-    }
-
-    function saveState(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-    }
-
-    function fetchWithTimeout(url, ms=3000){
-      const ctrl = new AbortController();
-      const id = setTimeout(()=>ctrl.abort(), ms);
-      return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
-    }
-
-    async function loadState(){
-      renderRoleTabs();
-      renderMemberList();
-      // 讀登入狀態
-      const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
-      if (loginStr) {
-        try {
-          const obj = JSON.parse(loginStr);
-          currentUser = obj.user || null;
-          lastLoginTime = obj.time || 0;
-        } catch(e){}
-      }
-
-      const s = localStorage.getItem(STORAGE_KEY);
-      if (s) {
-        try {
-          const localState = JSON.parse(s);
-          applyStateToPage(localState, true);
-        } catch(e){}
-      }
-
-      try {
-        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-        const data = await res.json();
-        if (data && data.success && data.payload) {
-          const currentLocal = localStorage.getItem(STORAGE_KEY);
-          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-            applyStateToPage(data.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
-          }
-          if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
-        }
-      } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
-
-      startVersionWatcher();
-    }
-
-    function applyStateToPage(state, fromLocal){
-      if (state.allMembers && Array.isArray(state.allMembers)) {
-        allMembers = state.allMembers;
-        const maxId = allMembers.reduce((m,c)=>Math.max(m,c.id||0),12);
-        nextMemberId = maxId + 1;
-      }
-      renderMemberList();
-
-      if (state.lastWeek) {
-        setPanelData(lastWeekPanel, state.lastWeek, "last");
-        lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-      }
-      if (state.thisWeek) {
-        setPanelData(thisWeekPanel, state.thisWeek, "this");
-        thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-      }
-      if (state.subs) {
-  subsList.innerHTML = "";
-  state.subs.forEach(su => createSubRow(su.name, su.skill, false));
-}  /*V12.1修改*/
-
-
-      if (state.recentMarks) {
-        renderRecentMarks(state.recentMarks);
-      } else {
-        clearAllOutlines();
-      }
-    }
-
-    function requestSave(){
-      const now = Date.now();
-      if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
-        doSaveToBackend();
-      } else {
-        showLogin();
-      }
-    }
-    function showLogin(){
-      document.getElementById("loginMsg").textContent = "";
-      document.getElementById("loginUser").value = "";
-      document.getElementById("loginPass").value = "";
-      document.getElementById("loginModal").style.display = "flex";
-      document.getElementById("loginUser").focus();
-    }
-    function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
-
-    function doLogin(){
-  const u = document.getElementById("loginUser").value.trim();
-  const p = document.getElementById("loginPass").value.trim();
-
-  fetch(REMOTE_API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "login",   // ← 關鍵：告訴 GAS 這次是要登入
-      user: u,
-      pass: p
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data && data.success && data.user) {
-      currentUser = data.user;
-      lastLoginTime = Date.now();
-      localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
-      closeLogin();
-      doSaveToBackend();  // 登入成功後照你原本的流程去存
-    } else {
-      document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
-    }
-  })
-  .catch(err => {
-    console.warn("login error", err);
-    document.getElementById("loginMsg").textContent = "登入失敗";
-  });
-}
-
-    function doSaveToBackend(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
-
-      const marks = collectDirtyMarks();
-      state.recentMarks = {
-        user: currentUser || "unknown",
-        marks
-      };
-
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-
-      fetch(REMOTE_API, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "save",
-          payload: state
-        })
-      })
-      .then(res=>res.json())
-      .then(data=>{
-        if (data && data.success) {
-          alert("已儲存到後台");
-          renderRecentMarks(state.recentMarks);
-          document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-        } else {
-          alert("後台有回應但不是 success，請看 console");
-          console.log(data);
-        }
-      })
-      .catch(err=>{
-        alert("無法連到後台，請檢查 Apps Script 部署權限");
-        console.error(err);
-      });
-    }
-
-    function compare(){
-      // 先清掉舊的紅綠
-      document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        inp.classList.remove("highlight-new","highlight-missing");
-      });
-
-      const lastNames = [];
-      lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) lastNames.push(v);
-      });
-      const lastSet = new Set(lastNames);
-
-      const thisNames = [];
-      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) thisNames.push({val:v, el:inp});
-      });
-      const thisSet = new Set(thisNames.map(x=>x.val));
-
-      const newOnes = [];
-      const missingOnes = [];
-
-      thisNames.forEach(obj=>{
-        if (obj.val && !lastSet.has(obj.val)) {
-          if (!compareIgnore.has(obj.val)) {
-            obj.el.classList.add("highlight-new");
-          }
-          newOnes.push(obj.val);
-        }
-      });
-
-      lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if (v && !thisSet.has(v)) {
-          if (!compareIgnore.has(v)) {
-            inp.classList.add("highlight-missing");
-          }
-          missingOnes.push(v);
-        }
-      });
-
-      // 替補判斷保持原樣
-      subsList.querySelectorAll(".substitute-row").forEach(row=>{
-        const name = row.querySelector(".sub-name").value.trim();
-        const status = row.querySelector(".sub-status");
-        if(!name){ status.textContent = ""; return; }
-        if(thisSet.has(name)){
-          status.textContent = "本週已上場 ✅";
-          status.style.color = "#16a34a";
-        } else {
-          status.textContent = "本週未上場";
-          status.style.color = "#b91c1c";
-        }
-      });
-
-      renderCompareTags(newOnes, missingOnes);
-    }
-
-    
-/*V12.1調整紅綠色顯示排序*/
-    function renderCompareTags(newList, missingList){
-  compareTagsEl.innerHTML = "";
-
-  // 綠的先
-  newList.forEach(name => {
-    const tag = document.createElement("div");
-    tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
-    tag.textContent = name;
-    tag.onclick = () => toggleCompareIgnore(name);
-    compareTagsEl.appendChild(tag);
-  });
-
-  // 再紅的
-  missingList.forEach(name => {
-    const tag = document.createElement("div");
-    tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
-    tag.textContent = name;
-    tag.onclick = () => toggleCompareIgnore(name);
-    compareTagsEl.appendChild(tag);
-  });
-}
-
-
-    function toggleCompareIgnore(name){
-      if (compareIgnore.has(name)) {
-        compareIgnore.delete(name);
-        // 恢復標示：找出該名在兩個面板中，依現在名單再跑一次比對
-      } else {
-        compareIgnore.add(name);
-        // 馬上把畫面上對應的人移除紅綠
-        document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-          if (inp.value.trim() === name) {
-            inp.classList.remove("highlight-new","highlight-missing");
-          }
-        });
-      }
-      // 重新算一次比對畫面
-      compare();
-    }
-
-    function copyThisToLast(){
-      if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
-      lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
-      const thisData = getPanelData(thisWeekPanel);
-      setPanelData(lastWeekPanel, thisData, "last");
-      saveState();
-      alert("已將本週名單的內容覆蓋到上週。");
-    }
-    function undoCopy(){
-      if(!lastSnapshot){
-        alert("沒有可還原的內容。");
         return;
       }
-      const data = JSON.parse(lastSnapshot);
-      setPanelData(lastWeekPanel, data, "last");
-      saveState();
-      alert("已還原到覆蓋前的上週名單。");
     }
 
-    function startVersionWatcher(){
-      const INTERVAL = 4000;
-      setInterval(async ()=>{
-        try {
-          const res = await fetch(REMOTE_API + "?action=version");
-          const data = await res.json();
-          if (data && data.success) {
-            const serverUpdatedAt = data.updatedAt || null;
-            if (!lastKnownUpdatedAt) {
-              lastKnownUpdatedAt = serverUpdatedAt;
-              return;
+    if(target.dataset && target.dataset.role === "name"){
+      const targetSide = target.dataset.side;
+      if(targetSide === "last") {
+        return;
+      }
+      const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
+
+      if(member.fromPanel && member.side === targetSide && draggingPanelInput){
+        const src = draggingPanelInput;
+        if(src === target) return;
+        const srcName = src.value.trim();
+        const srcJob = src.dataset.job || getJobByName(srcName) || "";
+        let srcSkill = "";
+        const srcSkillRow = src.parentElement.nextElementSibling;
+        if(srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')){
+          srcSkill = srcSkillRow.querySelector('input[data-role="skill"]').value;
+        }
+
+        const tgtName = target.value.trim();
+        const tgtJob = target.dataset.job || getJobByName(tgtName) || "";
+        let tgtSkill = "";
+        const tgtSkillRow = target.parentElement.nextElementSibling;
+        if(tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')){
+          tgtSkill = tgtSkillRow.querySelector('input[data-role="skill"]').value;
+        }
+
+        src.value = tgtName;
+        applyJobColor(src, tgtJob);
+        if(srcSkillRow) srcSkillRow.querySelector('input[data-role="skill"]').value = tgtSkill || "";
+        src.classList.remove("highlight-new","highlight-missing");
+
+        target.value = srcName;
+        applyJobColor(target, srcJob);
+        if(tgtSkillRow) tgtSkillRow.querySelector('input[data-role="skill"]').value = srcSkill || "";
+        target.classList.remove("highlight-new","highlight-missing");
+        markDirty(src);
+        markDirty(target);
+        saveState();
+        return;
+      }
+
+      if(member.fromSub !== undefined && target.value.trim() !== ""){
+        const oldName = target.value.trim();
+        const oldJob = target.dataset.job || getJobByName(oldName) || "";
+        let oldSkill = "";
+        const skillRow = target.parentElement.nextElementSibling;
+        if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
+          oldSkill = skillRow.querySelector('input[data-role="skill"]').value;
+        }
+        const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
+        if(subRow){
+          subRow.querySelector(".sub-name").value = oldName;
+          applyJobColor(subRow.querySelector(".sub-name"), oldJob);
+          subRow.querySelector(".sub-skill").value = oldSkill;
+          markDirty(subRow.querySelector(".sub-name"));
+        }
+      }
+
+      if(member.fromPanel && member.side !== targetSide){
+        return;
+      }
+
+      target.value = member.name;
+      applyJobColor(target, member.job);
+      const srow = target.parentElement.nextElementSibling;
+      if(srow && srow.querySelector('input[data-role="skill"]')){
+        srow.querySelector('input[data-role="skill"]').value = member.skill ? member.skill : "";
+      }
+      target.classList.remove("highlight-new","highlight-missing");
+      clearDuplicateInPanel(targetPanel, member.name, target);
+      markDirty(target);
+      saveState();
+    }
+  }
+
+  function getPanelData(panelEl){
+    const data = [];
+    panelEl.querySelectorAll(".team-block").forEach(block=>{
+      const team = block.dataset.team;
+      const tagSelect = block.querySelector(".team-tag-select");
+      const label = block.querySelector(".team-tag-label");
+      const groupTag = tagSelect ? tagSelect.value : (label ? label.textContent.trim() : "一團");
+      const squads = [];
+      block.querySelectorAll(".squads .squad").forEach(sq=>{
+        const members = [];
+        sq.querySelectorAll("input[data-role='name']").forEach(nameInput=>{
+          const skillRow = nameInput.parentElement.nextElementSibling;
+          const skillInput = skillRow ? skillRow.querySelector("input[data-role='skill']") : null;
+          members.push({
+            name: nameInput.value.trim(),
+            job: nameInput.dataset.job || "",
+            skill: skillInput ? (skillInput.value.trim() || "") : ""
+          });
+        });
+        squads.push({members});
+      });
+      data.push({team, tag: groupTag, squads});
+    });
+    return data;
+  }
+
+  function setPanelData(panelEl, data, side){
+    data.forEach(teamData=>{
+      const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
+      if(!block) return;
+      if (side === "this") {
+        const tagSelect = block.querySelector(".team-tag-select");
+        if (tagSelect && teamData.tag) tagSelect.value = teamData.tag;
+      } else {
+        const label = block.querySelector(".team-tag-label");
+        if (label && teamData.tag) label.textContent = teamData.tag;
+      }
+      const squadsContainer = block.querySelector(".squads");
+      let currentCount = squadsContainer.children.length;
+      const neededCount = teamData.squads.length;
+      while(currentCount < neededCount){
+        squadsContainer.appendChild(createSquad(currentCount+1, side, teamData.team));
+        currentCount++;
+      }
+      while(squadsContainer.children.length > neededCount){
+        squadsContainer.removeChild(squadsContainer.lastElementChild);
+      }
+      teamData.squads.forEach((sqData, idx)=>{
+        const sqEl = squadsContainer.children[idx];
+        const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
+        nameInputs.forEach((inp, mIdx)=>{
+          const member = sqData.members[mIdx];
+          if(member){
+            inp.value = member.name || "";
+            if(side==="last"){
+              inp.classList.add("locked-input");
+              inp.readOnly = true;
             }
-            if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
-              const fullRes = await fetch(REMOTE_API + "?action=get");
-              const fullData = await fullRes.json();
-              if (fullData && fullData.success && fullData.payload) {
-                applyStateToPage(fullData.payload, false);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
-                lastKnownUpdatedAt = serverUpdatedAt;
+            if(member.job){
+              applyJobColor(inp, member.job);
+            } else {
+              applyColorByName(inp);
+            }
+            const skillRow = inp.parentElement.nextElementSibling;
+            if(skillRow && skillRow.querySelector("input[data-role='skill']")){
+              skillRow.querySelector("input[data-role='skill']").value = member.skill ? member.skill : "";
+              if(side==="last"){
+                const si = skillRow.querySelector("input[data-role='skill']");
+                si.readOnly = true;
+                si.classList.add("locked-input");
               }
             }
+          } else {
+            clearInputAndSkill(inp);
           }
-        } catch(err){
-          console.warn("檢查版本失敗", err);
-        }
-      }, INTERVAL);
-    }
-
-    /* ========= 下載圖片 ========= */
-    function fillRoundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-      ctx.fill();
-    }
-    function getTeamCanvasWidth(team) {
-      const basePad = 8;
-      const gap = 4;
-      const squadCount = Math.min(6, team.squads ? team.squads.length : 0) || 6;
-      const squadWidth = 100;
-      return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
-    }
-
-  /*V12.1修正下載圖片不同排*/  
-    function downloadThisWeekImage() {
-  const data = getPanelData(thisWeekPanel);
-  const tagOrder = ["一團","二團","三團","四團"];
-  const teamHeight = 272;
-  const gapX = 20;
-  const gapY = 30;
-
-  // 先照 tag 分
-  const grouped = tagOrder.map(tag => ({
-    tag,
-    teams: data.filter(t => (t.tag || "一團") === tag)
-  })).filter(g => g.teams.length > 0);
-
-  // ① 先量「每一團這一排需要多寬」
-  let neededWidths = [];
-  grouped.forEach(group => {
-    let rowWidth = gapX; // 左邊留點邊距 // 量寬
-    group.teams.forEach(team => {
-      const w = getTeamCanvasWidth(team);
-      rowWidth += w + gapX; // 區塊 + gap
+        });
+      });
+      renumberSquads(block);
+      block.dataset.lastSquadCount = String(neededCount || 3);
+      adjustSquadWidths(block);
     });
-    neededWidths.push(rowWidth);
-  });
+  }
 
-  // 取全部團裡面最寬的那一排，當作整張圖寬度，最低給個 820
-  const maxWidth = Math.max(820, ...neededWidths);
-
-  // ② 算總高度（每一團一排）
-  let totalHeight = 50; // 上面標題
-  grouped.forEach(group => {
-    totalHeight += teamHeight + gapY;
-  });
-
-  const SCALE = 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = maxWidth * SCALE;
-  canvas.height = totalHeight * SCALE;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(SCALE, SCALE);
-
-  // 背景
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, maxWidth, totalHeight);
-
-  // 標題
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 22px system-ui";
-  ctx.fillText("本週名單", 20, 32);
-
-  // ③ 一團一排畫下去
-  let currentY = 50;
-  grouped.forEach(group => {
-    let x = gapX;
-    group.teams.forEach(team => {
-      const w = getTeamCanvasWidth(team);
-      drawTeamBlockImage(ctx, team, x, currentY, w, teamHeight);
-      x += w + gapX;
+  function getSubsData(){
+    const arr = [];
+    subsList.querySelectorAll(".substitute-row").forEach(row=>{
+      arr.push({
+        name: row.querySelector(".sub-name").value.trim(),
+        skill: row.querySelector(".sub-skill").value.trim()
+      });
     });
-    currentY += teamHeight + gapY;
-  });
+    return arr;
+  }
 
-  const link = document.createElement("a");
-  link.download = "this-week.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
+  function saveState(){
+    const state = {
+      allMembers,
+      lastWeek: getPanelData(lastWeekPanel),
+      thisWeek: getPanelData(thisWeekPanel),
+      subs: getSubsData()
+    };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  }
 
+  function fetchWithTimeout(url, ms=3000){
+    const ctrl = new AbortController();
+    const id = setTimeout(()=>ctrl.abort(), ms);
+    return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
+  }
 
-    function drawTeamBlockImage(ctx, team, x, y, w, h) {
-      ctx.fillStyle = "#ffffff";
-      fillRoundRect(ctx, x, y, w, h, 12);
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, w, h);
+  async function loadState(){
+    renderRoleTabs();
+    renderMemberList();
 
-      const headColor = teamColorByName(team.team);
-      ctx.fillStyle = headColor;
-      ctx.beginPath();
-      ctx.moveTo(x+12, y);
-      ctx.lineTo(x+w-12, y);
-      ctx.quadraticCurveTo(x+w, y, x+w, y+12);
-      ctx.lineTo(x+w, y+30);
-      ctx.lineTo(x, y+30);
-      ctx.lineTo(x, y+12);
-      ctx.quadraticCurveTo(x, y, x+12, y);
-      ctx.closePath();
-      ctx.fill();
+    const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
+    if (loginStr) {
+      try {
+        const obj = JSON.parse(loginStr);
+        currentUser = obj.user || null;
+        lastLoginTime = obj.time || 0;
+      } catch(e){}
+    }
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 15px system-ui";
-      ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 12, y + 21);
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      try {
+        const localState = JSON.parse(s);
+        applyStateToPage(localState, true);
+      } catch(e){}
+    }
 
-      const contentY = y + 30;
-      const innerPad = 8;
-      const squads = team.squads || [];
-      const gap = 4;
-      const squadCount = Math.min(6, squads.length || 6);
-      const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
-      const squadHeight = h - 30 - innerPad * 2;
-
-      for (let i = 0; i < squadCount; i++) {
-        const sx = x + innerPad + i * (squadWidth + gap);
-        const sy = contentY + innerPad;
-
-        ctx.fillStyle = "#ffffff";
-        fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.strokeRect(sx, sy, squadWidth, squadHeight);
-
-        ctx.fillStyle = "#f8fafc";
-        ctx.fillRect(sx, sy, squadWidth, 22);
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.strokeRect(sx, sy, squadWidth, 22);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 12px system-ui";
-        ctx.fillText("第" + (i + 1) + "小隊", sx + 6, sy + 15);
-
-        const squad = squads[i];
-        let rowY = sy + 26;
-        for (let m = 0; m < 6; m++) {
-          ctx.fillStyle = "#e2e8f0";
-          ctx.fillRect(sx, rowY, squadWidth, 18);
-
-          if (squad && squad.members[m] && squad.members[m].name) {
-            const mem = squad.members[m];
-            const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-            ctx.fillStyle = jobColor;
-            ctx.fillRect(sx, rowY, 4, 18);
-            ctx.fillStyle = jobColor;
-            ctx.font = "bold 11px system-ui";
-            ctx.fillText(mem.name, sx + 6, rowY + 13);
-          }
-
-          rowY += 18;
-
-          ctx.fillStyle = "#f8fafc";
-          ctx.fillRect(sx, rowY, squadWidth, 14);
-          ctx.strokeStyle = "#e2e8f0";
-          ctx.strokeRect(sx, rowY, squadWidth, 14);
-          if (squad && squad.members[m] && squad.members[m].skill) {
-            ctx.fillStyle = "#0f172a";
-            ctx.font = "bold 10px system-ui";
-            ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
-          }
-          rowY += 16;
+    try {
+      const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+      const data = await res.json();
+      if (data && data.success && data.payload) {
+        const currentLocal = localStorage.getItem(STORAGE_KEY);
+        if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
+          applyStateToPage(data.payload, false);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
         }
+        if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
       }
+    } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
+
+    startVersionWatcher();
+
+    // 載入完狀態之後，再做一次手機滑動包裝，避免後端回來的團沒有包到
+    if (window.innerWidth <= 900) {
+      setupMobileSliders();
+    }
+  }
+
+  function applyStateToPage(state, fromLocal){
+    if (state.allMembers && Array.isArray(state.allMembers)) {
+      allMembers = state.allMembers;
+      const maxId = allMembers.reduce((m,c)=>Math.max(m,c.id||0),12);
+      nextMemberId = maxId + 1;
+    }
+    renderMemberList();
+
+    if (state.lastWeek) {
+      setPanelData(lastWeekPanel, state.lastWeek, "last");
+      lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+    }
+    if (state.thisWeek) {
+      setPanelData(thisWeekPanel, state.thisWeek, "this");
+      thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+    }
+    if (state.subs) {
+      subsList.innerHTML = "";
+      state.subs.forEach(su => createSubRow(su.name, su.skill, false));
     }
 
-    /* ========= 成員搜尋浮層 ========= */
-    function maybeOpenMemberPicker(e, input){
-      if (input.value.trim() === "") {
-        openMemberPicker(input);
+    if (state.recentMarks) {
+      renderRecentMarks(state.recentMarks);
+    } else {
+      clearAllOutlines();
+    }
+
+    if (window.innerWidth <= 900) {
+      setupMobileSliders();
+    }
+  }
+
+  function requestSave(){
+    const now = Date.now();
+    if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
+      doSaveToBackend();
+    } else {
+      showLogin();
+    }
+  }
+  function showLogin(){
+    document.getElementById("loginMsg").textContent = "";
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginPass").value = "";
+    document.getElementById("loginModal").style.display = "flex";
+    document.getElementById("loginUser").focus();
+  }
+  function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
+  function doLogin(){
+    const u = document.getElementById("loginUser").value.trim();
+    const p = document.getElementById("loginPass").value.trim();
+
+    fetch(REMOTE_API, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "login",
+        user: u,
+        pass: p
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success && data.user) {
+        currentUser = data.user;
+        lastLoginTime = Date.now();
+        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
+        closeLogin();
+        doSaveToBackend();
+      } else {
+        document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
       }
-    }
-    function openMemberPicker(input){
-      pickerTargetInput = input;
-      const rect = input.getBoundingClientRect();
-      memberPicker.style.left = (rect.left + window.scrollX) + "px";
-      memberPicker.style.top = (rect.bottom + window.scrollY + 4) + "px";
-      memberPicker.style.display = "block";
-      pickerSearch.value = "";
-      renderPickerList(allMembers);
-      pickerSearch.focus();
-    }
-    function renderPickerList(list){
-      pickerList.innerHTML = "";
-      list.forEach(m=>{
-        const item = document.createElement("div");
-        item.className = "picker-item";
-        item.textContent = m.name + (m.job? " ("+m.job+")": "");
-        item.onclick = ()=>selectMemberFromPicker(m);
-        pickerList.appendChild(item);
+    })
+    .catch(err => {
+      console.warn("login error", err);
+      document.getElementById("loginMsg").textContent = "登入失敗";
+    });
+  }
+  function doSaveToBackend(){
+    const state = {
+      allMembers,
+      lastWeek: getPanelData(lastWeekPanel),
+      thisWeek: getPanelData(thisWeekPanel),
+      subs: getSubsData()
+    };
+
+    const marks = collectDirtyMarks();
+    state.recentMarks = {
+      user: currentUser || "unknown",
+      marks
+    };
+
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+
+    fetch(REMOTE_API, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "save",
+        payload: state
+      })
+    })
+    .then(res=>res.json())
+    .then(data=>{
+      if (data && data.success) {
+        alert("已儲存到後台");
+        renderRecentMarks(state.recentMarks);
+        document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
+      } else {
+        alert("後台有回應但不是 success，請看 console");
+        console.log(data);
+      }
+    })
+    .catch(err=>{
+      alert("無法連到後台，請檢查 Apps Script 部署權限");
+      console.error(err);
+    });
+  }
+
+  function compare(){
+    document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      inp.classList.remove("highlight-new","highlight-missing");
+    });
+
+    const lastNames = [];
+    lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if(v) lastNames.push(v);
+    });
+    const lastSet = new Set(lastNames);
+
+    const thisNames = [];
+    thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if(v) thisNames.push({val:v, el:inp});
+    });
+    const thisSet = new Set(thisNames.map(x=>x.val));
+
+    const newOnes = [];
+    const missingOnes = [];
+
+    thisNames.forEach(obj=>{
+      if (obj.val && !lastSet.has(obj.val)) {
+        if (!compareIgnore.has(obj.val)) {
+          obj.el.classList.add("highlight-new");
+        }
+        newOnes.push(obj.val);
+      }
+    });
+
+    lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      const v = inp.value.trim();
+      if (v && !thisSet.has(v)) {
+        if (!compareIgnore.has(v)) {
+          inp.classList.add("highlight-missing");
+        }
+        missingOnes.push(v);
+      }
+    });
+
+    subsList.querySelectorAll(".substitute-row").forEach(row=>{
+      const name = row.querySelector(".sub-name").value.trim();
+      const status = row.querySelector(".sub-status");
+      if(!name){ status.textContent = ""; return; }
+      if(thisSet.has(name)){
+        status.textContent = "本週已上場 ✅";
+        status.style.color = "#16a34a";
+      } else {
+        status.textContent = "本週未上場";
+        status.style.color = "#b91c1c";
+      }
+    });
+
+    renderCompareTags(newOnes, missingOnes);
+  }
+  function renderCompareTags(newList, missingList){
+    compareTagsEl.innerHTML = "";
+    newList.forEach(name => {
+      const tag = document.createElement("div");
+      tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
+      tag.textContent = name;
+      tag.onclick = () => toggleCompareIgnore(name);
+      compareTagsEl.appendChild(tag);
+    });
+    missingList.forEach(name => {
+      const tag = document.createElement("div");
+      tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
+      tag.textContent = name;
+      tag.onclick = () => toggleCompareIgnore(name);
+      compareTagsEl.appendChild(tag);
+    });
+  }
+  function toggleCompareIgnore(name){
+    if (compareIgnore.has(name)) {
+      compareIgnore.delete(name);
+    } else {
+      compareIgnore.add(name);
+      document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+        if (inp.value.trim() === name) {
+          inp.classList.remove("highlight-new","highlight-missing");
+        }
       });
     }
-    function filterPickerList(){
-      const kw = pickerSearch.value.trim();
-      const list = allMembers.filter(m=>!kw || m.name.includes(kw) || (m.skill && m.skill.includes(kw)));
-      renderPickerList(list);
+    compare();
+  }
+
+  function copyThisToLast(){
+    if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+    lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
+    const thisData = getPanelData(thisWeekPanel);
+    setPanelData(lastWeekPanel, thisData, "last");
+    saveState();
+    alert("已將本週名單的內容覆蓋到上週。");
+  }
+  function undoCopy(){
+    if(!lastSnapshot){
+      alert("沒有可還原的內容。");
+      return;
     }
+    const data = JSON.parse(lastSnapshot);
+    setPanelData(lastWeekPanel, data, "last");
+    saveState();
+    alert("已還原到覆蓋前的上週名單。");
+  }
 
-    /*V12.1調整成員搜尋浮層的功能*/
-    function selectMemberFromPicker(m){
-  if (!pickerTargetInput) return;
+  function startVersionWatcher(){
+    const INTERVAL = 4000;
+    setInterval(async ()=>{
+      try {
+        const res = await fetch(REMOTE_API + "?action=version");
+        const data = await res.json();
+        if (data && data.success) {
+          const serverUpdatedAt = data.updatedAt || null;
+          if (!lastKnownUpdatedAt) {
+            lastKnownUpdatedAt = serverUpdatedAt;
+            return;
+          }
+          if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
+            const fullRes = await fetch(REMOTE_API + "?action=get");
+            const fullData = await fullRes.json();
+            if (fullData && fullData.success && fullData.payload) {
+              applyStateToPage(fullData.payload, false);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
+              lastKnownUpdatedAt = serverUpdatedAt;
+            }
+          }
+        }
+      } catch(err){
+        console.warn("檢查版本失敗", err);
+      }
+    }, INTERVAL);
+  }
 
-  // 1. 先把「本週」裡面已經有這個人的欄位清掉（但不要清目前這格）
-  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
-    if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
-      clearInputAndSkill(inp);
+  /* ========= 下載圖片 ========= */
+  function fillRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function getTeamCanvasWidth(team) {
+    const basePad = 8;
+    const gap = 4;
+    const squadCount = Math.min(6, team.squads ? team.squads.length : 0) || 6;
+    const squadWidth = 100;
+    return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
+  }
+  function downloadThisWeekImage() {
+    const data = getPanelData(thisWeekPanel);
+    const tagOrder = ["一團","二團","三團","四團"];
+    const teamHeight = 272;
+    const gapX = 20;
+    const gapY = 30;
+
+    const grouped = tagOrder.map(tag => ({
+      tag,
+      teams: data.filter(t => (t.tag || "一團") === tag)
+    })).filter(g => g.teams.length > 0);
+
+    let neededWidths = [];
+    grouped.forEach(group => {
+      let rowWidth = gapX;
+      group.teams.forEach(team => {
+        const w = getTeamCanvasWidth(team);
+        rowWidth += w + gapX;
+      });
+      neededWidths.push(rowWidth);
+    });
+
+    const maxWidth = Math.max(820, ...neededWidths);
+
+    let totalHeight = 50;
+    grouped.forEach(() => {
+      totalHeight += teamHeight + gapY;
+    });
+
+    const SCALE = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = maxWidth * SCALE;
+    canvas.height = totalHeight * SCALE;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(SCALE, SCALE);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, maxWidth, totalHeight);
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 22px system-ui";
+    ctx.fillText("本週名單", 20, 32);
+
+    let currentY = 50;
+    grouped.forEach(group => {
+      let x = gapX;
+      group.teams.forEach(team => {
+        const w = getTeamCanvasWidth(team);
+        drawTeamBlockImage(ctx, team, x, currentY, w, teamHeight);
+        x += w + gapX;
+      });
+      currentY += teamHeight + gapY;
+    });
+
+    const link = document.createElement("a");
+    link.download = "this-week.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+  function drawTeamBlockImage(ctx, team, x, y, w, h) {
+    ctx.fillStyle = "#ffffff";
+    fillRoundRect(ctx, x, y, w, h, 12);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+
+    const headColor = teamColorByName(team.team);
+    ctx.fillStyle = headColor;
+    ctx.beginPath();
+    ctx.moveTo(x+12, y);
+    ctx.lineTo(x+w-12, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+12);
+    ctx.lineTo(x+w, y+30);
+    ctx.lineTo(x, y+30);
+    ctx.lineTo(x, y+12);
+    ctx.quadraticCurveTo(x, y, x+12, y);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 15px system-ui";
+    ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 12, y + 21);
+
+    const contentY = y + 30;
+    const innerPad = 8;
+    const squads = team.squads || [];
+    const gap = 4;
+    const squadCount = Math.min(6, squads.length || 6);
+    const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
+    const squadHeight = h - 30 - innerPad * 2;
+
+    for (let i = 0; i < squadCount; i++) {
+      const sx = x + innerPad + i * (squadWidth + gap);
+      const sy = contentY + innerPad;
+
+      ctx.fillStyle = "#ffffff";
+      fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.strokeRect(sx, sy, squadWidth, squadHeight);
+
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(sx, sy, squadWidth, 22);
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.strokeRect(sx, sy, squadWidth, 22);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 12px system-ui";
+      ctx.fillText("第" + (i + 1) + "小隊", sx + 6, sy + 15);
+
+      const squad = squads[i];
+      let rowY = sy + 26;
+      for (let m = 0; m < 6; m++) {
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillRect(sx, rowY, squadWidth, 18);
+
+        if (squad && squad.members[m] && squad.members[m].name) {
+          const mem = squad.members[m];
+          const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
+          ctx.fillStyle = jobColor;
+          ctx.fillRect(sx, rowY, 4, 18);
+          ctx.fillStyle = jobColor;
+          ctx.font = "bold 11px system-ui";
+          ctx.fillText(mem.name, sx + 6, rowY + 13);
+        }
+
+        rowY += 18;
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(sx, rowY, squadWidth, 14);
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.strokeRect(sx, rowY, squadWidth, 14);
+        if (squad && squad.members[m] && squad.members[m].skill) {
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 10px system-ui";
+          ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
+        }
+        rowY += 16;
+      }
+    }
+  }
+
+  /* ========= 成員搜尋浮層 ========= */
+  function maybeOpenMemberPicker(e, input){
+    if (input.value.trim() === "") {
+      openMemberPicker(input);
+    }
+  }
+  function openMemberPicker(input){
+    pickerTargetInput = input;
+    const rect = input.getBoundingClientRect();
+    memberPicker.style.left = (rect.left + window.scrollX) + "px";
+    memberPicker.style.top = (rect.bottom + window.scrollY + 4) + "px";
+    memberPicker.style.display = "block";
+    pickerSearch.value = "";
+    renderPickerList(allMembers);
+    pickerSearch.focus();
+  }
+  function renderPickerList(list){
+    pickerList.innerHTML = "";
+    list.forEach(m=>{
+      const item = document.createElement("div");
+      item.className = "picker-item";
+      item.textContent = m.name + (m.job? " ("+m.job+")": "");
+      item.onclick = ()=>selectMemberFromPicker(m);
+      pickerList.appendChild(item);
+    });
+  }
+  function filterPickerList(){
+    const kw = pickerSearch.value.trim();
+    const list = allMembers.filter(m=>!kw || m.name.includes(kw) || (m.skill && m.skill.includes(kw)));
+    renderPickerList(list);
+  }
+  function selectMemberFromPicker(m){
+    if (!pickerTargetInput) return;
+    thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+      if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+        clearInputAndSkill(inp);
+      }
+    });
+    pickerTargetInput.value = m.name;
+    applyJobColor(pickerTargetInput, m.job);
+    const skillRow = pickerTargetInput.parentElement.nextElementSibling;
+    if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+      skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
+    }
+    pickerTargetInput.dataset.dirty = "1";
+    saveState();
+    closeMemberPicker();
+  }
+  function closeMemberPicker(){
+    memberPicker.style.display = "none";
+    pickerTargetInput = null;
+  }
+  document.addEventListener("click", function(e){
+    if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) {
+      closeMemberPicker();
     }
   });
 
-  // 2. 再把這格填上
-  pickerTargetInput.value = m.name;
-  applyJobColor(pickerTargetInput, m.job);
-  const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-  if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-    skillRow.querySelector("input[data-role='skill']").value = m.skill || "";
-  }
-  pickerTargetInput.dataset.dirty = "1";
-  saveState();
-  closeMemberPicker();
-}
+  // 初始化
+  loadState();
+</script>
 
-
-    
-    function closeMemberPicker(){
-      memberPicker.style.display = "none";
-      pickerTargetInput = null;
-    }
-    document.addEventListener("click", function(e){
-      if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) {
-        closeMemberPicker();
-      }
-    });
-
-    // 初始化
-    loadState();
-  </script>
 </body>
 </html>
+

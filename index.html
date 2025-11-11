@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12.2 </title>
+  <title>幫戰名單比對工具 v12.3 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -167,53 +167,48 @@
 }
 
 
-    /*V12.2新增小隊在手機上超過的部分可滑動*/
-    @media (max-width: 900px) {
-  /* 原本這裡是 overflow: hidden; 我們在手機把它打開，讓裡面可以滑 */
-  .team-block {
+    /* 手機：一張團隊卡裡的小隊可以左右滑，避免被壓扁 */
+@media (max-width: 900px) {
+  .team-block .squads {
     overflow-x: auto;
+    width: 100%;
   }
 
-  /* 讓裡面的橫向排版有寬度可以滑 */
-  .squads {
-    overflow-x: auto;
-    /* 讓內容照實際寬度排，不要被容器硬壓 */
-    width: max-content;
-  }
-
-  /* 每一小隊在手機上給它一個最小寬度，避免被壓扁到看不到 */
-  .squad {
+  .team-block .squad {
     min-width: 110px;
   }
 }
 
-    /* V12.2新增 手機版本週上週 改成左右滑 */
+/* 手機：本週 / 上週 說明文字在上面，下面那排團隊卡才左右滑 */
 @media (max-width: 900px) {
-  /* 讓面板自己可以左右捲 */
+  /* 面板本身不要橫向捲動 */
   #thisWeek,
   #lastWeek {
-    overflow-x: auto;          /* 可以橫向滑 */
-    white-space: nowrap;       /* 裡面的東西排成一排 */
+    overflow-x: visible;
+    white-space: normal;
   }
 
-  /* 每一團變成一張卡片橫排 */
-  #thisWeek .team-block,
-  #lastWeek .team-block {
-    display: inline-block;     /* 橫向一張一張 */
+  /* 這一層是我們用 JS 包起來的 .teams-scroll，讓它滑 */
+  #thisWeek .teams-scroll,
+  #lastWeek .teams-scroll {
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    display: block;
+  }
+
+  /* 裡面每一張團隊卡橫向排一張一張 */
+  #thisWeek .teams-scroll .team-block,
+  #lastWeek .teams-scroll .team-block {
+    display: inline-block;
     vertical-align: top;
-    white-space: normal;       /* 團裡面還是要能換行 */
-    width: 86vw;               /* 一張差不多跟螢幕一樣寬 */
-    min-width: 320px;          /* 最小不要太小 */
+    white-space: normal;
+    width: 86vw;
+    min-width: 320px;
     margin-right: 0.75rem;
   }
-
-  /* 卡片裡頭原本是橫向很多小隊，要滑也可以 */
-  #thisWeek .team-block .squads,
-  #lastWeek .team-block .squads {
-    overflow-x: auto;
-    width: 100%;
-  }
 }
+
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input {
@@ -376,7 +371,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12.2 </h1>
+  <h1>幫戰名單比對工具 v12.3 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -693,6 +688,29 @@
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
     });
+
+    //V12.3新增
+    function wrapPanelsForMobileScroll() {
+  // 這兩個是上週、本週的 panel
+  [lastWeekPanel, thisWeekPanel].forEach(panel => {
+    // 先抓出裡面已經有的 team-block
+    const blocks = panel.querySelectorAll(".team-block");
+    if (!blocks.length) return;
+
+    // 建一個新的包裹器
+    const wrap = document.createElement("div");
+    wrap.className = "teams-scroll";
+
+    // 把原本的 team-block 一個一個搬進去
+    blocks.forEach(b => wrap.appendChild(b));
+
+    // 再塞回 panel 最後面（在說明文字之後）
+    panel.appendChild(wrap);
+  });
+}
+
+// 架子做完之後馬上包起來
+wrapPanelsForMobileScroll();
 
     function renumberSquads(block){
       const sqs = block.querySelectorAll(".squad");
@@ -1903,3 +1921,4 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+

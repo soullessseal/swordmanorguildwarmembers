@@ -977,30 +977,26 @@
         }
       });
 
-      // 檢查小隊數量變化 → 標整團 + 標新小隊 V12.1調整
+      
+      // 檢查小隊數量變化 → 只框有標記 newlyAdded 的小隊 V12.1改
 thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   const team = block.dataset.team;
   const squads = block.querySelectorAll(".squad");
   const squ = squads.length;
   const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
 
-  // 1) 有數量變化 → 整團要框
-  if (squ !== orig) {
-    marks.push({ type: "squadChange", team });
-  }
-
-  // 2) 找出有標記 newlyAdded 的小隊 → 個別框
+  // 找出有標記 newlyAdded 的小隊 → 個別框
   squads.forEach((sqEl, idx) => {
     if (sqEl.dataset.newlyAdded === "1") {
       marks.push({ type: "squadNew", team, squad: idx });
-      // 用完就清掉標記，避免下次也圈
-      delete sqEl.dataset.newlyAdded;
+      delete sqEl.dataset.newlyAdded; // 用完就清掉
     }
   });
 
-  // 最後再把現在的小隊數量存起來，當作這次的基準
+  // 儲存這次的小隊數量當基準
   block.dataset.lastSquadCount = String(squ);
 });
+
 
 
       // 替補
@@ -1042,22 +1038,16 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
           const row = subsList.children[m.index];
           if (row) row.classList.add(cls);
         }
-        else if (m.type === "squadChange") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (block) block.classList.add(cls);
-        }
-        else if (m.type === "squadNew") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (!block) return;
-          const squads = block.querySelectorAll(".squad");
-          const newsq = squads[m.squad];
-          if (newsq) {
-            // 框整個小隊
-            newsq.classList.add(cls);
-            const title = newsq.querySelector(".squad-title");
-            if (title) title.classList.add(cls);
-          }
-        }
+        else if (m.type === "squadNew") {  //V12.1改mark標示
+  const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+  if (!block) return;
+  const squads = block.querySelectorAll(".squad");
+  const newsq = squads[m.squad];
+  if (newsq) {
+    const title = newsq.querySelector(".squad-title");
+    if (title) title.classList.add(cls);  // 只圈「第X小隊」
+  }
+}
       });
     }
 
@@ -1849,6 +1839,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

@@ -397,7 +397,37 @@
   }
 }
  
-    
+    :root {
+  --bottom-bar-h: calc(3.6rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 900px) {
+  /* 一開始藏在下面 */
+  #subs,
+  #comparePanel {
+    transform: translateY(100%);
+    transition: transform .25s ease-out;
+  }
+
+  /* 打開面板時的樣子 */
+  #subs.mobile-sheet-open,
+  #comparePanel.mobile-sheet-open {
+    display: block !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--bottom-bar-h);
+    max-height: 38vh;
+    background: #fff;
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -10px 30px rgba(15,23,42,.25);
+    overflow-y: auto;
+    z-index: 9999;
+    margin: 0;
+    padding-bottom: 1rem;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -491,178 +521,9 @@
     </div>
   </div>
 
+
+  
   <script>
-  /* ========= V13 手機版增強，不動桌機版 ========= */
- @media (max-width: 900px) {
-  :root {
-    --bottom-bar-h: calc(3.6rem + env(safe-area-inset-bottom, 0px));
-  }
-    (function injectV13MobileCSS() {
-    const css = `
-    @media (max-width: 900px) {
-      /* 把原本 v12.2 那組橫向滾動的設定蓋掉，改由 JS 包起來滑一團一團 */
-      #thisWeek,
-      #lastWeek {
-        overflow: visible !important;
-        white-space: normal !important;
-      }
-      #thisWeek .team-block,
-      #lastWeek .team-block {
-        display: block !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        margin-right: 0 !important;
-      }
-
-      /* 一團一團滑的容器 */
-      .mobile-team-wrap {
-        width: 100%;
-        overflow: hidden;
-      }
-      .mobile-team-track {
-        display: flex;
-        transition: transform .28s ease;
-        width: 100%;
-      }
-      .mobile-team-track .team-block {
-        flex: 0 0 100%;
-      }
-      .mobile-dots {
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        margin-top: .4rem;
-      }
-      .mobile-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #cbd5e1;
-      }
-      .mobile-dot.active {
-        background: #0f172a;
-      }
-
-      /* 手機底部四顆按鈕 */
-      #mobileBottomActions {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        gap: .35rem;
-        background: rgba(15,23,42,.95);
-        padding: .45rem .6rem calc(env(safe-area-inset-bottom,0) + .45rem);
-        z-index: 9997;
-        height: var(--bottom-bar-h);                /* ← V13.1新增 */
-        box-sizing: border-box;                     /* ← V13.1新增 */
-      }
-      
-      #mobileBottomActions button {
-        flex: 1 1 25%;
-        background: #fff;
-        border: none;
-        border-radius: .5rem;
-        font-size: .72rem;
-        font-weight: 600;
-        color: #0f172a;
-        padding: .35rem .3rem;
-      }
-      
-      /* body 要空出這麼高，才不會被蓋 */
-        body {
-        padding-bottom: var(--bottom-bar-h) !important;
-        }
-
-      /* 右下兩顆圓按鈕：替、待 */
-      .mobile-circle-btn {
-        position: fixed;
-        right: .65rem;
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        background: #0ea5e9;
-        color: #fff;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9998;
-        box-shadow: 0 10px 25px rgba(15,23,42,.2);
-        cursor: pointer;
-      }
-      
-      /* 右下兩顆圓的高度要避開底部 bar */
-      #mobileSubsBtn {
-        bottom: calc(var(--bottom-bar-h) + .6rem);
-        }
-      #mobileCompareBtn {
-        bottom: calc(var(--bottom-bar-h) + 3.25rem);  /* 再高一點，兩顆不會貼在一起 */
-        }
-
-      /* 手機的浮出面板（替補 / 待處理） */
-@media (max-width: 900px) {
-  #subs,
-  #comparePanel {
-    transform: translateY(100%);      /* 一開始躲在下面 */
-    transition: transform .25s ease-out;
-  }
- #subs.mobile-sheet-open,
-#comparePanel.mobile-sheet-open {
-  display: block !important;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--bottom-bar-h);     /* ← 用同一個數字 */
-  max-height: 38vh;
-  background: #fff;
-  border-radius: 1rem 1rem 0 0;
-  box-shadow: 0 -10px 30px rgba(15,23,42,.25);
-  overflow-y: auto;
-  z-index: 9999;
-  margin: 0;
-  padding-bottom: 1rem;            /* 內部也留一點 */
-}
-}
-
-      /* 原本右側那條在手機是藏起來的，讓我們用浮出的 */
-      .right-sticky-wrap {
-        display: none;
-      }
-
-      /* 背景遮罩 */
-      #mobileSheetMask {
-        position: fixed;
-        inset: 0;
-        background: rgba(15,23,42,.35);
-        z-index: 9996;
-        display: none;
-      }
-
-      /* 小隊改成會換行，不要橫向捲動 */
-  .team-block .squads {
-    display: flex;
-    flex-wrap: wrap;          /* 會自動換行 */
-    gap: .5rem;
-    width: 100%;
-  }
-
-  /* 一排最多兩個，螢幕就不會爆 */
-  .team-block .squads .squad {
-    flex: 0 0 calc(50% - .25rem);  /* 兩欄 */
-    min-width: 0;
-  }
-
-  /* 如果你有時候一隊很多小隊，想更密一點也可以再加這個：超過 4 個時變 3 欄 */
-  .team-block .squads .squad:nth-child(n+5) {
-    flex: 0 0 calc(33.333% - .25rem);
-  }
-}
-    `;
-    const el = document.createElement('style');
-    el.innerHTML = css;
-    document.head.appendChild(el);
-  })();
 
   const STORAGE_KEY = "guildCompareV12State";
   const LOGIN_STORAGE_KEY = "guildCompareLogin";
@@ -2238,6 +2099,7 @@
 
 </body>
 </html>
+
 
 
 

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v13.2 </title>
+  <title>幫戰名單比對工具 v13.3 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -196,7 +196,13 @@
     display: block;
   }
 
-  /* 底下的圓點 */
+  /* 預設桌機隱藏底下圓點V13.3 */
+.team-dots {
+  display: none;
+}
+
+/* 手機版才顯示底下圓點 */
+@media (max-width: 900px) {
   .team-dots {
     display: flex;
     gap: 6px;
@@ -214,6 +220,8 @@
   .team-dot.active {
     background: #0f172a;
   }
+}
+
 
   /* ❗ 取消「小隊」橫向滑動，回到直的就好 */
   .team-block .squads {
@@ -395,19 +403,25 @@ input.skill-has {
     @media (max-width: 900px) {
   .right-actions-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: .5rem;          /* 離底一點 */
+    left: .5rem;            /* 左右也留一點 */
+    right: .5rem;
     background: rgba(15, 23, 42, 0.95);
-    padding: .45rem .7rem .55rem;
+    padding: .5rem .65rem;
     display: flex;
     gap: .4rem;
     justify-content: space-between;
     z-index: 9999;
+    border-radius: .9rem;   /* 圓角 */
   }
   body {
-    padding-bottom: 3.5rem; /* 留空間給底部按鈕，不要被擋到 */
+    padding-bottom: 4.2rem; /* 往上多撐一點，避免被蓋到 */
   }
+  .right-sticky-wrap {
+    position: static;
+  }
+}
+
   .right-sticky-wrap {
     position: static; /* 手機就不要 sticky 了 */
   }
@@ -428,7 +442,7 @@ input.skill-has {
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v13.2 </h1>
+  <h1>幫戰名單比對工具 v13.3 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -2025,8 +2039,9 @@ refreshSubsView();
     neededWidths.push(rowWidth);
   });
 
-  // 取全部團裡面最寬的那一排，當作整張圖寬度，最低給個 820
-  const maxWidth = Math.max(820, ...neededWidths);
+  // 取全部團裡面最寬的那一排，最低給個 420 就好
+const MIN_WIDTH = 420;
+const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
 
   // ② 算總高度（每一團一排）
   let totalHeight = 50; // 上面標題
@@ -2034,7 +2049,7 @@ refreshSubsView();
     totalHeight += teamHeight + gapY;
   });
 
-  const SCALE = 2;
+  const SCALE = 3;
   const canvas = document.createElement("canvas");
   canvas.width = maxWidth * SCALE;
   canvas.height = totalHeight * SCALE;
@@ -2222,6 +2237,7 @@ refreshSubsView();
   </script>
 </body>
 </html>
+
 
 
 

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v13.1 </title>
+  <title>幫戰名單比對工具 v13.2 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -390,10 +390,45 @@ input.skill-has {
   color: #0f172a;
   font-weight: 600;
 }
+
+    /*手機板底部按鈕*/
+    @media (max-width: 900px) {
+  .right-actions-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    padding: .45rem .7rem .55rem;
+    display: flex;
+    gap: .4rem;
+    justify-content: space-between;
+    z-index: 9999;
+  }
+  body {
+    padding-bottom: 3.5rem; /* 留空間給底部按鈕，不要被擋到 */
+  }
+  .right-sticky-wrap {
+    position: static; /* 手機就不要 sticky 了 */
+  }
+}
+
+/*本週名單與下載按鈕對齊*/
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .3rem;
+}
+#downloadBtn {
+  position: static;   /* 把你原本的 absolute 覆蓋掉 */
+}
+    
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v13.1 </h1>
+  <h1>幫戰名單比對工具 v13.2 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -429,16 +464,19 @@ input.skill-has {
 
     <!-- 上週 -->
     <div class="panel" id="lastWeek">
-      <h3>上週名單（只讀）</h3>
+      <h3>上週名單</h3>
       <small style="font-size:.7rem;color:#64748b;">只能透過「本週名單覆蓋上週」更新，不可手動編輯。</small>
     </div>
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
-      <h3>本週名單</h3>
-      <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
-      <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
-    </div>
+  <div class="panel-title-row">
+    <h3>本週名單</h3>
+    <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
+  </div>
+  <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
+</div>
+
 
     <!-- 右側 -->
     <div class="right-sticky-wrap">
@@ -2182,6 +2220,7 @@ refreshSubsView();
   </script>
 </body>
 </html>
+
 
 
 

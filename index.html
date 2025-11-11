@@ -706,34 +706,31 @@
       thisWeekPanel.appendChild(createTeamBlock("this", t));
     });
 
-    // 手機版：一個面板一次只看一團，用圓點切換
+    // 手機版：一個面板一次只看一團，可點圓點也可左右滑
 function setupPanelCarousel(panelId) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
 
-  // 把原本 panel 裡的 team-block 全部抓出來
   const blocks = Array.from(panel.querySelectorAll(".team-block"));
   if (!blocks.length) return;
 
-  // 建一個包裹器，把原本的卡片都丟進去
+  // 包起來
   const wrap = document.createElement("div");
   wrap.className = "teams-wrap";
   blocks.forEach(b => wrap.appendChild(b));
   panel.appendChild(wrap);
 
-  // 建立圓點
+  // 圓點容器
   const dots = document.createElement("div");
   dots.className = "team-dots";
   panel.appendChild(dots);
 
-  // 切換顯示的函式
+  let current = 0;
+
   function show(index) {
+    current = index;
     blocks.forEach((b, i) => {
-      if (i === index) {
-        b.classList.add("active");
-      } else {
-        b.classList.remove("active");
-      }
+      b.classList.toggle("active", i === index);
     });
     const allDots = dots.querySelectorAll(".team-dot");
     allDots.forEach((d, i) => {
@@ -741,7 +738,7 @@ function setupPanelCarousel(panelId) {
     });
   }
 
-  // 依照卡片數量產生圓點
+  // 生圓點
   blocks.forEach((b, idx) => {
     const dot = document.createElement("button");
     dot.type = "button";
@@ -750,13 +747,62 @@ function setupPanelCarousel(panelId) {
     dots.appendChild(dot);
   });
 
-  // 一開始顯示第一張
+  // 觸控滑動
+  let startX = 0;
+  let startY = 0;
+  let isMoving = false;
+
+  // 只在手機才需要處理滑動，保險一點就都綁，但只做水平位移大的
+  wrap.addEventListener("touchstart", function (e) {
+    if (!e.touches || e.touches.length === 0) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isMoving = true;
+  }, { passive: true });
+
+  wrap.addEventListener("touchmove", function (e) {
+    // 這裡不做 translate，單純記錄就好
+    if (!isMoving || !e.touches || e.touches.length === 0) return;
+  }, { passive: true });
+
+  wrap.addEventListener("touchend", function (e) {
+    if (!isMoving) return;
+    isMoving = false;
+
+    // touchend 沒有 touches，用 changedTouches
+    const endTouch = e.changedTouches && e.changedTouches[0];
+    if (!endTouch) return;
+
+    const endX = endTouch.clientX;
+    const endY = endTouch.clientY;
+    const diffX = endX - startX;
+    const diffY = endY - startY;
+
+    // 防止垂直捲動也被當成左右滑，要求水平位移要比垂直大
+    if (Math.abs(diffX) < 40) return;
+    if (Math.abs(diffX) < Math.abs(diffY)) return;
+
+    if (diffX < 0) {
+      // 往左滑 → 下一張
+      if (current < blocks.length - 1) {
+        show(current + 1);
+      }
+    } else {
+      // 往右滑 → 上一張
+      if (current > 0) {
+        show(current - 1);
+      }
+    }
+  });
+
+  // 一開始
   show(0);
 }
 
-// 架子做完之後，幫「上週」跟「本週」都啟動輪播
+// 啟動
 setupPanelCarousel("lastWeek");
 setupPanelCarousel("thisWeek");
+
 
 
     function renumberSquads(block){
@@ -1968,5 +2014,6 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 

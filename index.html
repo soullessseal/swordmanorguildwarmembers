@@ -413,31 +413,36 @@ input.skill-has {
     @media (max-width: 900px) {
   .right-actions-bar {
     position: fixed;
-    height: 3.2rem;   /* 設定高度 */
-    bottom: .8rem;          /* 離底一點 */
-    left: .8rem;            /* 左右也留一點 */
-    right: .8rem;
+    bottom: .6rem;
+    left: .7rem;
+    right: .7rem;
     background: rgba(15, 23, 42, 0.95);
-    padding: .5rem .65rem;
+    padding: .4rem .5rem;
     display: flex;
-    gap: .25rem;      /* 按鈕靠近一點 */
+    gap: .25rem;        /* ← 按鈕靠近一點 */
     justify-content: space-between;
     z-index: 9999;
-    border-radius: .9rem;   /* 圓角 */
+    border-radius: .9rem;
+    height: 3.1rem;     /* ← 想多高改這裡 */
+    align-items: center;
   }
+
+  /* 按鈕自己也縮一點 */
+  .right-actions-bar .float-btn {
+    padding: .35rem .55rem;
+    font-size: .7rem;
+  }
+
   body {
-    padding-bottom: 4.2rem; /* 往上多撐一點，避免被蓋到 */
+    padding-bottom: 4.5rem;  /* 底下留空，避免被遮到 */
   }
+
   .right-sticky-wrap {
     position: static;
   }
 }
 
-  .right-sticky-wrap {
-    position: static; /* 手機就不要 sticky 了 */
-  }
-}
-
+    
 /*本週名單與下載按鈕對齊*/
 .panel-title-row {
   display: flex;
@@ -2249,6 +2254,7 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   </script>
 </body>
 </html>
+
 
 
 

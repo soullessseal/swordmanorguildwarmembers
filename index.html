@@ -597,18 +597,67 @@
     }
 
     function adjustSquadWidths(block) {
-      const squadsContainer = block.querySelector('.squads');
-      if (!squadsContainer) return;
-      const squads = squadsContainer.querySelectorAll('.squad');
-      const count = squads.length || 1;
+  const squadsContainer = block.querySelector('.squads');
+  if (!squadsContainer) return;
+  const squads = squadsContainer.querySelectorAll('.squad');
+  const count = squads.length || 1;
 
-      if (count <= 4) {
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
-      } else {
-        const pct = 100 / count;
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; });
-      }
+  const width = window.innerWidth;
+
+  // ===============================
+  // 🔸手機版（寬度 <= 768）
+  // ===============================
+  if (width <= 768) {
+    if (count <= 4) {
+      squads.forEach(sq => {
+        sq.style.flex = "0 0 calc(20% - 6px)"; // 兩欄排列，較寬
+      });
+    } else {
+      const pct = 100 / count;
+      squads.forEach(sq => {
+        sq.style.flex = "0 0 calc(" + (pct - 2) + "%)";
+      });
     }
+    return;
+  }
+
+  // ===============================
+  // 🔸平板版（769～1024）
+  // ===============================
+  if (width <= 1024) {
+    if (count <= 4) {
+      squads.forEach(sq => {
+        sq.style.flex = "0 0 calc(32% - 6px)"; // 三欄
+      });
+    } else {
+      const pct = 100 / count;
+      squads.forEach(sq => {
+        sq.style.flex = "0 0 calc(" + (pct - 2.5) + "%)";
+      });
+    }
+    return;
+  }
+
+  // ===============================
+  // 🔸桌機版（>= 1025）
+  // ===============================
+  if (count <= 4) {
+    squads.forEach(sq => {
+      sq.style.flex = "0 0 calc(23.5% - 6px)";
+    });
+  } else {
+    const pct = 100 / count;
+    squads.forEach(sq => {
+      sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)";
+    });
+  }
+}
+
+window.addEventListener("resize", () => {
+  document.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+});
+
+
 
     function handlePanelInputChange(input){
       input.dataset.dirty = "1";
@@ -706,7 +755,7 @@
       thisWeekPanel.appendChild(createTeamBlock("this", t));
     });
 
-    // 手機版：一個面板一次只看一團，可點圓點也可左右滑
+   // 手機版：一個面板一次只看一團，可點圓點也可左右滑
 function setupPanelCarousel(panelId) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
@@ -747,40 +796,58 @@ function setupPanelCarousel(panelId) {
     dots.appendChild(dot);
   });
 
-  // 觸控滑動
+  // ========= 觸控滑動（會鎖住上下捲動） =========
   let startX = 0;
   let startY = 0;
-  let isMoving = false;
+  let locked = false;      // 有沒有判斷完方向
+  let isHorizontal = false;
 
-  // 只在手機才需要處理滑動，保險一點就都綁，但只做水平位移大的
   wrap.addEventListener("touchstart", function (e) {
     if (!e.touches || e.touches.length === 0) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    isMoving = true;
+    locked = false;
+    isHorizontal = false;
   }, { passive: true });
 
   wrap.addEventListener("touchmove", function (e) {
-    // 這裡不做 translate，單純記錄就好
-    if (!isMoving || !e.touches || e.touches.length === 0) return;
-  }, { passive: true });
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+
+    const diffX = t.clientX - startX;
+    const diffY = t.clientY - startY;
+
+    // 還沒決定方向 → 看誰大
+    if (!locked) {
+      // 要大於一點點再鎖，不然超級小的晃動會卡
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        locked = true;
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+          // 水平滑 → 我們要吃掉上下捲動
+          isHorizontal = true;
+        } else {
+          // 垂直滑 → 讓外面正常捲
+          isHorizontal = false;
+        }
+      }
+    }
+
+    // 已經判定是水平 → 不讓外層捲
+    if (locked && isHorizontal) {
+      e.preventDefault();
+    }
+  }, { passive: false });   // ← 這裡要 false 才能 preventDefault
 
   wrap.addEventListener("touchend", function (e) {
-    if (!isMoving) return;
-    isMoving = false;
+    if (!locked || !isHorizontal) return;
 
-    // touchend 沒有 touches，用 changedTouches
     const endTouch = e.changedTouches && e.changedTouches[0];
     if (!endTouch) return;
 
-    const endX = endTouch.clientX;
-    const endY = endTouch.clientY;
-    const diffX = endX - startX;
-    const diffY = endY - startY;
+    const diffX = endTouch.clientX - startX;
 
-    // 防止垂直捲動也被當成左右滑，要求水平位移要比垂直大
+    // 滑超過 40px 才換
     if (Math.abs(diffX) < 40) return;
-    if (Math.abs(diffX) < Math.abs(diffY)) return;
 
     if (diffX < 0) {
       // 往左滑 → 下一張
@@ -802,6 +869,7 @@ function setupPanelCarousel(panelId) {
 // 啟動
 setupPanelCarousel("lastWeek");
 setupPanelCarousel("thisWeek");
+
 
 
 
@@ -2014,6 +2082,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

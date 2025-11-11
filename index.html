@@ -372,6 +372,31 @@
   border:1px solid #b91c1c;
   color:#7f1d1d;
 }
+
+
+  /* 手機版：全部變成一欄，寬度吃滿螢幕 V13.1*/
+@media (max-width: 900px) {
+  body {
+    padding: 0.75rem 0.75rem 4.5rem;  /* 上左右0.75，下留給底部按鈕 */
+    box-sizing: border-box;
+  }
+  .layout {
+    display: block;                  /* 不要再是 grid 的 4 欄了 */
+  }
+  .panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0.75rem;
+  }
+  /* 這兩個面板原本裡面還會再橫向滑，這裡強制吃滿就好 */
+  #thisWeek,
+  #lastWeek {
+    overflow-x: visible;
+    white-space: normal;
+  }
+}
+ 
     
   </style>
 </head>
@@ -561,21 +586,30 @@
       #mobileCompareBtn { bottom: 8.3rem; }
 
       /* 手機的浮出面板（替補 / 待處理） */
-      #subs.mobile-sheet-open,
-      #comparePanel.mobile-sheet-open {
-        display: block !important;
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 3.3rem;
-        max-height: 33vh;
-        background: #fff;
-        border-radius: 1rem 1rem 0 0;
-        box-shadow: 0 -10px 30px rgba(15,23,42,.25);
-        overflow-y: auto;
-        z-index: 9999;
-        margin: 0;
-      }
+@media (max-width: 900px) {
+  #subs,
+  #comparePanel {
+    transform: translateY(100%);      /* 一開始躲在下面 */
+    transition: transform .25s ease-out;
+  }
+  #subs.mobile-sheet-open,
+  #comparePanel.mobile-sheet-open {
+    display: block !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 3.3rem;
+    max-height: 33vh;
+    background: #fff;
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -10px 30px rgba(15,23,42,.25);
+    overflow-y: auto;
+    z-index: 9999;
+    margin: 0;
+    transform: translateY(0);         /* 滑上來 */
+  }
+}
+
       /* 原本右側那條在手機是藏起來的，讓我們用浮出的 */
       .right-sticky-wrap {
         display: none;
@@ -721,24 +755,46 @@
     }
   }
 
+    /*V13.1修改*/
   function toggleMobileSheet(whichId) {
-    const panel = document.getElementById(whichId);
-    if (!panel) return;
-    closeMobileSheets();
-    panel.classList.add("mobile-sheet-open");
-    const mask = document.getElementById("mobileSheetMask");
-    if (mask) mask.style.display = "block";
+  const panel = document.getElementById(whichId);
+  if (!panel) return;
+
+  // 手機版才要搬家
+  if (window.innerWidth <= 900) {
+    const parent = panel.parentElement;
+    // 原本在右側那個被藏起來的容器裡，就搬到 body
+    if (parent && parent.classList.contains("right-sticky-wrap")) {
+      document.body.appendChild(panel);
+    }
   }
 
+  // 先關別的
+  closeMobileSheets();
+
+  // 開這個
+  panel.classList.add("mobile-sheet-open");
+
+  // 顯示遮罩
+  const mask = document.getElementById("mobileSheetMask");
+  if (mask) mask.style.display = "block";
+}
+
+
+    /*V13.1微調*/
   function closeMobileSheets() {
-    const mask = document.getElementById("mobileSheetMask");
-    if (mask) mask.style.display = "none";
-    const subsPanel = document.getElementById("subs");
-    const cpPanel = document.getElementById("comparePanel");
-    if (subsPanel) subsPanel.classList.remove("mobile-sheet-open");
-    if (cpPanel) cpPanel.classList.remove("mobile-sheet-open");
-  }
+  const mask = document.getElementById("mobileSheetMask");
+  if (mask) mask.style.display = "none";
+  const subsPanel = document.getElementById("subs");
+  const cpPanel = document.getElementById("comparePanel");
+  if (subsPanel) subsPanel.classList.remove("mobile-sheet-open");
+  if (cpPanel) cpPanel.classList.remove("mobile-sheet-open");
+}
 
+
+
+
+    
   // 拖替補時，如果是手機，要把浮窗關掉，但拖曳不受影響
   function closeSubsSheetSilently() {
     if (window.innerWidth > 900) return;
@@ -2140,4 +2196,5 @@
 
 </body>
 </html>
+
 

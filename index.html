@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v12.3 </title>
+  <title>幫戰名單比對工具 v12.4 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -167,19 +167,7 @@
 }
 
 
-    /* 手機：一張團隊卡裡的小隊可以左右滑，避免被壓扁 */
-@media (max-width: 900px) {
-  .team-block .squads {
-    overflow-x: auto;
-    width: 100%;
-  }
-
-  .team-block .squad {
-    min-width: 110px;
-  }
-}
-
-/* 手機：本週 / 上週 說明文字在上面，下面那排團隊卡才左右滑 */
+    /* 手機：本週 / 上週 一次只顯示一團，用圓點切換；小隊不要橫向滑動 */
 @media (max-width: 900px) {
   /* 面板本身不要橫向捲動 */
   #thisWeek,
@@ -188,26 +176,55 @@
     white-space: normal;
   }
 
-  /* 這一層是我們用 JS 包起來的 .teams-scroll，讓它滑 */
-  #thisWeek .teams-scroll,
-  #lastWeek .teams-scroll {
-    overflow-x: auto;
-    white-space: nowrap;
+  /* 我們等一下 JS 會幫面板包一層 .teams-wrap，把所有 team-block 收進去 */
+  #thisWeek .teams-wrap,
+  #lastWeek .teams-wrap {
+    position: relative;
     width: 100%;
+  }
+
+  /* 面板裡的每一張團隊卡，手機時先藏起來，等 JS 打 .active 再顯示 */
+  #thisWeek .team-block,
+  #lastWeek .team-block {
+    width: 100%;
+    display: none;
+  }
+
+  /* 目前顯示的那一張 */
+  #thisWeek .team-block.active,
+  #lastWeek .team-block.active {
     display: block;
   }
 
-  /* 裡面每一張團隊卡橫向排一張一張 */
-  #thisWeek .teams-scroll .team-block,
-  #lastWeek .teams-scroll .team-block {
-    display: inline-block;
-    vertical-align: top;
-    white-space: normal;
-    width: 86vw;
-    min-width: 320px;
-    margin-right: 0.75rem;
+  /* 底下的圓點 */
+  .team-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: .5rem;
+  }
+  .team-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    border: none;
+    padding: 0;
+  }
+  .team-dot.active {
+    background: #0f172a;
+  }
+
+  /* ❗ 取消「小隊」橫向滑動，回到直的就好 */
+  .team-block .squads {
+    overflow-x: visible;
+    width: 100%;
+  }
+  .team-block .squad {
+    min-width: 0;
   }
 }
+
 
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
@@ -371,7 +388,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v12.3 </h1>
+  <h1>幫戰名單比對工具 v12.4 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -689,28 +706,58 @@
       thisWeekPanel.appendChild(createTeamBlock("this", t));
     });
 
-    //V12.3新增
-    function wrapPanelsForMobileScroll() {
-  // 這兩個是上週、本週的 panel
-  [lastWeekPanel, thisWeekPanel].forEach(panel => {
-    // 先抓出裡面已經有的 team-block
-    const blocks = panel.querySelectorAll(".team-block");
-    if (!blocks.length) return;
+    // 手機版：一個面板一次只看一團，用圓點切換
+function setupPanelCarousel(panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
 
-    // 建一個新的包裹器
-    const wrap = document.createElement("div");
-    wrap.className = "teams-scroll";
+  // 把原本 panel 裡的 team-block 全部抓出來
+  const blocks = Array.from(panel.querySelectorAll(".team-block"));
+  if (!blocks.length) return;
 
-    // 把原本的 team-block 一個一個搬進去
-    blocks.forEach(b => wrap.appendChild(b));
+  // 建一個包裹器，把原本的卡片都丟進去
+  const wrap = document.createElement("div");
+  wrap.className = "teams-wrap";
+  blocks.forEach(b => wrap.appendChild(b));
+  panel.appendChild(wrap);
 
-    // 再塞回 panel 最後面（在說明文字之後）
-    panel.appendChild(wrap);
+  // 建立圓點
+  const dots = document.createElement("div");
+  dots.className = "team-dots";
+  panel.appendChild(dots);
+
+  // 切換顯示的函式
+  function show(index) {
+    blocks.forEach((b, i) => {
+      if (i === index) {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+    });
+    const allDots = dots.querySelectorAll(".team-dot");
+    allDots.forEach((d, i) => {
+      d.classList.toggle("active", i === index);
+    });
+  }
+
+  // 依照卡片數量產生圓點
+  blocks.forEach((b, idx) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "team-dot" + (idx === 0 ? " active" : "");
+    dot.onclick = () => show(idx);
+    dots.appendChild(dot);
   });
+
+  // 一開始顯示第一張
+  show(0);
 }
 
-// 架子做完之後馬上包起來
-wrapPanelsForMobileScroll();
+// 架子做完之後，幫「上週」跟「本週」都啟動輪播
+setupPanelCarousel("lastWeek");
+setupPanelCarousel("thisWeek");
+
 
     function renumberSquads(block){
       const sqs = block.querySelectorAll(".squad");
@@ -1921,4 +1968,5 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 

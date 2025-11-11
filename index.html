@@ -454,9 +454,14 @@ input.skill-has {
         <p style="font-size:0.7rem;margin-top:0;">可拖進本週；拖進已有成員欄位會交換。</p>
         
         <!-- V13更新替補列分頁 -->
-        <div id="subsList"></div> 
-<div class="pagination" id="subsPager"></div>
+        <div id="subsList"></div>
+<div class="pagination" id="subsPager">
+  <button onclick="subsPrev()">◀</button>
+  <select id="subsPageSelect" onchange="subsJump(this.value)"></select>
+  <button onclick="subsNext()">▶</button>
+</div>
 <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
+
       </div>
       
       <div class="panel" id="comparePanel">
@@ -953,7 +958,12 @@ setupPanelCarousel("thisWeek");
     }
     
 /*V12.1調整框線*/ /*V13調整分頁*/
-    function createSubRow(name = "", skill = "", markDirty = false) {
+  // 一頁要顯示幾筆替補
+let subsPage = 1;
+const subsPerPage = 3;
+
+/* 替補列：產一筆 */
+function createSubRow(name = "", skill = "", markDirty = false) {
   const row = document.createElement("div");
   row.className = "substitute-row";
   row.draggable = true;
@@ -973,53 +983,67 @@ setupPanelCarousel("thisWeek");
   subsList.appendChild(row);
 }
 
-/* 把 subsList 裡的 row 做分頁顯示，下面產生頁碼按鈕 */
+/* 把 subsList 裡的 row 做分頁顯示，並更新「◀ 下拉 ▶」 */
 function refreshSubsView() {
   const rows = Array.from(subsList.children);
   const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
+
+  // 頁碼超過就拉回最後一頁
   if (subsPage > totalPages) subsPage = totalPages;
 
-  // 顯示當頁，其它隱藏
+  // 顯示當頁的 3 筆，其它隱藏
   rows.forEach((row, idx) => {
     const pageOfRow = Math.floor(idx / subsPerPage) + 1;
     row.style.display = (pageOfRow === subsPage) ? "grid" : "none";
   });
 
-  // 產生頁碼
-  const pager = document.getElementById("subsPager");
-  if (!pager) return;          // 沒有 pager 就跳過
-  pager.innerHTML = "";
-  for (let p = 1; p <= totalPages; p++) {
-    const btn = document.createElement("button");
-    btn.textContent = p;
-    btn.onclick = () => {
-      subsPage = p;
-      refreshSubsView();
-    };
-    btn.style.fontSize = ".65rem";
-    if (p === subsPage) {
-      btn.style.background = "#0f172a";
-      btn.style.color = "#fff";
+  // 更新 select
+  const sel = document.getElementById("subsPageSelect");
+  if (sel) {
+    sel.innerHTML = "";
+    for (let p = 1; p <= totalPages; p++) {
+      const opt = document.createElement("option");
+      opt.value = p;
+      opt.textContent = "第 " + p + " 頁";
+      if (p === subsPage) opt.selected = true;
+      sel.appendChild(opt);
     }
-    pager.appendChild(btn);
   }
 }
 
+/* 分頁按鈕們 */
+function subsPrev() {
+  if (subsPage > 1) {
+    subsPage--;
+    refreshSubsView();
+  }
+}
+function subsNext() {
+  const rows = Array.from(subsList.children);
+  const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
+  if (subsPage < totalPages) {
+    subsPage++;
+    refreshSubsView();
+  }
+}
+function subsJump(p) {
+  subsPage = parseInt(p, 10) || 1;
+  refreshSubsView();
+}
+
+/* 新增 / 刪除時要重畫分頁 */
 function addSub() {
   createSubRow("", "", true);
   saveState();
-  refreshSubsView();   // 新增後重畫
+  refreshSubsView();
 }
 
 function deleteSub(btn) {
   subsList.removeChild(btn.parentElement);
   saveState();
-  refreshSubsView();   // 刪除後重畫
+  refreshSubsView();
 }
 
-// 一開始先建立幾筆，再重畫一次
-for (let i = 0; i < 4; i++) createSubRow("", "", false);
-refreshSubsView();
 
     function renderRoleTabs(){
       roleTabs.innerHTML = "";
@@ -1653,10 +1677,24 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
         setPanelData(thisWeekPanel, state.thisWeek, "this");
         thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
       }
-      if (state.subs) {
-  subsList.innerHTML = "";
+     
+      // 替補
+subsList.innerHTML = "";
+if (state.subs && state.subs.length) {
+  // 有存過的就用存的
   state.subs.forEach(su => createSubRow(su.name, su.skill, false));
-}  /*V12.1修改*/
+} 
+
+/*測試拿掉這段會不會有BUG 
+else {
+  // 沒存過 → 給 1 列空的就好（你也可以改成 0）
+  createSubRow("", "", false);
+}*/
+      
+// 不管有沒有，都重畫分頁
+refreshSubsView();
+
+
 
 
       if (state.recentMarks) {
@@ -2146,6 +2184,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

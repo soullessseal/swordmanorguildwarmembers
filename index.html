@@ -369,11 +369,27 @@
     }
     #memberPicker .picker-item:hover { background: #e2e8f0; }
 
+   /*新測試並排下載按鈕*/
     @media (max-width: 1300px) {
-      .layout { grid-template-columns: 1fr; }
-      #allMembersPanel, .right-sticky-wrap { position: static; }
-      #downloadBtn { position: static; margin-bottom: .5rem; }
-    }
+  .layout { grid-template-columns: 1fr; }
+  #allMembersPanel,
+  .right-sticky-wrap {
+    position: static;
+  }
+
+  /* 這裡一定要讓本週面板是相對定位，才放得住按鈕 */
+  #thisWeek {
+    position: relative;
+  }
+
+  /* 按鈕固定在面板右上角，不要掉下去 */
+  #downloadBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    margin-bottom: 0;
+  }
+}
 
     /* V12.1待處理成員的紅綠色 */
 .compare-tag.new-tag {
@@ -397,13 +413,14 @@ input.skill-has {
     @media (max-width: 900px) {
   .right-actions-bar {
     position: fixed;
+    height: 3.2rem;   /* 設定高度 */
     bottom: .8rem;          /* 離底一點 */
     left: .8rem;            /* 左右也留一點 */
     right: .8rem;
     background: rgba(15, 23, 42, 0.95);
     padding: .5rem .65rem;
     display: flex;
-    gap: .4rem;
+    gap: .25rem;      /* 按鈕靠近一點 */
     justify-content: space-between;
     z-index: 9999;
     border-radius: .9rem;   /* 圓角 */
@@ -2232,6 +2249,7 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   </script>
 </body>
 </html>
+
 
 
 

@@ -1610,82 +1610,79 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       const squadWidth = 100;
       return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
     }
+
+  /*V12.1修正下載圖片不同排*/  
     function downloadThisWeekImage() {
-      const data = getPanelData(thisWeekPanel);
-      const tagOrder = ["一團","二團","三團","四團"];
-      const grouped = tagOrder.map(tag => ({
-        tag,
-        teams: data.filter(t => (t.tag || "一團") === tag)
-      })).filter(g => g.teams.length > 0);
+  const data = getPanelData(thisWeekPanel);
+  const tagOrder = ["一團","二團","三團","四團"];
 
-      const teamHeight = 272;
-      const gapX = 20;
-      const gapY = 30;
-      const cols = 4;
+  // 先照 tag 分
+  const grouped = tagOrder.map(tag => ({
+    tag,
+    teams: data.filter(t => (t.tag || "一團") === tag)
+  })).filter(g => g.teams.length > 0);
 
-      const rowWidths = [];
-      grouped.forEach(group => {
-        let col = 0;
-        let rowWidth = gapX;
-        group.teams.forEach(team => {
-          const tw = getTeamCanvasWidth(team);
-          if (col === 0) {
-            rowWidth += tw;
-            col = 1;
-          } else {
-            rowWidth += gapX + tw;
-            col = 0;
-            rowWidths.push(rowWidth + gapX);
-            rowWidth = gapX;
-          }
-        });
-        if (col === 1) {
-          rowWidths.push(rowWidth + gapX);
-        }
+  const teamHeight = 272;
+  const gapX = 20;
+  const gapY = 30;
+
+  // 這是輸出圖片最大寬度，可依你實際需求調
+  const MAX_WIDTH = 1100;
+
+  // 先跑一遍算出總高度，順便把每個 group 的排版結果存起來
+  let totalHeight = 50; // 上面標題的空間
+  grouped.forEach(group => {
+    let x = gapX;
+    let lines = [[]];      // 這個團有幾行
+    group.teams.forEach(team => {
+      const w = getTeamCanvasWidth(team);
+      // 放不下就換行
+      if (x + w + gapX > MAX_WIDTH) {
+        lines.push([]);
+        x = gapX;
+      }
+      lines[lines.length - 1].push({ team, width: w });
+      x += w + gapX;
+    });
+    group._lines = lines; // 存起來，等等畫的時候用
+    totalHeight += lines.length * (teamHeight + gapY);
+  });
+
+  const canvas = document.createElement("canvas");
+  const SCALE = 2;
+  canvas.width = MAX_WIDTH * SCALE;
+  canvas.height = totalHeight * SCALE;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(SCALE, SCALE);
+
+  // 背景
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, MAX_WIDTH, totalHeight);
+
+  // 標題
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 22px system-ui";
+  ctx.fillText("本週名單", 20, 32);
+
+  let currentY = 50;
+
+  grouped.forEach(group => {
+    group._lines.forEach(line => {
+      let x = gapX;
+      line.forEach(item => {
+        drawTeamBlockImage(ctx, item.team, x, currentY, item.width, teamHeight);
+        x += item.width + gapX;
       });
-      const baseWidth = Math.max(820, ...rowWidths);
-      const rows = grouped.reduce((sum, g) => sum + Math.ceil(g.teams.length / cols), 0);
-      const baseHeight = 50 + rows * (teamHeight + gapY);
+      currentY += teamHeight + gapY;
+    });
+  });
 
-      const SCALE = 2;
-      const canvas = document.createElement("canvas");
-      canvas.width = baseWidth * SCALE;
-      canvas.height = baseHeight * SCALE;
-      const ctx = canvas.getContext("2d");
-      ctx.scale(SCALE, SCALE);
+  const link = document.createElement("a");
+  link.download = "this-week.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, baseWidth, baseHeight);
-
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 22px system-ui";
-      ctx.fillText("本週名單", 20, 32);
-
-      let currentY = 50;
-
-      grouped.forEach(group => {
-        let col = 0;
-        let x = gapX;
-        group.teams.forEach(team => {
-          const tw = getTeamCanvasWidth(team);
-          drawTeamBlockImage(ctx, team, x, currentY, tw, teamHeight);
-          if (col === 0) {
-            col = 1;
-            x += tw + gapX;
-          } else {
-            col = 0;
-            x = gapX;
-            currentY += teamHeight + gapY;
-          }
-        });
-        if (col === 1) currentY += teamHeight + gapY;
-      });
-
-      const link = document.createElement("a");
-      link.download = "this-week.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    }
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
       ctx.fillStyle = "#ffffff";
       fillRoundRect(ctx, x, y, w, h, 12);
@@ -1839,6 +1836,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   </script>
 </body>
 </html>
+
 
 
 

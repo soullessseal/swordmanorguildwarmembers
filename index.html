@@ -633,20 +633,26 @@
       });
     }
 
+    
+/*V12.1再次嘗試調整*/
     function addSquadToTeamFromHead(btn){
-      const block = btn.closest(".team-block");
-      const sqs = block.querySelector(".squads");
-      const side = block.dataset.side;
-      const teamName = block.dataset.team;
-      const count = sqs.children.length;
-      const newSq = createSquad(count+1, side, teamName);
-      sqs.appendChild(newSq);
-      adjustSquadWidths(block);
-      markDirty(block);
-      // 新增的小隊也要能被框
-      block.dataset.lastSquadCount = String(count+1);
-      saveState();
-    }
+  const block = btn.closest(".team-block");
+  const sqs = block.querySelector(".squads");
+  const side = block.dataset.side;
+  const teamName = block.dataset.team;
+  const count = sqs.children.length;
+  const newSq = createSquad(count + 1, side, teamName);
+
+  // 標記這個是「這次新增」的小隊，等一下 collectDirtyMarks 會圈它
+  newSq.dataset.newlyAdded = "1";
+
+  sqs.appendChild(newSq);
+  adjustSquadWidths(block);
+  markDirty(block);
+  // ⚠️ 不要在這裡動 block.dataset.lastSquadCount，讓儲存時才知道有多一個
+  saveState();
+}
+
 
     function deleteThisSquad(btn){
       const squad = btn.closest(".squad");
@@ -971,21 +977,31 @@
         }
       });
 
-      // 檢查小隊數量變化 → 標整團 + 標新小隊
-      thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
-        const team = block.dataset.team;
-        const squ = block.querySelectorAll(".squad").length;
-        const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
-        if (squ !== orig) {
-          marks.push({ type: "squadChange", team });
-          if (squ > orig) {
-            for (let i = orig; i < squ; i++) {
-              marks.push({ type: "squadNew", team, squad: i });
-            }
-          }
-          block.dataset.lastSquadCount = String(squ);
-        }
-      });
+      // 檢查小隊數量變化 → 標整團 + 標新小隊 V12.1調整
+thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
+  const team = block.dataset.team;
+  const squads = block.querySelectorAll(".squad");
+  const squ = squads.length;
+  const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
+
+  // 1) 有數量變化 → 整團要框
+  if (squ !== orig) {
+    marks.push({ type: "squadChange", team });
+  }
+
+  // 2) 找出有標記 newlyAdded 的小隊 → 個別框
+  squads.forEach((sqEl, idx) => {
+    if (sqEl.dataset.newlyAdded === "1") {
+      marks.push({ type: "squadNew", team, squad: idx });
+      // 用完就清掉標記，避免下次也圈
+      delete sqEl.dataset.newlyAdded;
+    }
+  });
+
+  // 最後再把現在的小隊數量存起來，當作這次的基準
+  block.dataset.lastSquadCount = String(squ);
+});
+
 
       // 替補
       subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
@@ -1833,5 +1849,6 @@
   </script>
 </body>
 </html>
+
 
 

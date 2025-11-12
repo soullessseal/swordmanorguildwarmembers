@@ -1571,37 +1571,51 @@ function strokeRectEdges(ctx, x, y, w, h, edges, color = "#e2e8f0") {
 //以下這段 V14.7 下載圖片功能（含圓角友善描邊）
 
 /* ── 工具：只描「角弧」與避開圓角端點的直線 ────────────────────────── */
-// 只描圓角弧線；利用 clip 讓 stroke 只露出角落區域
-function strokeCornerArcs(ctx, x, y, w, h, r, corners = {tl:false,tr:false,br:false,bl:false}, color = "#e2e8f0") {
+// 取得目前 scale 下的 1px 與 half-px
+function _px1(ctx){
+  const m = ctx.getTransform();           // a,d 對應 x/y scale（此處等比）
+  const s = Math.max(m.a || 1, m.d || 1);
+  return 1 / s;
+}
+function _halfpx(ctx){ return _px1(ctx) / 2; }
+// 只描圓角弧線（scale-aware）
+function strokeCornerArcs(ctx, x, y, w, h, r, corners = {tl:false,tr:false,br:false,bl:false}, color="#e2e8f0"){
   if (!r) return;
+  const px = _px1(ctx);
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-
-  // 建立上下各一條窄 clip（需要哪邊角就加哪邊）
-  const clips = [];
-  if (corners.tl || corners.tr) clips.push({ x, y, w, h: r + 1 });                      // 上緣
-  if (corners.bl || corners.br) clips.push({ x, y: y + h - (r + 1), w, h: r + 1 });      // 下緣
-
+  ctx.lineWidth = px;
+  ctx.lineCap   = "butt";
+  ctx.lineJoin  = "miter";
+  // 角弧可視區（上/下緣各一條薄 clip）
+  const tol = _halfpx(ctx) + 0.01;
   ctx.beginPath();
-  clips.forEach(rc => ctx.rect(rc.x - 1, rc.y, rc.w + 2, rc.h)); // 微加寬防 1px 缺角
+  if (corners.tl || corners.tr) ctx.rect(x - tol, y - tol, w + tol*2, r + tol*2);
+  if (corners.bl || corners.br) ctx.rect(x - tol, y + h - (r + tol*2), w + tol*2, r + tol*2);
   ctx.clip();
-
-  // 用你的 roundRectPath 畫完整路徑，但 clip 只會顯示角弧
   roundRectPath(ctx, x, y, w, h, r, corners);
   ctx.stroke();
   ctx.restore();
 }
 
-// 僅畫四邊直線，且在圓角端點前收筆，避免與角弧重疊或產生縫線
-function strokeRectEdgesRounded(ctx, x, y, w, h, edges, r = 0, corners = {tl:false,tr:false,br:false,bl:false}, color = "#e2e8f0") {
+// 僅畫四邊直線，端點停在圓角切點（scale-aware）
+function strokeRectEdgesRounded(
+  ctx, x, y, w, h,
+  edges, r = 0, corners = {tl:false,tr:false,br:false,bl:false},
+  color="#e2e8f0"
+){
   const tl = corners.tl ? r : 0, tr = corners.tr ? r : 0, br = corners.br ? r : 0, bl = corners.bl ? r : 0;
+  const px   = _px1(ctx);
+  const half = _halfpx(ctx);
   ctx.strokeStyle = color;
+  ctx.lineWidth   = px;
+  ctx.lineCap     = "butt";
+  ctx.lineJoin    = "miter";
   ctx.beginPath();
-  if (edges.top)    { ctx.moveTo(x + tl,      y + 0.5);     ctx.lineTo(x + w - tr,  y + 0.5); }
-  if (edges.right)  { ctx.moveTo(x + w - 0.5, y + tr);      ctx.lineTo(x + w - 0.5, y + h - br); }
-  if (edges.bottom) { ctx.moveTo(x + bl,      y + h - 0.5); ctx.lineTo(x + w - br,  y + h - 0.5); }
-  if (edges.left)   { ctx.moveTo(x + 0.5,     y + tl);      ctx.lineTo(x + 0.5,     y + h - bl); }
+  if (edges.top)    { ctx.moveTo(x + tl,      y + half);     ctx.lineTo(x + w - tr,  y + half); }
+  if (edges.right)  { ctx.moveTo(x + w - half, y + tr);      ctx.lineTo(x + w - half, y + h - br); }
+  if (edges.bottom) { ctx.moveTo(x + bl,      y + h - half); ctx.lineTo(x + w - br,  y + h - half); }
+  if (edges.left)   { ctx.moveTo(x + half,    y + tl);       ctx.lineTo(x + half,    y + h - bl); }
   ctx.stroke();
 }
 
@@ -1923,6 +1937,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

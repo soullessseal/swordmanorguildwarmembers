@@ -1599,105 +1599,101 @@ function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
 }
 
     
-//以下這段 V14.7 下載圖片功能（含圓角友善描邊）
+<!-- 以下這段 V14.7 下載圖片功能（含圓角友善描邊 / 視覺等粗） -->
 
-/* ── 工具：只描「角弧」與避開圓角端點的直線 ────────────────────────── */
-// 取得目前 scale 下的 1px 與 half-px
-function _px1(ctx){
-  const m = ctx.getTransform();           // a,d 對應 x/y scale（此處等比）
-  const s = Math.max(m.a || 1, m.d || 1);
-  return 1 / s;
-}
-function _halfpx(ctx){ return _px1(ctx) / 2; }
-// 只描圓角弧線（scale-aware）
-function strokeCornerArcs(ctx, x, y, w, h, r, corners = {tl:false,tr:false,br:false,bl:false}, color="#e2e8f0"){
-  if (!r) return;
-  const px = _px1(ctx);
+<script>
+// ================== 1) 工具：像素對齊描邊 ==================
+function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#e2e8f0") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
-  ctx.lineCap   = "butt";
-  ctx.lineJoin  = "miter";
-  // 角弧可視區（上/下緣各一條薄 clip）
-  const tol = _halfpx(ctx) + 0.01;
+  ctx.lineJoin = "round";
+  ctx.lineCap  = "round";
+
+  const tl = corners.tl ? r : 0, tr = corners.tr ? r : 0, br = corners.br ? r : 0, bl = corners.bl ? r : 0;
+  // 將外框位移到半像素，並縮 1px，確保線心落在像素邊界
+  const _x = x + 0.5, _y = y + 0.5, _w = Math.max(0, w - 1), _h = Math.max(0, h - 1);
+  const _rtl = Math.max(0, tl - 0.5), _rtr = Math.max(0, tr - 0.5), _rbr = Math.max(0, br - 0.5), _rbl = Math.max(0, bl - 0.5);
+
   ctx.beginPath();
-  if (corners.tl || corners.tr) ctx.rect(x - tol, y - tol, w + tol*2, r + tol*2);
-  if (corners.bl || corners.br) ctx.rect(x - tol, y + h - (r + tol*2), w + tol*2, r + tol*2);
-  ctx.clip();
-  roundRectPath(ctx, x, y, w, h, r, corners);
+  // top
+  ctx.moveTo(_x + (tl ? _rtl : 0), _y);
+  ctx.lineTo(_x + _w - (tr ? _rtr : 0), _y);
+  if (tr) ctx.arcTo(_x + _w, _y, _x + _w, _y + _rtr, _rtr); else ctx.lineTo(_x + _w, _y);
+
+  // right
+  ctx.lineTo(_x + _w, _y + _h - (br ? _rbr : 0));
+  if (br) ctx.arcTo(_x + _w, _y + _h, _x + _w - _rbr, _y + _h, _rbr); else ctx.lineTo(_x + _w, _y + _h);
+
+  // bottom
+  ctx.lineTo(_x + (bl ? _rbl : 0), _y + _h);
+  if (bl) ctx.arcTo(_x, _y + _h, _x, _y + _h - _rbl, _rbl); else ctx.lineTo(_x, _y + _h);
+
+  // left
+  ctx.lineTo(_x, _y + (tl ? _rtl : 0));
+  if (tl) ctx.arcTo(_x, _y, _x + _rtl, _y, _rtl); else ctx.lineTo(_x, _y);
+
   ctx.stroke();
   ctx.restore();
 }
 
-// 僅畫四邊直線，端點停在圓角切點（scale-aware）
-function strokeRectEdgesRounded(
-  ctx, x, y, w, h,
-  edges, r = 0, corners = {tl:false,tr:false,br:false,bl:false},
-  color="#e2e8f0"
-){
-  const tl = corners.tl ? r : 0, tr = corners.tr ? r : 0, br = corners.br ? r : 0, bl = corners.bl ? r : 0;
-  const px   = _px1(ctx);
-  const half = _halfpx(ctx);
+function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
+  ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth   = px;
-  ctx.lineCap     = "butt";
-  ctx.lineJoin    = "miter";
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  if (edges.top)    { ctx.moveTo(x + tl,      y + half);     ctx.lineTo(x + w - tr,  y + half); }
-  if (edges.right)  { ctx.moveTo(x + w - half, y + tr);      ctx.lineTo(x + w - half, y + h - br); }
-  if (edges.bottom) { ctx.moveTo(x + bl,      y + h - half); ctx.lineTo(x + w - br,  y + h - half); }
-  if (edges.left)   { ctx.moveTo(x + half,    y + tl);       ctx.lineTo(x + half,    y + h - bl); }
+  if (edges.top)    { ctx.moveTo(x + 0.5, y + 0.5);         ctx.lineTo(x + w - 0.5, y + 0.5); }
+  if (edges.right)  { ctx.moveTo(x + w - 0.5, y + 0.5);     ctx.lineTo(x + w - 0.5, y + h - 0.5); }
+  if (edges.bottom) { ctx.moveTo(x + 0.5, y + h - 0.5);     ctx.lineTo(x + w - 0.5, y + h - 0.5); }
+  if (edges.left)   { ctx.moveTo(x + 0.5, y + 0.5);         ctx.lineTo(x + 0.5, y + h - 0.5); }
   ctx.stroke();
+  ctx.restore();
 }
 
-/* ── 版面與隊伍寬度計算 ───────────────────────────────────────────── */
+// ================== 2) 版面計算 ==================
 function getTeamCanvasWidth(team) {
-  const basePad = 8;        // 內邊距
-  const innerGap = 4;       // 小隊之間水平間距
+  const basePad = 8;
+  const innerGap = 4;
   const squadCount = Math.max(1, (team.squads ? team.squads.length : 0) || 6);
-  const squadWidth = 100;   // 每個小隊欄位基準寬
+  const squadWidth = 100;
   return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * innerGap;
 }
-
-/* 依優先序排序：進攻 > 拆塔 > 機動 > 防守 */
 function sortTeamsByPriority(teamsArr) {
   const order = { "進攻": 1, "拆塔": 2, "機動": 3, "防守": 4 };
   return [...teamsArr].sort((a, b) => (order[a.team] || 99) - (order[b.team] || 99));
 }
 
-/* ── 下載圖片（同團號同行、無水平間距、團號寬度自適應） ─────────────── */
+// ================== 3) 下載圖片（行內團隊無水平間距） ==================
 function downloadThisWeekImage() {
   const data = getPanelData(thisWeekPanel);
 
-  // 依 tag 分組並排序
   const tagOrder = ["一團","二團","三團","四團"];
   const grouped = tagOrder
     .map(tag => ({ tag, teams: data.filter(t => (t.tag || "一團") === tag) }))
     .filter(g => g.teams.length > 0)
     .map(g => ({ tag: g.tag, teams: sortTeamsByPriority(g.teams) }));
 
-  // 畫布參數
-  const teamBlockH = 272;   // 單一團隊卡片高度
-  const rowHeaderH = 30;    // 團號橫幅高度
-  const rowGapY = 30;       // 行距
-  const sidePad = 20;       // 畫布左右邊距
-  const topPad = 50;        // 頂部留白
-  const titleH = 32;        // 大標高度
+  const teamBlockH = 272;
+  const rowHeaderH = 30;
+  const rowGapY = 30;
+  const sidePad = 20;
+  const topPad = 50;
+  const titleH = 32;
 
-  // 每一行總寬（同行團隊緊貼）
   const rowWidths = grouped.map(group => {
     let w = 0;
     group.teams.forEach(team => { w += getTeamCanvasWidth(team); });
     return Math.max(420 - sidePad * 2, w);
   });
 
-  const canvasWidth  = Math.max(...rowWidths.map(w => w + sidePad * 2));
-  const rowTotalH    = rowHeaderH + teamBlockH;
-  const canvasHeight = topPad + titleH + grouped.length * rowTotalH + (grouped.length - 1) * rowGapY + sidePad;
+  const canvasWidth = Math.max(...rowWidths.map(w => w + sidePad * 2));
+  const rowTotalH = rowHeaderH + teamBlockH;
+  const canvasHeight =
+    topPad + titleH + grouped.length * rowTotalH + (grouped.length - 1) * rowGapY + sidePad;
 
   const SCALE = 3;
   const canvas = document.createElement("canvas");
-  canvas.width  = canvasWidth * SCALE;
+  canvas.width = canvasWidth * SCALE;
   canvas.height = canvasHeight * SCALE;
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
@@ -1715,20 +1711,18 @@ function downloadThisWeekImage() {
     const teamsTotalW = rowWidths[rowIdx];
     let x = sidePad;
 
-    // 團號橫幅（灰底、上緣圓角）
-    const headerX = x, headerW = teamsTotalW, headerH = rowHeaderH, headerR = 8;
+    // 團號灰底（上圓下直）
+    const headerX = x, headerW = teamsTotalW, headerH = rowHeaderH;
     ctx.fillStyle = "#B4BBC8";
-    fillRoundRectCorners(ctx, headerX, currentY, headerW, headerH, headerR, { tl:true, tr:true, br:false, bl:false });
-    // 如需細邊框，可開啟下行
-    // strokeRoundRectCorners(ctx, headerX, currentY, headerW, headerH, headerR, {tl:true,tr:true,br:false,bl:false}, "#cbd5e1");
-
-    // 團號文字
+    // 填滿用你的 fillRoundRectCorners（不需像素對齊）
+    fillRoundRectCorners(ctx, headerX, currentY, headerW, headerH, 8, { tl:true, tr:true, br:false, bl:false });
+    // 文字
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 15px system-ui";
     const tagTextW = ctx.measureText(group.tag).width;
     ctx.fillText(group.tag, headerX + (headerW - tagTextW) / 2, currentY + headerH / 2 + 5);
 
-    // 同行團隊緊貼排列
+    // 同行團隊無縫排列
     let startIndex = 1;
     const teamTopY = currentY + headerH;
     group.teams.forEach(team => {
@@ -1742,19 +1736,18 @@ function downloadThisWeekImage() {
     currentY += rowTotalH + rowGapY;
   });
 
-  // 下載
   const link = document.createElement("a");
   link.download = "this-week.png";
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
 
-/* ── 畫單一團隊卡片（下載圖片用；小隊樣式對齊面板） ───────────────────── */
+// ================== 4) 單一卡片繪製（用 crisp 邊線） ==================
 function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
-  // 外框白卡片（四角圓）
+  // 卡片白底 + 外框（四角圓）
   ctx.fillStyle = "#ffffff";
-  strokeRoundedCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
-  strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
+  fillRoundRectCorners(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true});
+  strokeRoundedCrisp(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
 
   // 頂部團隊色條（無圓角）
   const headColor = teamColorByName(team.team);
@@ -1776,80 +1769,75 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   const squadW  = availW / squadCount;
   const availH  = h - HEAD_H - INNER_PAD * 2;
 
-  // 高度配置（讓名稱/技能與「小隊標題」同高）
+  // 高度配置
   let TITLE_H  = 28;
   let NAME_H   = TITLE_H;
   let SKILL_H  = TITLE_H;
-  let SP_TITLE = 6;  // 標題與第一位之間
-  let SPACER   = 6;  // 成員之間
+  let SP_TITLE = 6;
+  let SPACER   = 6;
 
-  // 需求總高（6 位成員，每位=名稱+技能）
-  const totalNeed = TITLE_H + SP_TITLE + 6 * (TITLE_H * 2) + 5 * SPACER;
+  const totalNeed = TITLE_H + SP_TITLE + 6*(TITLE_H * 2) + 5*SPACER;
   if (totalNeed > availH) {
     const s = availH / totalNeed;
-    TITLE_H = Math.max(22, Math.floor(TITLE_H * s));
-    NAME_H  = TITLE_H;
-    SKILL_H = TITLE_H;
-    SP_TITLE = Math.max(4, Math.floor(SP_TITLE * s));
-    SPACER   = Math.max(4, Math.floor(SPACER * s));
+    TITLE_H  = Math.max(22, Math.floor(TITLE_H * s));
+    NAME_H   = TITLE_H;
+    SKILL_H  = TITLE_H;
   }
 
   for (let i = 0; i < squadCount; i++) {
     const sx = x + INNER_PAD + i * (squadW + gap);
     const sy = y + HEAD_H + INNER_PAD;
 
-    // ① 小隊標題：獨立圓角框（四角圓、細框）
-    const titleX = sx + 2, titleY = sy + 2, titleW = squadW - 4, titleR = 8;
+    // ① 小隊標題（四角圓）
+    const titleX = sx + 2, titleY = sy + 2, titleW = squadW - 4;
     ctx.fillStyle = "#f8fafc";
-    fillRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, titleR, {tl:true,tr:true,br:true,bl:true});
-    strokeRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, titleR, {tl:true,tr:true,br:true,bl:true});
+    fillRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
+    strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 13px system-ui";
     ctx.fillText(`第${startIndex + i}小隊`, titleX + 10, titleY + Math.round(TITLE_H * 0.7));
 
-    // 標題與第一位成員間距（覆蓋避免殘線）
+    // 標題與第一位成員的空隙（覆蓋避免殘線）
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(sx - 1, titleY + TITLE_H, squadW + 2, SP_TITLE);
 
-    // ② 成員列：名稱(上圓) + 技能(下圓) 組合，零間距
+    // ② 成員列
     const squad = squads[i];
     let rowY = titleY + TITLE_H + SP_TITLE;
 
     for (let m = 0; m < 6; m++) {
-      const nameBoxX = sx + 2, nameBoxY = rowY, nameBoxW = squadW - 4, r = 6;
+      const nameBoxX = sx + 2;
+      const nameBoxY = rowY;
+      const nameBoxW = squadW - 4;
 
-      // 名稱：上半圓角 + 左職業色條
+      // 名稱：上半圓角
       ctx.fillStyle = "#ffffff";
-      fillRoundRectCorners(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, r, {tl:true, tr:true, br:false, bl:false});
-      // 邊線：只畫上/左/右三邊，並避開圓角端點；再補上緣角弧
-      strokeRectEdgesRounded(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H,
-        { top:true, left:true, right:true, bottom:false }, r, { tl:true, tr:true, br:false, bl:false }, "#e2e8f0");
-      strokeCornerArcs(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, r, { tl:true, tr:true }, "#e2e8f0");
+      fillRoundRectCorners(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
+      // 僅畫上/左/右邊（避免與技能列接縫加粗）
+      strokeEdgesCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, { top:true, left:true, right:true }, "#e2e8f0");
 
       const mem = (squad && squad.members[m]) ? squad.members[m] : null;
       if (mem && mem.name) {
         const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-        // 左側職業色條
         ctx.fillStyle = jobColor;
         ctx.fillRect(nameBoxX, nameBoxY, 5, NAME_H);
-        // 名稱文字
         ctx.fillStyle = jobColor;
         ctx.font = "bold 14px system-ui";
         ctx.fillText(mem.name, nameBoxX + 10, nameBoxY + Math.round(NAME_H * 0.75));
       }
 
-      rowY += NAME_H; // 與技能零間距相接
+      rowY += NAME_H;
 
-      // 技能：下半圓角；有技能才淡黃
-      const skillBoxX = sx + 2, skillBoxY = rowY, skillBoxW = squadW - 4;
+      // 技能：下半圓角
+      const skillBoxX = sx + 2;
+      const skillBoxY = rowY;
+      const skillBoxW = squadW - 4;
       const hasSkill = !!(mem && mem.skill && mem.skill.trim());
 
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
-      fillRoundRectCorners(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, r, {tl:false, tr:false, br:true, bl:true});
-      // 邊線：只畫下/左/右三邊，並避開圓角端點；再補下緣角弧
-      strokeRectEdgesRounded(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H,
-        { bottom:true, left:true, right:true, top:false }, r, { tl:false, tr:false, br:true, bl:true }, "#e2e8f0");
-      strokeCornerArcs(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, r, { br:true, bl:true }, "#e2e8f0");
+      fillRoundRectCorners(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, 6, {tl:false,tr:false,br:true,bl:true});
+      // 僅畫下/左/右邊
+      strokeEdgesCrisp(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, { bottom:true, left:true, right:true }, "#e2e8f0");
 
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";
@@ -1859,10 +1847,9 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       rowY += SKILL_H;
 
-      // 成員之間的間距（非最後一位才留）
       if (m !== 5) {
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(sx - 1, rowY, squadW + 2, SPACER); // 明確空白，避免 1px 線
+        ctx.fillRect(sx - 1, rowY, squadW + 2, SPACER);
         rowY += SPACER;
       }
     }
@@ -1968,6 +1955,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

@@ -1588,7 +1588,6 @@ function downloadThisWeekImage() {
     // 該行團隊合計寬度（用來定義團號橫幅與團隊起始 X）
     const teamsTotalW = rowWidths[rowIdx];
     let x = sidePad; // 靠左對齊，從左邊留固定邊距開始
-    const sidePad = 16; // 稍微縮小左右留白
 
     // ---- 團號橫幅（灰底、圓角、有邊框） ----
     const headerX = x;
@@ -1837,6 +1836,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

@@ -1499,37 +1499,48 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   if (!data) return;
   const member = JSON.parse(data);
   const target = ev.target;
-  // ① 替補區
-  if (target.classList.contains("sub-name")) {
-    if (member.fromPanel && draggingPanelInput) {
-      const oldName  = target.value.trim();
-      const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
-      const oldJob   = getJobByName(oldName) || target.dataset.job || "";
+ 
+      // ① 替補區
+if (target.classList.contains("sub-name")) {
+  // 先記住這格原本是誰（可能就是已上場的 A）
+  const prevName  = target.value.trim();
+  const prevSkill = target.parentElement.querySelector(".sub-skill").value.trim();
 
-      target.value = member.name;
-      applyJobColor(target, member.job);
-      target.parentElement.querySelector(".sub-skill").value = member.skill || "";
-      markDirty(target);
-      // 面板那格塞回原來替補的人
-      draggingPanelInput.value = oldName;
-      applyJobColor(draggingPanelInput, oldJob);
-      const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-      if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
-      }
-      markDirty(draggingPanelInput);
-      saveState();
-      return;
-    }
-    // 不是從面板來 → 直接塞
+  if (member.fromPanel && draggingPanelInput) {
+    // ← 來源是面板：仍維持原本的「交換」邏輯
+    const oldName  = prevName;
+    const oldSkill = prevSkill;
+    const oldJob   = getJobByName(oldName) || target.dataset.job || "";
+
     target.value = member.name;
     applyJobColor(target, member.job);
-    const sk = target.parentElement.querySelector(".sub-skill");
-    if (sk) sk.value = member.skill ? member.skill : "";
+    target.parentElement.querySelector(".sub-skill").value = member.skill || "";
     markDirty(target);
+    // 把被換下來的人塞回面板原格
+    draggingPanelInput.value = oldName;
+    applyJobColor(draggingPanelInput, oldJob);
+    const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+    if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
+      setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
+    }
+    markDirty(draggingPanelInput);
     saveState();
     return;
   }
+  // ← 來源不是面板（例如「全部成員名單」）：覆寫替補格，並把舊人從『本週面板』移除
+  target.value = member.name;
+  applyJobColor(target, member.job);
+  const sk = target.parentElement.querySelector(".sub-skill");
+  if (sk) sk.value = member.skill ? member.skill : "";
+  markDirty(target);
+  // ★ 關鍵：如果這格原本是 A，且 A 在本週面板有上場，就把 A 的舊位置清掉
+  if (prevName) {
+    clearDuplicateInPanel(thisWeekPanel, prevName, null);
+  }
+  saveState();
+  return;
+}
+
   // ② 面板上的格子
   if (target.dataset && target.dataset.role === "name") {
     const targetSide = target.dataset.side;
@@ -2432,6 +2443,7 @@ function updateSkillColor(cell) {
   </script>
 </body>
 </html>
+
 
 
 

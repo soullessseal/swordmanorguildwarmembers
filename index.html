@@ -1587,19 +1587,17 @@ function downloadThisWeekImage() {
   grouped.forEach((group, rowIdx) => {
     // 該行團隊合計寬度（用來定義團號橫幅與團隊起始 X）
     const teamsTotalW = rowWidths[rowIdx];
-    let x = (canvasWidth - teamsTotalW) / 2; // 置中排列（保留左右邊距）
+    let x = sidePad; // 靠左對齊，從左邊留固定邊距開始
+    const sidePad = 16; // 稍微縮小左右留白
 
     // ---- 團號橫幅（灰底、圓角、有邊框） ----
     const headerX = x;
     const headerW = teamsTotalW;
     const headerH = rowHeaderH;
     // 底色
-    ctx.fillStyle = "#f1f5f9";
+    ctx.fillStyle = "#E5EDF2";
     fillRoundRect(ctx, headerX, currentY, headerW, headerH, 8);
-    // 邊框
-    ctx.strokeStyle = "#cbd5e1";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(headerX, currentY, headerW, headerH);
+   
     // 文字
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 15px system-ui";
@@ -1839,6 +1837,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

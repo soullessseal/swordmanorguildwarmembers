@@ -287,6 +287,7 @@
     const LOGIN_TTL = 60 * 60 * 1000;
     // 讓「最近修改框線」在編輯期間暫時隱藏
     let outlinesSuppressed = false;
+    
     function suppressOutlinesOnEdit(){
     if (!outlinesSuppressed) {
     outlinesSuppressed = true;
@@ -1169,35 +1170,43 @@
 
     /* 掛職名單列表渲染：若該人本週有上場 → 暫時隱藏；點擊只切換樣式，不刪除 */
     function renderStuckList(){
-      const box = document.getElementById("stuckList");
-      if (!box) return;
-      const data = getStuckData();
-      const names = Object.keys(data);
-      const thisSet = getThisWeekNameSet();
-      box.innerHTML = "";
-      if (!names.length) {
-        box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
-        return;
-      }
-      names.forEach(name => {
-        if (thisSet.has(name)) { /* 暫時隱藏 */ return; }
-        const tag = document.createElement("div");
-        tag.className = "compare-tag missing-tag";
-        if (compareIgnore.has(name)) tag.classList.add("muted");
-        tag.textContent = name;
-        tag.title = "點擊切換樣式（不會刪除）";
-        tag.onclick = function(){ toggleStuckMute(name); };
-        box.appendChild(tag);
-      });
-    }
+  const box = document.getElementById("stuckList");
+  if (!box) return;
+  const data = getStuckData();
+  const names = Object.keys(data);
+  const thisSet = getThisWeekNameSet();
+  box.innerHTML = "";
+  if (!names.length) {
+    box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
+    return;
+  }
+  names.forEach(name => {
+    if (thisSet.has(name)) { /* 暫時隱藏 */ return; }
+    const tag = document.createElement("div");
+    tag.className = "compare-tag missing-tag";
+    if (compareIgnore.has(name)) tag.classList.add("muted");
+    tag.textContent = name;
+    tag.title = "點擊切換樣式（不會刪除）";
+    tag.onclick = function(){
+      // 點擊掛職名單的標籤：也要把所有「最近修改框線」隱藏
+      suppressOutlinesOnEdit();
+      toggleStuckMute(name);
+    };
+    box.appendChild(tag);
+  });
+}
+
 
     /* 切換掛職名單的 muted 樣式（寫入 compareIgnore，不刪除資料） */
     function toggleStuckMute(name){
-      if (compareIgnore.has(name)) compareIgnore.delete(name);
-      else compareIgnore.add(name);
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(Array.from(compareIgnore)));
-      renderStuckList();
-    }
+  // 無論從哪裡呼叫，切換掛職標籤時都隱藏最近修改框線
+  suppressOutlinesOnEdit();
+  if (compareIgnore.has(name)) compareIgnore.delete(name);
+  else compareIgnore.add(name);
+  localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(Array.from(compareIgnore)));
+  renderStuckList();
+}
+
 
     function loadPersistentIgnore(){
       try {
@@ -1341,62 +1350,57 @@
 
     /* 比對：若掛職名單成員本週有上場 → 待處理名單與掛職名單都暫時隱藏 */
     function compare(){
-      document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        inp.classList.remove("highlight-new","highlight-missing");
-      });
+  // 按下比對：立刻隱藏所有「最近修改框線」
+  suppressOutlinesOnEdit(); // 會把 outlinesSuppressed 設為 true 並呼叫 clearAllOutlines()
+  document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+    inp.classList.remove("highlight-new","highlight-missing");
+  });
 
-      const lastNames = [];
-      lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim(); if(v) lastNames.push(v);
-      });
-      const lastSet = new Set(lastNames);
-
-      const thisNames = [];
-      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim(); if(v) thisNames.push({val:v, el:inp});
-      });
-      const thisSet = new Set(thisNames.map(x=>x.val));
-
-      const stuck = getStuckData();
-      const stuckSet = new Set(Object.keys(stuck));
-
-      const newOnes = [];
-      const missingOnes = [];
-
-      // 新增：排除「同時在掛職名單」的人（3-1）
-      thisNames.forEach(obj=>{
-        if (obj.val && !lastSet.has(obj.val)) {
-          if (!stuckSet.has(obj.val)) { // 只要不是掛職名單，就依 compareIgnore 上色
-            if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
-            newOnes.push(obj.val);
-          }
-        }
-      });
-
-      // 缺席：維持原邏輯（掛職者仍可顯示為缺席紅標；掛職列表另列）
-      lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if (v && !thisSet.has(v)) {
-          if (!compareIgnore.has(v)) inp.classList.add("highlight-missing");
-          missingOnes.push(v);
-        }
-      });
-
-      // 替補標示
-      subsList.querySelectorAll(".substitute-row").forEach(row=>{
-        const name = row.querySelector(".sub-name").value.trim();
-        const status = row.querySelector(".sub-status");
-        if(!name){ status.textContent = ""; return; }
-        if(thisSet.has(name)){ status.textContent = "本週已上場 ✅"; status.style.color = "#16a34a"; }
-        else { status.textContent = "本週未上場"; status.style.color = "#b91c1c"; }
-      });
-
-      renderCompareTags(newOnes, missingOnes);
-      currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name));
-
-      // 掛職名單同步（對於「本週有上場」者暫時隱藏）
-      renderStuckList();
+  const lastNames = [];
+  lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+    const v = inp.value.trim(); if(v) lastNames.push(v);
+  });
+  const lastSet = new Set(lastNames);
+  const thisNames = [];
+  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+    const v = inp.value.trim(); if(v) thisNames.push({val:v, el:inp});
+  });
+  const thisSet = new Set(thisNames.map(x=>x.val));
+  const stuck = getStuckData();
+  const stuckSet = new Set(Object.keys(stuck));
+  const newOnes = [];
+  const missingOnes = [];
+  // 新增：排除「同時在掛職名單」的人（3-1）
+  thisNames.forEach(obj=>{
+    if (obj.val && !lastSet.has(obj.val)) {
+      if (!stuckSet.has(obj.val)) { // 只要不是掛職名單，就依 compareIgnore 上色
+        if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
+        newOnes.push(obj.val);
+      }
     }
+  });
+  // 缺席：維持原邏輯（掛職者仍可顯示為缺席紅標；掛職列表另列）
+  lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+    const v = inp.value.trim();
+    if (v && !thisSet.has(v)) {
+      if (!compareIgnore.has(v)) inp.classList.add("highlight-missing");
+      missingOnes.push(v);
+    }
+  });
+  // 替補標示
+  subsList.querySelectorAll(".substitute-row").forEach(row=>{
+    const name = row.querySelector(".sub-name").value.trim();
+    const status = row.querySelector(".sub-status");
+    if(!name){ status.textContent = ""; return; }
+    if(thisSet.has(name)){ status.textContent = "本週已上場 ✅"; status.style.color = "#16a34a"; }
+    else { status.textContent = "本週未上場"; status.style.color = "#b91c1c"; }
+  });
+  renderCompareTags(newOnes, missingOnes);
+  currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name));
+  // 掛職名單同步（對於「本週有上場」者暫時隱藏）
+  renderStuckList();
+}
+
 
     function renderCompareTags(newList, missingList){
       compareTagsEl.innerHTML = "";
@@ -1417,15 +1421,18 @@
     }
 
     function toggleCompareIgnore(name){
-      if (compareIgnore.has(name)) compareIgnore.delete(name);
-      else {
-        compareIgnore.add(name);
-        document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-          if (inp.value.trim() === name) { inp.classList.remove("highlight-new","highlight-missing"); }
-        });
-      }
-      compare();
-    }
+  // 點擊待處理名單的標籤：也要把所有「最近修改框線」隱藏
+  suppressOutlinesOnEdit();
+  if (compareIgnore.has(name)) compareIgnore.delete(name);
+  else {
+    compareIgnore.add(name);
+    document.querySelectorAll("input[data-role='name']").forEach(inp=>{
+      if (inp.value.trim() === name) { inp.classList.remove("highlight-new","highlight-missing"); }
+    });
+  }
+  compare();
+}
+
 
     /* 覆蓋後：1) 新缺席加入掛職； 2) 本週有上場者從掛職正式移除；2.5) 取消狀態持續到覆蓋 → 視為沒職位，從掛職名單刪除； 3) 清空 compareIgnore（重置狀態） */
 function copyThisToLast(){
@@ -1709,6 +1716,7 @@ function copyThisToLast(){
   </script>
 </body>
 </html>
+
 
 
 

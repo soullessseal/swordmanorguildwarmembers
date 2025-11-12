@@ -1516,13 +1516,12 @@ function copyThisToLast(){
     }
 
     //以下這段V14.6新增，整理下載圖片功能
-    /* 依小隊數量計算單一團隊區塊寬度（下載圖用） */
+   /* 下載圖片 v14.6 專用：計算單一團隊區塊寬度（團內小隊橫向排） */
 function getTeamCanvasWidth(team) {
-  const basePad = 8; 
+  const basePad = 8;
   const innerGap = 4;
   const squadCount = Math.max(1, (team.squads ? team.squads.length : 0) || 6);
   const squadWidth = 100;
-  // 沒有團與團之間的水平間距，因此這裡只回傳單一團隊自己的寬度
   return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * innerGap;
 }
 
@@ -1532,40 +1531,42 @@ function sortTeamsByPriority(teamsArr) {
   return [...teamsArr].sort((a, b) => (order[a.team] || 99) - (order[b.team] || 99));
 }
 
-/* 下載圖片（v14.6 版排版規則）
-   1) 同一團號（tag）在同一行，團與團之間「無水平間距」，只有不同行之間保留垂直間距
-   2) 每一行最上方先畫「團號」橫幅（置中），其下才是各團隊區塊
-   3) 同一團號的小隊編號連續遞增，跨團接續，優先序：進攻 > 拆塔 > 機動 > 防守
-   4) 成員名稱列背景改為白色，不再是灰色
-   5) 成員名稱/技能字體略放大加粗
-   6) 有技能的格子背景顯示 #FFFFDB 淺黃色（與頁面一致）
+/* 下載圖片（v14.6 排版改良版）
+   - 同一團號在同一行；同行團隊「緊貼」無水平間距
+   - 「團號」橫幅寬度 = 該行所有團隊寬度總和（不再撐滿整行）
+   - 團號橫幅樣式：灰底、圓角、細框；文字置中
+   - 團隊名稱色條「不需圓角」（改為純色矩形）
+   - 名稱/技能列間加入縫隙，縫隙區不畫線
 */
 function downloadThisWeekImage() {
   const data = getPanelData(thisWeekPanel);
 
-  // 依 tag 分組，並只保留有內容的團
+  // 依 tag 分組並排序團隊
   const tagOrder = ["一團","二團","三團","四團"];
   const grouped = tagOrder
     .map(tag => ({ tag, teams: data.filter(t => (t.tag || "一團") === tag) }))
     .filter(g => g.teams.length > 0)
     .map(g => ({ tag: g.tag, teams: sortTeamsByPriority(g.teams) }));
 
-  // 計算每一行所需寬度（團與團之間無水平間距）
+  // 畫布參數
+  const teamBlockH = 272;  // 單一團隊卡片高度
+  const rowHeaderH = 30;   // 團號橫幅高度
+  const rowGapY = 30;      // 行與行之間垂直間距
+  const sidePad = 20;      // 畫布左右邊距
+  const topPad = 50;       // 第一行起始 Y（留標題空間）
+  const titleH = 32;
+
+  // 計算每一行寬度（同行無水平間距）
   const rowWidths = grouped.map(group => {
-    let w = 20; // 左側邊距
+    let w = 0;
     group.teams.forEach(team => { w += getTeamCanvasWidth(team); });
-    w += 20; // 右側邊距
-    return Math.max(420, w);
+    return Math.max(420 - sidePad * 2, w); // 行內「有效寬度」至少 420-左右邊距
   });
 
-  const rowHeaderH = 30;   // 每行頂端「團號」橫幅高度
-  const teamBlockH = 272;  // 單一團隊高度（含頭部+小隊區）
-  const rowGapY = 30;      // 行與行之間垂直間距
-  const rowTotalH = rowHeaderH + teamBlockH; // 每行總高度（不含行間距）
-
-  // 畫布大小
-  const canvasWidth = Math.max(...rowWidths);
-  const canvasHeight = grouped.length * rowTotalH + (grouped.length + 1) * 20 + (grouped.length - 1) * rowGapY;
+  const canvasWidth = Math.max(...rowWidths.map(w => w + sidePad * 2));
+  const rowTotalH = rowHeaderH + teamBlockH;
+  const canvasHeight =
+    topPad + titleH + grouped.length * rowTotalH + (grouped.length - 1) * rowGapY + sidePad;
 
   const SCALE = 3;
   const canvas = document.createElement("canvas");
@@ -1574,54 +1575,48 @@ function downloadThisWeekImage() {
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
 
-  // 背景
+  // 背景與標題
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  // 標題
   ctx.fillStyle = "#0f172a";
   ctx.font = "bold 22px system-ui";
-  ctx.fillText("本週名單", 20, 32);
+  ctx.fillText("本週名單", sidePad, topPad);
 
   // 逐行繪製
-  let currentY = 50; // 第一行起點（留出上方標題空間）
-  grouped.forEach(group => {
-    // 本行有效繪圖寬度
-    const thisRowWidth = Math.max(canvasWidth, 0);
+  let currentY = topPad + titleH;
+  grouped.forEach((group, rowIdx) => {
+    // 該行團隊合計寬度（用來定義團號橫幅與團隊起始 X）
+    const teamsTotalW = rowWidths[rowIdx];
+    let x = (canvasWidth - teamsTotalW) / 2; // 置中排列（保留左右邊距）
 
-    // --- 團號橫幅（先顯示團號） ---
-    const headerX = 20;
-    const headerY = currentY;
-    const headerW = canvasWidth - 40;
+    // ---- 團號橫幅（灰底、圓角、有邊框） ----
+    const headerX = x;
+    const headerW = teamsTotalW;
     const headerH = rowHeaderH;
-
+    // 底色
+    ctx.fillStyle = "#f1f5f9";
+    fillRoundRect(ctx, headerX, currentY, headerW, headerH, 8);
     // 邊框
-    ctx.strokeStyle = "#0f172a";
+    ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 1;
-    ctx.strokeRect(headerX, headerY, headerW, headerH);
-
-    // 團號文字（置中）
+    ctx.strokeRect(headerX, currentY, headerW, headerH);
+    // 文字
     ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 16px system-ui";
-    const tagText = group.tag;
-    const tagTextWidth = ctx.measureText(tagText).width;
-    ctx.fillText(tagText, headerX + (headerW - tagTextWidth) / 2, headerY + headerH / 2 + 6);
+    ctx.font = "bold 15px system-ui";
+    const tagTextW = ctx.measureText(group.tag).width;
+    ctx.fillText(group.tag, headerX + (headerW - tagTextW) / 2, currentY + headerH / 2 + 5);
 
-    // --- 各團隊緊貼排列（無水平間距） ---
-    let x = 20;                 // 左側邊距
-    let startIndex = 1;         // 本行小隊起始編號
-    const teamTopY = currentY + rowHeaderH; // 團隊區塊的起始 Y
-
+    // ---- 同行團隊：緊貼排列，無水平間距 ----
+    let startIndex = 1; // 小隊連號起始
+    const teamTopY = currentY + headerH;
     group.teams.forEach(team => {
       const w = getTeamCanvasWidth(team);
       drawTeamBlockImage(ctx, team, x, teamTopY, w, teamBlockH, startIndex);
-      // 依本團實際畫了幾個小隊，續編號
       const squadCount = Math.max(1, (team.squads ? team.squads.length : 0) || 6);
       startIndex += squadCount;
-      x += w; // 沒有水平間距
+      x += w; // 無水平間距
     });
 
-    // 換到下一行
     currentY += rowTotalH + rowGapY;
   });
 
@@ -1632,13 +1627,10 @@ function downloadThisWeekImage() {
   link.click();
 }
 
-/* 畫單一團隊區塊
-   v14.6 重點：
-   - 團隊上方色條只顯示「團隊名稱」，不重複團號
-   - 名稱列背景 = 白色；左側職業色條保留
-   - 有技能 → 背景 #FFFFDB；無技能 → 白底
-   - 名稱字體 13px/粗體；技能字體 11px/粗體
-   - 小隊標題以傳入的 startIndex 連續編號
+/* 畫單一團隊卡片（v14.6）
+   - 團隊色條：改為矩形（無圓角）
+   - 名稱/技能列之間加入縫隙 SPACER，且縫隙不畫線
+   - 名稱列白底；技能列有值淺黃（#FFFFDB）
 */
 function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   // 外框白卡片
@@ -1648,19 +1640,10 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
 
-  // 團隊色頭條（只顯示團隊名稱）
+  // 團隊色條（無圓角，純矩形）
   const headColor = teamColorByName(team.team);
   ctx.fillStyle = headColor;
-  ctx.beginPath();
-  ctx.moveTo(x + 12, y);
-  ctx.lineTo(x + w - 12, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + 12);
-  ctx.lineTo(x + w, y + 30);
-  ctx.lineTo(x, y + 30);
-  ctx.lineTo(x, y + 12);
-  ctx.quadraticCurveTo(x, y, x + 12, y);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillRect(x, y, w, 30);
 
   // 團隊名稱
   ctx.fillStyle = "#ffffff";
@@ -1675,6 +1658,11 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
   const squadHeight = h - 30 - innerPad * 2;
 
+  // 列高與縫隙設定（確保含縫隙仍不易溢出）
+  const NAME_H = 17;
+  const SKILL_H = 13;
+  const SPACER = 4; // 名稱+技能跟下一個成員區塊之間的純留白
+
   for (let i = 0; i < squadCount; i++) {
     const sx = x + innerPad + i * (squadWidth + gap);
     const sy = contentY + innerPad;
@@ -1685,53 +1673,59 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     ctx.strokeStyle = "#e2e8f0";
     ctx.strokeRect(sx, sy, squadWidth, squadHeight);
 
-    // 小隊標題
+    // 小隊標題（連號）
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(sx, sy, squadWidth, 22);
     ctx.strokeStyle = "#e2e8f0";
     ctx.strokeRect(sx, sy, squadWidth, 22);
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px system-ui";
-    // 依起始索引連續編號
     ctx.fillText("第" + (startIndex + i) + "小隊", sx + 6, sy + 15);
 
-    // 名稱 + 技能列（6 列）
+    // 名稱 + 技能 6 列
     const squad = squads[i];
     let rowY = sy + 26;
+
     for (let m = 0; m < 6; m++) {
-      // 名稱列背景 = 白色（不再灰色）
+      // 名稱列（白底 + 左側職業色條 + 加粗字）
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(sx, rowY, squadWidth, 18);
+      ctx.fillRect(sx, rowY, squadWidth, NAME_H);
       ctx.strokeStyle = "#e2e8f0";
-      ctx.strokeRect(sx, rowY, squadWidth, 18);
+      ctx.strokeRect(sx, rowY, squadWidth, NAME_H);
 
       if (squad && squad.members[m] && squad.members[m].name) {
         const mem = squad.members[m];
         const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
         // 左側職業色條
         ctx.fillStyle = jobColor;
-        ctx.fillRect(sx, rowY, 4, 18);
-        // 名稱字體放大加粗
+        ctx.fillRect(sx, rowY, 4, NAME_H);
+        // 名稱字
         ctx.fillStyle = jobColor;
         ctx.font = "bold 13px system-ui";
-        ctx.fillText(mem.name, sx + 6, rowY + 13);
+        ctx.fillText(mem.name, sx + 6, rowY + Math.round(NAME_H * 0.76));
       }
 
-      rowY += 18;
+      rowY += NAME_H;
 
-      // 技能列：有技能 → 淺黃底，無技能 → 白底
+      // 技能列（有值淺黃、無值白底）
       const hasSkill = squad && squad.members[m] && squad.members[m].skill;
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
-      ctx.fillRect(sx, rowY, squadWidth, 16);
+      ctx.fillRect(sx, rowY, squadWidth, SKILL_H);
       ctx.strokeStyle = "#e2e8f0";
-      ctx.strokeRect(sx, rowY, squadWidth, 16);
+      ctx.strokeRect(sx, rowY, squadWidth, SKILL_H);
+
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 11px system-ui";
-        ctx.fillText(squad.members[m].skill, sx + 4, rowY + 12);
+        ctx.fillText(squad.members[m].skill, sx + 4, rowY + Math.round(SKILL_H * 0.78));
       }
 
-      rowY += 16;
+      rowY += SKILL_H;
+
+      // 與下一位成員之間的「純留白縫隙」—— 不畫任何線
+      if (m !== 5) {
+        rowY += SPACER;
+      }
     }
   }
 }
@@ -1835,6 +1829,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

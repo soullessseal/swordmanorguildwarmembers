@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.3</title>
+  <title>幫戰名單比對工具 v14.4</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -166,7 +166,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.3</h1>
+  <h1>幫戰名單比對工具 v14.4</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -1419,33 +1419,34 @@
       compare();
     }
 
-    /* 覆蓋後：1) 新缺席加入掛職；2) 本週有上場者從掛職正式移除；3) 清空 compareIgnore（重置狀態） */
-    function copyThisToLast(){
-      if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
-      lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
+    /* 覆蓋後：1) 新缺席加入掛職； 2) 本週有上場者從掛職正式移除；2.5) 取消狀態持續到覆蓋 → 視為沒職位，從掛職名單刪除； 3) 清空 compareIgnore（重置狀態） */
+function copyThisToLast(){
+  if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+  lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
 
-      const stuck = getStuckData();
-
-      // 1) 將本次比對未忽略的缺席者加入掛職
-      currentMissingNotIgnored.forEach(name => {
-        if (name && !stuck[name]) { stuck[name] = new Date().toISOString(); }
-      });
-
-      // 2) 正式移除：若掛職者本週有上場 → 從掛職名單刪除（3-3）
-      const thisSet = getThisWeekNameSet();
-      Object.keys(stuck).forEach(n => { if (thisSet.has(n)) delete stuck[n]; });
-      setStuckData(stuck);
-
-      // 3) 清空 compareIgnore（重置所有被取消的標籤狀態）
-      resetCompareIgnoreAfterCopy();
-
-      // 實際覆蓋 UI
-      const thisData = getPanelData(thisWeekPanel);
-      setPanelData(lastWeekPanel, thisData, "last");
-      saveState();
-      renderStuckList();
-      alert("已將本週名單覆蓋到上週。掛職名單已更新，標籤狀態已重置。");
-    }
+  const stuck = getStuckData();
+  // 1) 將本次比對「未忽略」的缺席者加入掛職
+  currentMissingNotIgnored.forEach(name => {
+    if (name && !stuck[name]) { stuck[name] = new Date().toISOString(); }
+  });
+  // 2) 正式移除：若掛職者本週有上場 → 從掛職名單刪除
+  const thisSet = getThisWeekNameSet();
+  Object.keys(stuck).forEach(n => { if (thisSet.has(n)) delete stuck[n]; });
+  // 2.5) 若掛職者被你點「取消」（muted = 在 compareIgnore Set 裡），
+  // 且在覆蓋這一刻仍是取消狀態 → 視為已無職位，直接從掛職名單刪除
+  Object.keys(stuck).forEach(n => {
+    if (compareIgnore.has(n)) { delete stuck[n]; }
+  });
+  setStuckData(stuck);
+  // 3) 清空 compareIgnore（重置所有被取消的標籤狀態）
+  resetCompareIgnoreAfterCopy();
+  // 實際覆蓋 UI
+  const thisData = getPanelData(thisWeekPanel);
+  setPanelData(lastWeekPanel, thisData, "last");
+  saveState();
+  renderStuckList();
+  alert("已將本週名單覆蓋到上週。掛職名單已更新（包含取消者移除），標籤狀態已重置。");
+}
 
     function resetCompareIgnoreAfterCopy(){
       compareIgnore.clear();
@@ -1692,6 +1693,7 @@
   </script>
 </body>
 </html>
+
 
 
 

@@ -1528,7 +1528,7 @@ function strokeRoundRect(ctx, x, y, w, h, r, color = "#e2e8f0") {
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = px;
   ctx.stroke();
 }
 
@@ -1937,6 +1937,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

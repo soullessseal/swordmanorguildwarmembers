@@ -1593,11 +1593,10 @@ function downloadThisWeekImage() {
     const headerX = x;
     const headerW = teamsTotalW;
     const headerH = rowHeaderH;
-    // 底色
-    ctx.fillStyle = "#0F172A";
-    fillRoundRect(ctx, headerX, currentY, headerW, headerH, 8);
+    // 底色：只有上緣圓角
+    fillTopRoundedRect(ctx, headerX, currentY, headerW, headerH, 8, "#C1BAAC", "#cbd5e1");
    // 只做「上緣」兩角的圓角矩形（左上/右上圓角，底部直角）
-    function fillTopRoundedRect(ctx, x, y, w, h, r, fill = "#E5EDF2", stroke = "#cbd5e1") {
+    function fillTopRoundedRect(ctx, x, y, w, h, r, fill = "#C1BAAC", stroke = "#cbd5e1") {
       ctx.beginPath();
   // 從左下開始，往上到左上圓角
       ctx.moveTo(x, y + h);
@@ -1853,6 +1852,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

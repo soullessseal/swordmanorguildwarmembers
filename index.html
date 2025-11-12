@@ -1722,21 +1722,21 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   const squadWidth  = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
   const availH = h - headH - innerPad * 2;
 
-  // 行高（會自動縮放，避免溢出）
-  let TITLE_H  = 26;   // 小隊標題高度
-  let NAME_H   = 18;   // 成員名稱高度
-  let SKILL_H  = 15;   // 成員技能高度（你要「高一點」→ 可調 16~18）
-  let SPACER   = 4;    // 名稱/技能之間間距
-  let SP_TITLE = 6;    // 標題與第一位成員間距
+    // 單格外框配置（改成「一格外框＋內部分隔線」）
+  let TITLE_H   = 26;  // 小隊標題高度（保留可縮放）
+  const SLOT_H  = 44;  // 每位成員整格高度（可調 40~46）
+  const NAME_H  = 24;  // 上半：名稱區高度
+  const SKILL_H = SLOT_H - NAME_H;  // 下半：技能區高度
+  const SLOT_GAP = 6;  // 成員格之間的垂直間距
+  const SLOT_RADIUS = 6;
+  const SP_TITLE = 6;  // 標題與第一位成員之間的間距
 
-  const totalNeed = TITLE_H + SP_TITLE + 6*(NAME_H + SKILL_H) + 5*SPACER;
+  // 依可用高度做等比縮放（避免溢出）
+  const totalNeed = TITLE_H + SP_TITLE + 6 * (SLOT_H + SLOT_GAP) - SLOT_GAP; // 6格，中間5個間距
   if (totalNeed > availH) {
     const s = availH / totalNeed;
-    TITLE_H  = Math.floor(TITLE_H * s);
-    NAME_H   = Math.floor(NAME_H * s);
-    SKILL_H  = Math.floor(SKILL_H * s);
-    SPACER   = Math.max(3, Math.floor(SPACER * s));
-    SP_TITLE = Math.max(4, Math.floor(SP_TITLE * s));
+    TITLE_H   = Math.floor(TITLE_H * s);
+    // SLOT_H 固定視覺更穩，若要跟著縮可改成：Math.floor(SLOT_H * s)
   }
 
   for (let i = 0; i < squadCount; i++) {
@@ -1769,47 +1769,45 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     const squad = squads[i];
     let rowY = sy + TITLE_H + SP_TITLE;
 
-    for (let m = 0; m < 6; m++) {
-      // 名稱列：只要上半圓角
+        for (let m = 0; m < 6; m++) {
+      const slotX = sx + 2;
+      const slotY = rowY;
+      const slotW = squadWidth - 4;
+      // 1) 單格外框（一次畫完）
       ctx.fillStyle = "#ffffff";
-      fillRoundRectCorners(ctx, sx + 2, rowY, squadWidth - 4, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
-      strokeRoundRectCorners(ctx, sx + 2, rowY, squadWidth - 4, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
-
-      if (squad && squad.members[m] && squad.members[m].name) {
-        const mem = squad.members[m];
-        const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-        // 左側職業色條
+      fillRoundRectCorners(ctx, slotX, slotY, slotW, SLOT_H, SLOT_RADIUS,
+        { tl:true, tr:true, br:true, bl:true });
+      strokeRoundRectCorners(ctx, slotX, slotY, slotW, SLOT_H, SLOT_RADIUS,
+        { tl:true, tr:true, br:true, bl:true });
+      // 2) 左側職業色條（整格高度）
+      const mem = (squad && squad.members[m]) ? squad.members[m] : null;
+      const jobColor = mem && mem.job && roleColors[mem.job]
+        ? darkenHex(roleColors[mem.job], 0.25)
+        : "#cbd5e1";
+      ctx.fillStyle = jobColor;
+      ctx.fillRect(slotX, slotY, 5, SLOT_H);
+      // 3) 中間分隔線（把一格切兩半：上=名稱、下=技能）
+      strokeRectEdges(ctx, slotX + 1, slotY + NAME_H, slotW - 2, 0, { top:true }, "#e2e8f0");
+      // 4) 名稱（上半）
+      if (mem && mem.name) {
         ctx.fillStyle = jobColor;
-        ctx.fillRect(sx + 2, rowY, 5, NAME_H);
-        // 名稱
-        ctx.fillStyle = jobColor;
-        ctx.font = "bold 14px system-ui";
-        ctx.fillText(mem.name, sx + 10, rowY + Math.round(NAME_H * 0.75));
+        ctx.font = "bold 15px system-ui";
+        ctx.fillText(mem.name, slotX + 10, slotY + 16); // 置中微調
       }
-
-      rowY += NAME_H;
-
-      // 技能列：只要下半圓角（有技能→淡黃）
-      const hasSkill = squad && squad.members[m] && squad.members[m].skill;
-      ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
-      fillRoundRectCorners(ctx, sx + 2, rowY, squadWidth - 4, SKILL_H, 6, {tl:false,tr:false,br:true,bl:true});
-      strokeRoundRectCorners(ctx, sx + 2, rowY, squadWidth - 4, SKILL_H, 6, {tl:false,tr:false,br:true,bl:true});
-
+      // 5) 技能（下半；有技能才塗淡黃，內縮 1px 不蓋到外框）
+      const hasSkill = !!(mem && mem.skill && mem.skill.trim());
       if (hasSkill) {
+        ctx.fillStyle = "#FFFFDB";
+        ctx.fillRect(slotX + 1, slotY + NAME_H + 1, slotW - 2, SKILL_H - 2);
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 12px system-ui";
-        ctx.fillText(squad.members[m].skill, sx + 8, rowY + Math.round(SKILL_H * 0.75));
+        ctx.font = "bold 13px system-ui";
+        ctx.fillText(mem.skill, slotX + 10, slotY + NAME_H + 16);
       }
-
-      rowY += SKILL_H;
-
-      // 成員間間距（不畫線，左右多 1px 防殘線）
-      if (m !== 5) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(sx - 1, rowY, squadWidth + 2, SPACER);
-        rowY += SPACER;
-      }
+      // 6) 下一格位置
+      rowY += SLOT_H;
+      if (m !== 5) rowY += SLOT_GAP;
     }
+
     ctx.restore(); // 關閉 clip
   }
 }
@@ -1913,6 +1911,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

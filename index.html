@@ -1674,25 +1674,26 @@ function getTeamCanvasWidth(team) {
 
 /* 🔹計算團隊外框的「需要高度」，確保能包覆所有小隊 */
 function getTeamCanvasHeight(team) {
-  // 這些數值需與 drawTeamBlockImage 內一致
-  const HEAD_H  = 30; // 頂部色條
+  // 與 drawTeamBlockImage 內部數值保持一致
+  const HEAD_H    = 30; // 頂部色條
   const INNER_PAD = 8;
-  let TITLE_H  = 28; // 小隊標題卡
-  let NAME_H   = TITLE_H; // 名稱卡
-  let SKILL_H  = TITLE_H; // 技能卡
-  const SP_TITLE = 6;     // 標題→第一位
-  const SPACER   = 6;     // 成員間距
-  const MEMBERS_PER_SQUAD = 6;
+  const TITLE_H   = 28; // 小隊標題卡
+  const NAME_H    = 28; // 名稱卡
+  const SKILL_H   = 22; // 技能卡（你剛調的）
+  const SP_TITLE  = 4;  // 標題→第一位的距離
+  const SPACER    = 4;  // 成員之間距
+  const MEMBERS   = 6;
 
-  // 下載圖的卡片高度會做自適應壓縮，這裡先用原始期望高度估算
+  // 內部內容總高（標題卡 + 間距 + 6*(名稱卡+技能卡) + 5*間距）
   const innerH =
-    (2 /*title卡上方的2px*/ + TITLE_H) + SP_TITLE +
-    (MEMBERS_PER_SQUAD * (NAME_H + SKILL_H)) +
-    ((MEMBERS_PER_SQUAD - 1) * SPACER);
+    (2 + TITLE_H) + SP_TITLE +
+    (MEMBERS * (NAME_H + SKILL_H)) +
+    ((MEMBERS - 1) * SPACER);
 
-  // 外框：頭 + 內邊距 + 內容 + 內邊距，再加些 buffer 防裁切
+  // 外框 = 頂部色條 + 內邊距 + 內容 + 內邊距 + 微小 buffer
   return HEAD_H + INNER_PAD + innerH + INNER_PAD + 4;
 }
+
 
 function sortTeamsByPriority(teamsArr) {
   const order = { "進攻": 1, "拆塔": 2, "機動": 3, "防守": 4 };
@@ -1793,7 +1794,8 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   // 團隊名稱
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 15px system-ui";
-  ctx.fillText(team.team, x + 12, y + Math.round(HEAD_H * 0.7));
+  const textW = ctx.measureText(team.team).width;
+  ctx.fillText(team.team, x + (w - textW) / 2, y + Math.round(HEAD_H * 0.7));
 
   // 內部尺寸
   const INNER_PAD = 8;
@@ -1806,17 +1808,17 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
   // 高度配置（可自適應）
   let TITLE_H  = 28; // 小隊標題（四角圓獨立卡）
-  let NAME_H   = TITLE_H; // 名稱卡高度（上半圓角）
-  let SKILL_H  = TITLE_H; // 技能卡高度（下半圓角）
-  let SP_TITLE = 6;       // 標題與第一位之間的距離
-  let SPACER   = 6;       // 成員與成員之間距
+  let NAME_H   = 28; // 名稱卡高度（上半圓角）
+  let SKILL_H  = 22; // 技能卡高度（下半圓角）
+  let SP_TITLE = 4;       // 標題與第一位之間的距離
+  let SPACER   = 4;       // 成員與成員之間距
 
   const totalNeed = TITLE_H + SP_TITLE + 6*(TITLE_H * 2) + 5*SPACER;
   if (totalNeed > availH) {
     const s = availH / totalNeed;
     TITLE_H  = Math.max(22, Math.floor(TITLE_H * s));
-    NAME_H   = TITLE_H;
-    SKILL_H  = TITLE_H;
+    NAME_H   = 28;
+    SKILL_H  = 22;
   }
 
   for (let i = 0; i < squadCount; i++) {
@@ -1824,13 +1826,18 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     const sy = y + HEAD_H + INNER_PAD;
 
     // ① 小隊標題（四角圓，獨立卡）
-    const titleX = sx + 2, titleY = sy + 2, titleW = squadW - 4;
-    ctx.fillStyle = "#f8fafc";
-    fillRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
-    strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 13px system-ui";
-    ctx.fillText(`第${startIndex + i}小隊`, titleX + 10, titleY + Math.round(TITLE_H * 0.7));
+const titleX = sx + 2, titleY = sy + 2, titleW = squadW - 4;
+ctx.fillStyle = "#f8fafc";
+fillRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
+strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
+
+// 小隊標題文字（水平置中）
+ctx.fillStyle = "#0f172a";
+ctx.font = "bold 13px system-ui";
+const squadTitle = `第${startIndex + i}小隊`;
+const textW = ctx.measureText(squadTitle).width;
+ctx.fillText(squadTitle, titleX + (titleW - textW) / 2, titleY + Math.round(TITLE_H * 0.7));
+
 
     // 標題與第一位成員之間的空隙（避免殘線）
     ctx.fillStyle = "#ffffff";
@@ -1852,14 +1859,57 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
       strokeRoundedCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, { tl:true, tr:true, br:false, bl:false }, "#e2e8f0");
 
       // 左側職業色條 + 名稱文字
-      if (mem && mem.name) {
-        const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-        ctx.fillStyle = jobColor;
-        ctx.fillRect(nameBoxX, nameBoxY, 5, NAME_H);
-        ctx.fillStyle = jobColor;
-        ctx.font = "bold 14px system-ui";
-        ctx.fillText(mem.name, nameBoxX + 10, nameBoxY + Math.round(NAME_H * 0.75));
-      }
+if (mem && mem.name) {
+  const jobColor =
+    mem.job && roleColors[mem.job]
+      ? darkenHex(roleColors[mem.job], 0.25)
+      : "#0f172a";
+
+  // 左側職業色條（上圓下直）
+  ctx.fillStyle = jobColor;
+  ctx.beginPath();
+  ctx.moveTo(nameBoxX, nameBoxY + 2); // 稍微下移一點，避免角太尖
+  ctx.quadraticCurveTo(nameBoxX, nameBoxY, nameBoxX + 2, nameBoxY); // 左上圓角半徑 2
+  ctx.lineTo(nameBoxX + 5, nameBoxY); // 上邊
+  ctx.lineTo(nameBoxX + 5, nameBoxY + NAME_H); // 右邊
+  ctx.lineTo(nameBoxX, nameBoxY + NAME_H); // 左下直角
+  ctx.closePath();
+  ctx.fill();
+
+ // 名稱文字（自動縮放 + 柔厚平衡版）
+ctx.fillStyle = jobColor;
+let fontSize = 15;
+ctx.font = `bold ${fontSize}px system-ui`;
+let textWidth = ctx.measureText(mem.name).width;
+
+// 若文字超出卡片寬度（扣掉左右邊距）
+const maxWidth = nameBoxW - 12;
+while (textWidth > maxWidth && fontSize > 10) {
+  fontSize -= 0.5;
+  ctx.font = `bold ${fontSize}px system-ui`;
+  textWidth = ctx.measureText(mem.name).width;
+}
+
+// 模擬加粗：輕量雙層 shadow 疊描邊（柔厚不糊）
+ctx.shadowColor = jobColor;
+ctx.shadowBlur = 0;
+ctx.shadowOffsetX = 0.6;  // ← 水平陰影略增
+ctx.shadowOffsetY = 0.6;  // ← 垂直陰影略增
+ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+
+// 反向再疊一次，讓筆畫厚度更均勻
+ctx.shadowOffsetX = -0.4;
+ctx.shadowOffsetY = -0.4;
+ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+
+// 最上層主字：銳利乾淨收邊
+ctx.shadowColor = "transparent";
+ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+
+
+
+}
+
 
       rowY += NAME_H; // 接著畫技能卡
 
@@ -1988,19 +2038,3 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.4</title>
+  <title>幫戰名單比對工具 v14.5</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -166,7 +166,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.4</h1>
+  <h1>幫戰名單比對工具 v14.5</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -285,7 +285,15 @@
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
     const LOGIN_TTL = 60 * 60 * 1000;
-
+    // 讓「最近修改框線」在編輯期間暫時隱藏
+    let outlinesSuppressed = false;
+    function suppressOutlinesOnEdit(){
+    if (!outlinesSuppressed) {
+    outlinesSuppressed = true;
+    clearAllOutlines(); // 立刻把現有框線清掉
+      }
+    }
+    
     let currentUser = null;
     let lastLoginTime = 0;
 
@@ -902,40 +910,37 @@
     }
 
     function renderRecentMarks(recentMarks) {
-      clearAllOutlines();
-      if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
-      const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
-      recentMarks.marks.forEach(m => {
-        if (m.type === "member") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (!block) return;
-          const squads = block.querySelectorAll(".squads .squad");
-          const sq = squads[m.squad];
-          if (!sq) return;
-          const names = sq.querySelectorAll("input[data-role='name']");
-          const inp = names[m.member];
-          if (inp) inp.classList.add(cls);
-        } else if (m.type === "team-tag") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (block) {
-            const sel = block.querySelector(".team-tag-select");
-            if (sel) sel.classList.add(cls);
-          }
-        } else if (m.type === "sub") {
-          const row = subsList.children[m.index];
-          if (row) row.classList.add(cls);
-        } else if (m.type === "squadNew") {
-          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-          if (!block) return;
-          const squads = block.querySelectorAll(".squad");
-          const newsq = squads[m.squad];
-          if (newsq) {
-            const title = newsq.querySelector(".squad-title");
-            if (title) title.classList.add(cls);
-          }
-        }
-      });
+  clearAllOutlines();
+  // 編輯期間先不顯示框線，等下一次儲存才畫
+  if (outlinesSuppressed) return;
+  if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
+  const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
+  recentMarks.marks.forEach(m => {
+    if (m.type === "member") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      if (!block) return;
+      const sq = block.querySelectorAll(".squads .squad")[m.squad];
+      if (!sq) return;
+      const inp = sq.querySelectorAll("input[data-role='name']")[m.member];
+      if (inp) inp.classList.add(cls);
+    } else if (m.type === "team-tag") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      const sel = block && block.querySelector(".team-tag-select");
+      if (sel) sel.classList.add(cls);
+    } else if (m.type === "sub") {
+      const row = subsList.children[m.index];
+      if (row) row.classList.add(cls);
+    } else if (m.type === "squadNew") {
+      const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+      const newsq = block && block.querySelectorAll(".squad")[m.squad];
+      if (newsq) {
+        const title = newsq.querySelector(".squad-title");
+        if (title) title.classList.add(cls);
+      }
     }
+  });
+}
+
 
     function clearAllOutlines(){
       document.querySelectorAll(".outline-dabai, .outline-baoan, .outline-stitch").forEach(el=>{
@@ -1313,18 +1318,21 @@
       })
       .then(res=>res.json())
       .then(data=>{
-        if (data && data.success) {
-          alert("已儲存到後台");
-          renderRecentMarks(state.recentMarks);
-          document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-          localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
-          setStuckData(state.stuckMembers || {});
-          renderStuckList();
-        } else {
-          alert("後台有回應但不是 success，請看 console");
-          console.log(data);
+      if (data && data.success) {
+      alert("已儲存到後台");
+      // 解除抑制，儲存後恢復顯示最近修改框線
+      outlinesSuppressed = false;
+      renderRecentMarks(state.recentMarks);
+      document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
+      setStuckData(state.stuckMembers || {});
+      renderStuckList();
+      } else {
+      alert("後台有回應但不是 success，請看 console");
+      console.log(data);
         }
       })
+
       .catch(err=>{
         alert("無法連到後台，請檢查 Apps Script 部署權限");
         console.error(err);
@@ -1445,7 +1453,7 @@ function copyThisToLast(){
   setPanelData(lastWeekPanel, thisData, "last");
   saveState();
   renderStuckList();
-  alert("已將本週名單覆蓋到上週。掛職名單已更新（包含取消者移除），標籤狀態已重置。");
+  alert("已將本週名單覆蓋到上週。標籤狀態已重置。");
 }
 
     function resetCompareIgnoreAfterCopy(){
@@ -1690,9 +1698,18 @@ function copyThisToLast(){
     loadState();
     loadPersistentIgnore();
     renderStuckList();
+    // 面板與替補區：任何 input/change 皆視為編輯
+    ["input","change"].forEach(evt=>{
+    thisWeekPanel.addEventListener(evt, suppressOutlinesOnEdit, true);
+    subsList.addEventListener(evt, suppressOutlinesOnEdit, true);
+    });
+    // 拖曳開始也視為編輯（即使尚未放下）
+    document.addEventListener("dragstart", suppressOutlinesOnEdit, true);
+
   </script>
 </body>
 </html>
+
 
 
 

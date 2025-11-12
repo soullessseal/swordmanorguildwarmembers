@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.1 </title>
+  <title>幫戰名單比對工具 v14.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -22,53 +22,20 @@
       font-size: 16px;
     }
     h1 { color: #fff; margin: 0 0 .75rem; }
-    .layout {
-      display: grid;
-      grid-template-columns: 0.65fr 1.45fr 1.45fr 0.65fr;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-    .panel {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 1rem;
-      border: 1px solid rgba(15, 23, 42, 0.05);
-      box-shadow: 0 10px 30px rgba(0,0,0,.04);
-    }
+    .layout { display: grid; grid-template-columns: 0.65fr 1.45fr 1.45fr 0.65fr; gap: 1rem; align-items: flex-start; }
+    .panel { background: var(--card); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(15, 23, 42, 0.05); box-shadow: 0 10px 30px rgba(0,0,0,.04); }
     #allMembersPanel { position: sticky; top: 1rem; z-index: 5; }
-    .right-sticky-wrap {
-      position: sticky; top: 1rem; z-index: 6;
-      display: flex; flex-direction: column; gap: .6rem;
-    }
+    .right-sticky-wrap { position: sticky; top: 1rem; z-index: 6; display: flex; flex-direction: column; gap: .6rem; }
     .right-actions-bar { display: flex; gap: .4rem; justify-content: flex-end; }
-    .float-btn {
-      background: #0ea5e9; border: none; color: #fff;
-      padding: 0.35rem 0.75rem; border-radius: 999px;
-      font-weight: 600; font-size: 0.78rem;
-      cursor: pointer; white-space: nowrap;
-    }
+    .float-btn { background: #0ea5e9; border: none; color: #fff; padding: 0.35rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
     .float-btn.secondary { background: #1f2937; }
     .float-btn.danger { background: #ef4444; }
-
-    .member-search {
-      width: 100%; padding: 0.4rem 0.5rem;
-      border: 1px solid #cbd5e1; border-radius: 0.4rem;
-      margin-bottom: 0.5rem; font-size: 0.85rem;
-      box-sizing: border-box;
-    }
+    .member-search { width: 100%; padding: 0.4rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; margin-bottom: 0.5rem; font-size: 0.85rem; box-sizing: border-box; }
     .role-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
-    .role-tab {
-      padding: 0.25rem 0.6rem; border-radius: 999px;
-      color: #0f172a; font-size: 0.73rem; cursor: pointer;
-      border: 1px solid transparent; user-select: none; white-space: nowrap;
-    }
+    .role-tab { padding: 0.25rem 0.6rem; border-radius: 999px; color: #0f172a; font-size: 0.73rem; cursor: pointer; border: 1px solid transparent; user-select: none; white-space: nowrap; }
     .role-tab.active { border: 1px solid #0f172a44; }
     .member-list { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.4rem; background: #f8fafc; }
-    .member-item {
-      display: flex; justify-content: space-between; gap: .35rem; align-items: center;
-      background: #fff; border-radius: .35rem; padding: .3rem .35rem;
-      margin-bottom: .3rem; border: 1px solid #e2e8f0; cursor: grab;
-    }
+    .member-item { display: flex; justify-content: space-between; gap: .35rem; align-items: center; background: #fff; border-radius: .35rem; padding: .3rem .35rem; margin-bottom: .3rem; border: 1px solid #e2e8f0; cursor: grab; }
     .member-left { flex: 1 1 auto; min-width: 0; }
     .member-name { font-weight: 700; font-size: .9rem; }
     .member-skill { font-size: .7rem; opacity:.7; }
@@ -77,208 +44,61 @@
     .pagination { display:flex; justify-content:center; gap:.35rem; margin-top:.4rem; }
     .pagination button { border:1px solid #cbd5e1; background:#fff; border-radius:.35rem; font-size:.65rem; padding:.25rem .45rem; cursor:pointer; }
     .pagination select { font-size:.7rem; }
-
     .add-member-form { margin-top: .35rem; display: none; flex-direction: column; gap: 0.3rem; width: 100%; }
-    .add-member-form input,
-    .add-member-form select {
-      padding: 0.35rem 0.4rem; border: 1px solid #cbd5e1;
-      border-radius: 0.4rem; font-size: 0.78rem; width: 100%; box-sizing: border-box;
-    }
+    .add-member-form input, .add-member-form select { padding: 0.35rem 0.4rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.78rem; width: 100%; box-sizing: border-box; }
 
-    .team-block {
-      border: 1px solid var(--line);
-      border-radius: 0.5rem;
-      margin-bottom: 1rem;
-      overflow: hidden;
-    }
-    .team-head {
-      color: #fff;
-      padding: 0.4rem 0.6rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.9rem;
-      gap: .5rem;
-    }
+    .team-block { border: 1px solid var(--line); border-radius: 0.5rem; margin-bottom: 1rem; overflow: hidden; }
+    .team-head { color: #fff; padding: 0.4rem 0.6rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; gap: .5rem; }
     .team-head-left { display:flex; align-items:center; gap:.4rem; }
-    .team-tag-select {
-      font-size: .78rem; font-weight: 700; border-radius: .35rem; border: none;
-      padding: .2rem .45rem; background: rgba(255,255,255,0.95); color: #0f172a;
-      line-height: 1.2; cursor: pointer;
-    }
+    .team-tag-select { font-size: .78rem; font-weight: 700; border-radius: .35rem; border: none; padding: .2rem .45rem; background: rgba(255,255,255,0.95); color: #0f172a; line-height: 1.2; cursor: pointer; }
     .team-tag-select option { font-size: .78rem; font-weight: 600; color: #0f172a; }
-    .team-tag-label {
-      background: rgba(255,255,255,0.95);
-      color: #0f172a;
-      font-size: .78rem;
-      font-weight: 700;
-      border-radius: .35rem;
-      padding: .2rem .55rem;
-    }
-    .head-add-btn {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      font-size: .65rem;
-      border-radius: .35rem;
-      padding: .2rem .45rem;
-      cursor: pointer;
-    }
+    .team-tag-label { background: rgba(255,255,255,0.95); color: #0f172a; font-size: .78rem; font-weight: 700; border-radius: .35rem; padding: .2rem .55rem; }
+    .head-add-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: .65rem; border-radius: .35rem; padding: .2rem .45rem; cursor: pointer; }
     .head-add-btn.disabled { opacity:.35; cursor:not-allowed; }
 
     .squads { display: flex; flex-wrap: nowrap; border-top: 1px solid var(--line); width: 100%; }
     .squad { border-left: 1px solid var(--line); padding: 0.4rem 0.4rem 0.75rem; position: relative; flex: 1 1 auto; min-width: 0; }
     .squad:first-child { border-left: none; }
-    .squad-title {
-      background: #f8fafc;
-      text-align: center;
-      font-weight: 700;
-      padding: 0.3rem;
-      border-radius: 0.25rem;
-      margin-bottom: 0.4rem;
-      border: 1px solid #e2e8f0;
-      font-size: 0.78rem;
-    }
-    .squad-del-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 22px;
-      height: 22px;
-      border: none;
-      border-radius: 999px;
-      background: #ef4444;
-      color: #fff;
-      font-size: 14px;
-      line-height: 22px;
-      text-align: center;
-      cursor: pointer;
-      padding: 0;
-    }
-    @media (max-width: 600px) {
-      .squad-del-btn {
-        top: 4px;
-        right: 4px;
-        width: 20px;
-        height: 20px;
-        line-height: 20px;
-        font-size: 13px;
-      }
-    }
+    .squad-title { background: #f8fafc; text-align: center; font-weight: 700; padding: 0.3rem; border-radius: 0.25rem; margin-bottom: 0.4rem; border: 1px solid #e2e8f0; font-size: 0.78rem; }
+    .squad-del-btn { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border: none; border-radius: 999px; background: #ef4444; color: #fff; font-size: 14px; line-height: 22px; text-align: center; cursor: pointer; padding: 0; }
+    @media (max-width: 600px) { .squad-del-btn { top: 4px; right: 4px; width: 20px; height: 20px; line-height: 20px; font-size: 13px; } }
 
-    /* 預設桌機隱藏底下圓點 */
     .team-dots { display: none; }
 
-    /* 手機：本週 / 上週 一次只顯示一團，用圓點切換；小隊不要橫向滑動 */
     @media (max-width: 900px) {
       #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
       #thisWeek .teams-wrap, #lastWeek .teams-wrap { position: relative; width: 100%; }
       #thisWeek .team-block, #lastWeek .team-block { width: 100%; display: none; }
       #thisWeek .team-block.active, #lastWeek .team-block.active { display: block; }
-
-      .team-dots {
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        margin-top: .5rem;
-      }
-      .team-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #cbd5e1;
-        border: none;
-        padding: 0;
-      }
+      .team-dots { display: flex; gap: 6px; justify-content: center; margin-top: .5rem; }
+      .team-dot { width: 8px; height: 8px; border-radius: 999px; background: #cbd5e1; border: none; padding: 0; }
       .team-dot.active { background: #0f172a; }
-
       .team-block .squads { overflow-x: visible; width: 100%; }
       .team-block .squad { min-width: 0; }
     }
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
-    .member-row input {
-      width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem;
-      border: 1px solid #cbd5f5; border-radius: 0.25rem;
-      box-sizing: border-box; font-weight: 700;
-    }
+    .member-row input { width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem; border: 1px solid #cbd5f5; border-radius: 0.25rem; box-sizing: border-box; font-weight: 700; }
     .readonly-skill { background:#e2e8f0; }
     .locked-input { background:#e2e8f0; }
 
-    .highlight-new {
-      background:#bbf7d0 !important;
-      border:1px solid #166534 !important;
-      color:#064e3b !important;
-    }
-    .highlight-missing {
-      background:#fca5a5 !important;
-      border:1px solid #b91c1c !important;
-      color:#7f1d1d !important;
-    }
+    .highlight-new { background:#bbf7d0 !important; border:1px solid #166534 !important; color:#064e3b !important; }
+    .highlight-missing { background:#fca5a5 !important; border:1px solid #b91c1c !important; color:#7f1d1d !important; }
 
     #subsList { display:flex; flex-direction:column; gap:.25rem; }
-    .substitute-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      grid-template-rows: auto auto;
-      gap: 0.25rem;
-      align-items: center;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.35rem;
-      padding: 0.25rem;
-      background: #f8fafc;
-    }
-    .substitute-row input {
-      width: 100%;
-      padding: 0.25rem 0.3rem;
-      border-radius: 0.25rem;
-      border: 1px solid #e2e8f0;
-      font-size: 0.78rem;
-      font-weight: 700;
-      box-sizing: border-box;
-    }
-    .del-btn {
-      background: #ef4444;
-      color: #fff;
-      border: none;
-      border-radius: 0.35rem;
-      padding: 0.22rem 0.45rem;
-      font-size: 0.7rem;
-      cursor: pointer;
-    }
-    .substitute-row span.sub-status {
-      grid-column: 1 / span 3;
-      font-size: 0.7rem;
-      min-height: 1.2rem;
-    }
-    .drag-preview {
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      padding: 0.2rem 0.5rem;
-      background: #0f172a;
-      color: #fff;
-      font-size: 0.65rem;
-      border-radius: 999px;
-    }
+    .substitute-row { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-rows: auto auto; gap: 0.25rem; align-items: center; border: 1px solid #e2e8f0; border-radius: 0.35rem; padding: 0.25rem; background: #f8fafc; }
+    .substitute-row input { width: 100%; padding: 0.25rem 0.3rem; border-radius: 0.25rem; border: 1px solid #e2e8f0; font-size: 0.78rem; font-weight: 700; box-sizing: border-box; }
+    .del-btn { background: #ef4444; color: #fff; border: none; border-radius: 0.35rem; padding: 0.22rem 0.45rem; font-size: 0.7rem; cursor: pointer; }
+    .substitute-row span.sub-status { grid-column: 1 / span 3; font-size: 0.7rem; min-height: 1.2rem; }
+    .drag-preview { position: fixed; pointer-events: none; z-index: 9999; padding: 0.2rem 0.5rem; background: #0f172a; color: #fff; font-size: 0.65rem; border-radius: 999px; }
 
     #thisWeek { position: relative; }
     #downloadBtn { position: absolute; top: 1rem; right: 1rem; background: #0f766e; }
 
-    /* 登入視窗 */
-    #loginModal {
-      position: fixed; inset: 0; background: rgba(15,23,42,.5);
-      display: none; align-items: center; justify-content: center; z-index: 99999;
-    }
-    #loginModal .modal-card {
-      background: #fff; border-radius: .75rem; padding: 1.2rem 1.4rem;
-      width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12);
-    }
+    #loginModal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: center; justify-content: center; z-index: 99999; }
+    #loginModal .modal-card { background: #fff; border-radius: .75rem; padding: 1.2rem 1.4rem; width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12); }
     #loginModal h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
-    #loginModal input {
-      width: 100%; margin-bottom: .5rem; padding: .35rem .4rem;
-      border: 1px solid #cbd5e1; border-radius: .4rem;
-    }
+    #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
 
     .outline-dabai { outline: 2px solid #a855f7; outline-offset: 2px; }
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
@@ -286,76 +106,25 @@
 
     #comparePanel h3 { margin-top: 0; }
     .compare-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
-    .compare-tag {
-      background:#e2e8f0;
-      border-radius:999px;
-      padding:.2rem .6rem;
-      font-size:.65rem;
-      cursor:pointer;
-    }
-    .compare-tag.muted {
-      background:#0f172a;
-      color:#fff;
-      opacity:.55;
-    }
+    .compare-tag { background:#e2e8f0; border-radius:999px; padding:.2rem .6rem; font-size:.65rem; cursor:pointer; user-select:none; }
+    .compare-tag.muted { background:#0f172a; color:#fff; opacity:.55; }
 
-    #memberPicker {
-      position: absolute;
-      background: #fff;
-      border: 1px solid #cbd5e1;
-      border-radius: .5rem;
-      box-shadow: 0 15px 30px rgba(15,23,42,.12);
-      width: 220px;
-      display: none;
-      z-index: 9999;
-      padding: .4rem;
-      overflow: hidden;
-    }
-    #memberPicker input {
-      width: 100%;
-      margin-bottom: .35rem;
-      padding: .3rem .4rem;
-      border: 1px solid #cbd5e1;
-      border-radius: .35rem;
-      box-sizing: border-box;
-    }
+    #memberPicker { position: absolute; background: #fff; border: 1px solid #cbd5e1; border-radius: .5rem; box-shadow: 0 15px 30px rgba(15,23,42,.12); width: 220px; display: none; z-index: 9999; padding: .4rem; overflow: hidden; }
+    #memberPicker input { width: 100%; margin-bottom: .35rem; padding: .3rem .4rem; border: 1px solid #cbd5e1; border-radius: .35rem; box-sizing: border-box; }
     #memberPicker .picker-list { max-height: 180px; overflow-y: auto; }
-    #memberPicker .picker-item {
-      padding: .25rem .2rem;
-      border-radius: .35rem;
-      cursor: pointer;
-      font-size: .75rem;
-    }
+    #memberPicker .picker-item { padding: .25rem .2rem; border-radius: .35rem; cursor: pointer; font-size: .75rem; }
     #memberPicker .picker-item:hover { background: #e2e8f0; }
 
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
       #allMembersPanel, .right-sticky-wrap { position: static; }
-      #thisWeek { position: relative; }
-      #downloadBtn {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        margin-bottom: 0;
-      }
+      #downloadBtn { position: absolute; top: 1rem; right: 1rem; margin-bottom: 0; }
     }
 
-    .compare-tag.new-tag {
-      background:#bbf7d0;
-      border:1px solid #166534;
-      color:#064e3b;
-    }
-    .compare-tag.missing-tag {
-      background:#fca5a5;
-      border:1px solid #b91c1c;
-      color:#7f1d1d;
-    }
+    .compare-tag.new-tag { background:#bbf7d0; border:1px solid #166534; color:#064e3b; }
+    .compare-tag.missing-tag { background:#fca5a5; border:1px solid #b91c1c; color:#7f1d1d; }
 
-    input.skill-has {
-      background: #FFFFDB;
-      color: #0f172a;
-      font-weight: 600;
-    }
+    input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
     /* 手機板底部按鈕 */
     @media (max-width: 900px) {
@@ -374,29 +143,17 @@
         height: 2.5rem;
         align-items: center;
       }
-      .right-actions-bar .float-btn {
-        flex: 1;
-        padding: .4rem .6rem;
-        font-size: .85rem;
-        font-weight: 600;
-        border-radius: .999rem;
-      }
+      .right-actions-bar .float-btn { flex: 1; padding: .4rem .6rem; font-size: .85rem; font-weight: 600; border-radius: .999rem; }
       body { padding-bottom: 5.2rem; }
       .right-sticky-wrap { position: static; }
     }
 
-    .panel-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .5rem;
-      margin-bottom: .3rem;
-    }
+    .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .3rem; }
     #downloadBtn { position: static; }
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.1 </h1>
+  <h1>幫戰名單比對工具 v14.2</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -509,24 +266,13 @@
     let currentUser = null;
     let lastLoginTime = 0;
 
-    const OUTLINE_CLASS = {
-      dabai: "outline-dabai",
-      baoan: "outline-baoan",
-      stitch: "outline-stitch",
-      unknown: "outline-dabai"
-    };
+    const OUTLINE_CLASS = { dabai: "outline-dabai", baoan: "outline-baoan", stitch: "outline-stitch", unknown: "outline-dabai" };
 
     let lastKnownUpdatedAt = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
-      "九靈": "#d8b4fe",
-      "鐵衣": "#fdba74",
-      "素問": "#f9a8d4",
-      "龍吟": "#92d46d",
-      "神相": "#3b82f6",
-      "碎夢": "#7dd3fc",
-      "血河": "#f43f5e"
+      "九靈": "#d8b4fe","鐵衣": "#fdba74","素問": "#f9a8d4","龍吟": "#92d46d","神相": "#3b82f6","碎夢": "#7dd3fc","血河": "#f43f5e"
     };
 
     let allMembers = [
@@ -584,39 +330,11 @@
       return "#0f172a";
     }
     function hexToRgb(hex){const s=hex.replace('#','');const n=parseInt(s,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
-    function rgbToHsl(r,g,b){
-      r/=255; g/=255; b/=255;
-      const max=Math.max(r,g,b),min=Math.min(r,g,b);
-      let h,s,l=(max+min)/2;
-      if(max===min){h=s=0;}
-      else{
-        const d=max-min;
-        s = l>0.5 ? d/(2-max-min) : d/(max+min);
-        switch(max){
-          case r: h=(g-b)/d+(g<b?6:0); break;
-          case g: h=(b-r)/d+2; break;
-          case b: h=(r-g)/d+4; break;
-        }
-        h/=6;
-      }
-      return {h,s,l};
-    }
-    function hslToHex(h,s,l){
-      function f(n){
-        const k=(n+h*12)%12;
-        const a=s*Math.min(l,1-l);
-        const c=l-a*Math.max(-1, Math.min(k-3, Math.min(9-k,1)));
-        return Math.round(255*c).toString(16).padStart(2,'0');
-      }
-      return "#"+f(0)+f(8)+f(4);
-    }
-    function darkenHex(hex, amt=0.25){
-      const {r,g,b} = hexToRgb(hex);
-      const {h,s,l} = rgbToHsl(r,g,b);
-      const nl = Math.max(0, l - amt);
-      return hslToHex(h,s,nl);
-    }
+    function rgbToHsl(r,g,b){r/=255; g/=255; b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){h=s=0;} else{const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min); switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;} h/=6;} return {h,s,l};}
+    function hslToHex(h,s,l){function f(n){const k=(n+h*12)%12; const a=s*Math.min(l,1-l); const c=l-a*Math.max(-1, Math.min(k-3, Math.min(9-k,1))); return Math.round(255*c).toString(16).padStart(2,'0');} return "#"+f(0)+f(8)+f(4);}
+    function darkenHex(hex, amt=0.25){ const {r,g,b} = hexToRgb(hex); const {h,s,l} = rgbToHsl(r,g,b); const nl = Math.max(0, l - amt); return hslToHex(h,s,nl); }
 
+    /* 依據寬度調整小隊欄寬 */
     function adjustSquadWidths(block) {
       const squadsContainer = block.querySelector('.squads');
       if (!squadsContainer) return;
@@ -626,35 +344,22 @@
 
       if (width <= 768) {
         if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(21% - 6px)"; });
-        else {
-          const pct = 100 / count;
-          squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 4.8) + "%)"; });
-        }
+        else { const pct = 100 / count; squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 4.8) + "%)"; }); }
         return;
       }
       if (width <= 1024) {
         if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(22.5% - 6px)"; });
-        else {
-          const pct = 100 / count;
-          squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 3.6) + "%)"; });
-        }
+        else { const pct = 100 / count; squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 3.6) + "%)"; }); }
         return;
       }
       if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
-      else {
-        const pct = 100 / count;
-        squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; });
-      }
+      else { const pct = 100 / count; squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; }); }
     }
     window.addEventListener("resize", () => {
       document.querySelectorAll(".team-block").forEach(adjustSquadWidths);
     });
 
-    function handlePanelInputChange(input){
-      input.dataset.dirty = "1";
-      clearHighlightOnEdit(input);
-      saveState();
-    }
+    function handlePanelInputChange(input){ input.dataset.dirty = "1"; clearHighlightOnEdit(input); saveState(); }
     function markDirty(el){ if (el) el.dataset.dirty = "1"; }
 
     function createMemberInputs(side){
@@ -716,24 +421,16 @@
         <div class="team-head" style="background:${headColor}">
           <div class="team-head-left">
             <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
-            ${side==="last"
-              ? `<span class="team-tag-label">${tag}</span>`
-              : createGroupTagSelect(tag)
-            }
+            ${side==="last" ? `<span class="team-tag-label">${tag}</span>` : createGroupTagSelect(tag)}
           </div>
           <div class="head-actions">
-            ${side==="this"
-              ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>`
-              : `<button class="head-add-btn disabled" disabled>＋ 新增小隊</button>`
-            }
+            ${side==="this" ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>` : `<button class="head-add-btn disabled" disabled>＋ 新增小隊</button>`}
           </div>
         </div>
         <div class="squads"></div>
       `;
       const sqs = block.querySelector(".squads");
-      for(let s=1;s<=3;s++){
-        sqs.appendChild(createSquad(s, side, teamName));
-      }
+      for(let s=1;s<=3;s++){ sqs.appendChild(createSquad(s, side, teamName)); }
       block.dataset.lastSquadCount = "3";
       adjustSquadWidths(block);
       return block;
@@ -763,13 +460,9 @@
       let current = 0;
       function show(index) {
         current = index;
-        blocks.forEach((b, i) => {
-          b.classList.toggle("active", i === index);
-        });
+        blocks.forEach((b, i) => { b.classList.toggle("active", i === index); });
         const allDots = dots.querySelectorAll(".team-dot");
-        allDots.forEach((d, i) => {
-          d.classList.toggle("active", i === index);
-        });
+        allDots.forEach((d, i) => { d.classList.toggle("active", i === index); });
       }
 
       blocks.forEach((b, idx) => {
@@ -783,34 +476,20 @@
       let startX = 0, startY = 0, locked = false, isHorizontal = false;
       wrap.addEventListener("touchstart", function (e) {
         if (!e.touches || e.touches.length === 0) return;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        locked = false;
-        isHorizontal = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY; locked = false; isHorizontal = false;
       }, { passive: true });
 
       wrap.addEventListener("touchmove", function (e) {
-        const t = e.touches && e.touches[0];
-        if (!t) return;
-        const diffX = t.clientX - startX;
-        const diffY = t.clientY - startY;
-
-        if (!locked) {
-          if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
-            locked = true;
-            isHorizontal = Math.abs(diffX) > Math.abs(diffY);
-          }
-        }
+        const t = e.touches && e.touches[0]; if (!t) return;
+        const diffX = t.clientX - startX; const diffY = t.clientY - startY;
+        if (!locked) { if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) { locked = true; isHorizontal = Math.abs(diffX) > Math.abs(diffY); } }
         if (locked && isHorizontal) e.preventDefault();
       }, { passive: false });
 
       wrap.addEventListener("touchend", function (e) {
         if (!locked || !isHorizontal) return;
-        const endTouch = e.changedTouches && e.changedTouches[0];
-        if (!endTouch) return;
-
-        const diffX = endTouch.clientX - startX;
-        if (Math.abs(diffX) < 40) return;
+        const endTouch = e.changedTouches && e.changedTouches[0]; if (!endTouch) return;
+        const diffX = endTouch.clientX - startX; if (Math.abs(diffX) < 40) return;
         if (diffX < 0) { if (current < blocks.length - 1) show(current + 1); }
         else { if (current > 0) show(current - 1); }
       });
@@ -822,11 +501,7 @@
 
     function renumberSquads(block){
       const sqs = block.querySelectorAll(".squad");
-      sqs.forEach((sq,idx)=>{
-        sq.dataset.squad = idx+1;
-        const title = sq.querySelector(".squad-title");
-        if(title) title.textContent = `第${idx+1}小隊`;
-      });
+      sqs.forEach((sq,idx)=>{ sq.dataset.squad = idx+1; const title = sq.querySelector(".squad-title"); if(title) title.textContent = `第${idx+1}小隊`; });
     }
 
     function addSquadToTeamFromHead(btn){
@@ -880,9 +555,7 @@
       input.classList.remove("highlight-new","highlight-missing");
     }
 
-    function clearHighlightOnEdit(input){
-      input.classList.remove("highlight-new","highlight-missing");
-    }
+    function clearHighlightOnEdit(input){ input.classList.remove("highlight-new","highlight-missing"); }
 
     let subsPage = 1;
     const subsPerPage = 3;
@@ -1074,12 +747,7 @@
       document.body.appendChild(dragPreviewEl);
       document.addEventListener("dragover", movePreview);
     }
-    function movePreview(e){
-      if(dragPreviewEl){
-        dragPreviewEl.style.left = e.pageX + 10 + "px";
-        dragPreviewEl.style.top = e.pageY + 10 + "px";
-      }
-    }
+    function movePreview(e){ if(dragPreviewEl){ dragPreviewEl.style.left = e.pageX + 10 + "px"; dragPreviewEl.style.top = e.pageY + 10 + "px"; } }
     function hideDragPreview(){
       if(dragPreviewEl){
         document.body.removeChild(dragPreviewEl);
@@ -1105,10 +773,7 @@
     }
     function dragFromPanel(e){
       const input = e.target;
-      if(input.dataset.side === "last") {
-        e.preventDefault();
-        return;
-      }
+      if(input.dataset.side === "last") { e.preventDefault(); return; }
       const side = input.dataset.side;
       const name = input.value.trim();
       let skill = "";
@@ -1126,10 +791,7 @@
     }
     document.addEventListener("dragend", function(){
       hideDragPreview();
-      if(draggingPanelInput && !dragSuccess){
-        clearInputAndSkill(draggingPanelInput);
-        saveState();
-      }
+      if(draggingPanelInput && !dragSuccess){ clearInputAndSkill(draggingPanelInput); saveState(); }
       draggingPanelInput = null;
       draggingPanelSide = null;
     });
@@ -1198,15 +860,13 @@
       thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
         const team = block.dataset.team;
         const squads = block.querySelectorAll(".squad");
-        const squ = squads.length;
-        const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
         squads.forEach((sqEl, idx) => {
           if (sqEl.dataset.newlyAdded === "1") {
             marks.push({ type: "squadNew", team, squad: idx });
             delete sqEl.dataset.newlyAdded;
           }
         });
-        block.dataset.lastSquadCount = String(squ);
+        block.dataset.lastSquadCount = String(squads.length);
       });
       subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
         const row = el.closest(".substitute-row");
@@ -1291,22 +951,17 @@
           }
           markDirty(draggingPanelInput);
 
-          // ★ 關鍵一行（避免 A 重複）：只保留來源格的 A，清掉面板上其它 A
           clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
-
           saveState();
           return;
         }
 
-        // 來源不是面板（例如從全部成員），覆寫替補格，並把舊人從本週面板移除
         target.value = member.name;
         applyJobColor(target, member.job);
         const sk = target.parentElement.querySelector(".sub-skill");
         if (sk) sk.value = member.skill ? member.skill : "";
         markDirty(target);
-        if (prevName) {
-          clearDuplicateInPanel(thisWeekPanel, prevName, null);
-        }
+        if (prevName) { clearDuplicateInPanel(thisWeekPanel, prevName, null); }
         saveState();
         return;
       }
@@ -1336,21 +991,13 @@
           if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
             tgtSkill = tgtSkillRow.querySelector("input[data-role='skill']").value;
           }
-          src.value = tgtName;
-          applyJobColor(src, tgtJob);
-          target.value = srcName;
-          applyJobColor(target, srcJob);
-          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
-            setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || "");
-          }
-          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
-            setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || "");
-          }
+          src.value = tgtName; applyJobColor(src, tgtJob);
+          target.value = srcName; applyJobColor(target, srcJob);
+          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || ""); }
+          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || ""); }
           src.classList.remove("highlight-new", "highlight-missing");
           target.classList.remove("highlight-new", "highlight-missing");
-          markDirty(src);
-          markDirty(target);
-          saveState();
+          markDirty(src); markDirty(target); saveState();
           return;
         }
 
@@ -1382,9 +1029,7 @@
         if (srow && srow.querySelector("input[data-role='skill']")) {
           setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
         }
-        // 確保本週名單只保留此落點為主
         clearDuplicateInPanel(thisWeekPanel, member.name, target);
-
         target.classList.remove("highlight-new", "highlight-missing");
         clearDuplicateInPanel(targetPanel, member.name, target);
         markDirty(target);
@@ -1432,13 +1077,8 @@
         const squadsContainer = block.querySelector(".squads");
         let currentCount = squadsContainer.children.length;
         const neededCount = teamData.squads.length;
-        while(currentCount < neededCount){
-          squadsContainer.appendChild(createSquad(currentCount+1, side, teamData.team));
-          currentCount++;
-        }
-        while(squadsContainer.children.length > neededCount){
-          squadsContainer.removeChild(squadsContainer.lastElementChild);
-        }
+        while(currentCount < neededCount){ squadsContainer.appendChild(createSquad(currentCount+1, side, teamData.team)); currentCount++; }
+        while(squadsContainer.children.length > neededCount){ squadsContainer.removeChild(squadsContainer.lastElementChild); }
         teamData.squads.forEach((sqData, idx)=>{
           const sqEl = squadsContainer.children[idx];
           const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
@@ -1446,23 +1086,12 @@
             const member = sqData.members[mIdx];
             if(member){
               inp.value = member.name || "";
-              if(side==="last"){
-                inp.classList.add("locked-input");
-                inp.readOnly = true;
-              }
-              if(member.job){
-                applyJobColor(inp, member.job);
-              } else {
-                applyColorByName(inp);
-              }
+              if(side==="last"){ inp.classList.add("locked-input"); inp.readOnly = true; }
+              if(member.job){ applyJobColor(inp, member.job); } else { applyColorByName(inp); }
               const skillRow = inp.parentElement.nextElementSibling;
               if(skillRow && skillRow.querySelector("input[data-role='skill']")){
                 setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
-                if(side==="last"){
-                  const si = skillRow.querySelector("input[data-role='skill']");
-                  si.readOnly = true;
-                  si.classList.add("locked-input");
-                }
+                if(side==="last"){ const si = skillRow.querySelector("input[data-role='skill']"); si.readOnly = true; si.classList.add("locked-input"); }
               }
             } else {
               clearInputAndSkill(inp);
@@ -1478,21 +1107,13 @@
     function getSubsData(){
       const arr = [];
       subsList.querySelectorAll(".substitute-row").forEach(row=>{
-        arr.push({
-          name: row.querySelector(".sub-name").value.trim(),
-          skill: row.querySelector(".sub-skill").value.trim()
-        });
+        arr.push({ name: row.querySelector(".sub-name").value.trim(), skill: row.querySelector(".sub-skill").value.trim() });
       });
       return arr;
     }
 
     function saveState(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
+      const state = { allMembers, lastWeek: getPanelData(lastWeekPanel), thisWeek: getPanelData(thisWeekPanel), subs: getSubsData() };
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
     }
 
@@ -1502,80 +1123,54 @@
       return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
     }
 
-    async function loadState(){
-      renderRoleTabs();
-      renderMemberList();
-
-      const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
-      if (loginStr) {
-        try {
-          const obj = JSON.parse(loginStr);
-          currentUser = obj.user || null;
-          lastLoginTime = obj.time || 0;
-        } catch(e){}
-      }
-
-      const s = localStorage.getItem(STORAGE_KEY);
-      if (s) {
-        try {
-          const localState = JSON.parse(s);
-          applyStateToPage(localState, true);
-        } catch(e){}
-      }
-
-      try {
-        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-        const data = await res.json();
-        if (data && data.success && data.payload) {
-          const currentLocal = localStorage.getItem(STORAGE_KEY);
-          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-            applyStateToPage(data.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
-          }
-          if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
-        }
-      } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
-
-      startVersionWatcher();
-    }
-
+    /* 取得掛職名單物件 */
     function getStuckData(){
-      try {
-        const raw = localStorage.getItem(STORAGE_STUCK_KEY);
-        if (raw) return JSON.parse(raw);
-      } catch(e){}
+      try { const raw = localStorage.getItem(STORAGE_STUCK_KEY); if (raw) return JSON.parse(raw); } catch(e){}
       return {};
     }
-    function setStuckData(obj){
-      try {
-        localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {}));
-      } catch(e){}
+    function setStuckData(obj){ try { localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {})); } catch(e){} }
+
+    /* 本週所有名字 Set（含空白濾除） */
+    function getThisWeekNameSet(){
+      const set = new Set();
+      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
+        const v = inp.value.trim(); if(v) set.add(v);
+      });
+      return set;
     }
+
+    /* 掛職名單列表渲染：若該人本週有上場 → 暫時隱藏；點擊只切換樣式，不刪除 */
     function renderStuckList(){
       const box = document.getElementById("stuckList");
       if (!box) return;
       const data = getStuckData();
       const names = Object.keys(data);
+      const thisSet = getThisWeekNameSet();
       box.innerHTML = "";
       if (!names.length) {
         box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
         return;
       }
       names.forEach(name => {
+        if (thisSet.has(name)) { /* 暫時隱藏 */ return; }
         const tag = document.createElement("div");
         tag.className = "compare-tag missing-tag";
+        if (compareIgnore.has(name)) tag.classList.add("muted");
         tag.textContent = name;
-        tag.onclick = function(){
-          delete data[name];
-          setStuckData(data);
-          compareIgnore.add(name);
-          const arr = Array.from(compareIgnore);
-          localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
-          renderStuckList();
-        };
+        tag.title = "點擊切換樣式（不會刪除）";
+        tag.onclick = function(){ toggleStuckMute(name); };
         box.appendChild(tag);
       });
     }
+
+    /* 切換掛職名單的 muted 樣式（寫入 compareIgnore，不刪除資料） */
+    function toggleStuckMute(name){
+      if (compareIgnore.has(name)) compareIgnore.delete(name);
+      else compareIgnore.add(name);
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(Array.from(compareIgnore)));
+      renderStuckList();
+    }
+
     function loadPersistentIgnore(){
       try {
         const raw = localStorage.getItem(STORAGE_IGNORE_KEY);
@@ -1713,6 +1308,7 @@
       });
     }
 
+    /* 比對：若掛職名單成員本週有上場 → 待處理名單與掛職名單都暫時隱藏 */
     function compare(){
       document.querySelectorAll("input[data-role='name']").forEach(inp=>{
         inp.classList.remove("highlight-new","highlight-missing");
@@ -1720,28 +1316,33 @@
 
       const lastNames = [];
       lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) lastNames.push(v);
+        const v = inp.value.trim(); if(v) lastNames.push(v);
       });
       const lastSet = new Set(lastNames);
 
       const thisNames = [];
       thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        const v = inp.value.trim();
-        if(v) thisNames.push({val:v, el:inp});
+        const v = inp.value.trim(); if(v) thisNames.push({val:v, el:inp});
       });
       const thisSet = new Set(thisNames.map(x=>x.val));
+
+      const stuck = getStuckData();
+      const stuckSet = new Set(Object.keys(stuck));
 
       const newOnes = [];
       const missingOnes = [];
 
+      // 新增：排除「同時在掛職名單」的人（3-1）
       thisNames.forEach(obj=>{
         if (obj.val && !lastSet.has(obj.val)) {
-          if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
-          newOnes.push(obj.val);
+          if (!stuckSet.has(obj.val)) { // 只要不是掛職名單，就依 compareIgnore 上色
+            if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
+            newOnes.push(obj.val);
+          }
         }
       });
 
+      // 缺席：維持原邏輯（掛職者仍可顯示為缺席紅標；掛職列表另列）
       lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
         const v = inp.value.trim();
         if (v && !thisSet.has(v)) {
@@ -1750,21 +1351,20 @@
         }
       });
 
+      // 替補標示
       subsList.querySelectorAll(".substitute-row").forEach(row=>{
         const name = row.querySelector(".sub-name").value.trim();
         const status = row.querySelector(".sub-status");
         if(!name){ status.textContent = ""; return; }
-        if(thisSet.has(name)){
-          status.textContent = "本週已上場 ✅";
-          status.style.color = "#16a34a";
-        } else {
-          status.textContent = "本週未上場";
-          status.style.color = "#b91c1c";
-        }
+        if(thisSet.has(name)){ status.textContent = "本週已上場 ✅"; status.style.color = "#16a34a"; }
+        else { status.textContent = "本週未上場"; status.style.color = "#b91c1c"; }
       });
 
       renderCompareTags(newOnes, missingOnes);
       currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name));
+
+      // 掛職名單同步（對於「本週有上場」者暫時隱藏）
+      renderStuckList();
     }
 
     function renderCompareTags(newList, missingList){
@@ -1790,38 +1390,48 @@
       else {
         compareIgnore.add(name);
         document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-          if (inp.value.trim() === name) {
-            inp.classList.remove("highlight-new","highlight-missing");
-          }
+          if (inp.value.trim() === name) { inp.classList.remove("highlight-new","highlight-missing"); }
         });
       }
       compare();
     }
 
+    /* 覆蓋後：1) 新缺席加入掛職；2) 本週有上場者從掛職正式移除；3) 清空 compareIgnore（重置狀態） */
     function copyThisToLast(){
       if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
       lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
 
       const stuck = getStuckData();
+
+      // 1) 將本次比對未忽略的缺席者加入掛職
       currentMissingNotIgnored.forEach(name => {
-        if (name && !stuck[name]) {
-          stuck[name] = new Date().toISOString();
-        }
+        if (name && !stuck[name]) { stuck[name] = new Date().toISOString(); }
       });
+
+      // 2) 正式移除：若掛職者本週有上場 → 從掛職名單刪除（3-3）
+      const thisSet = getThisWeekNameSet();
+      Object.keys(stuck).forEach(n => { if (thisSet.has(n)) delete stuck[n]; });
       setStuckData(stuck);
 
+      // 3) 清空 compareIgnore（重置所有被取消的標籤狀態）
+      resetCompareIgnoreAfterCopy();
+
+      // 實際覆蓋 UI
       const thisData = getPanelData(thisWeekPanel);
       setPanelData(lastWeekPanel, thisData, "last");
       saveState();
       renderStuckList();
-      alert("已將本週名單覆蓋到上週，掛職名單已更新。");
+      alert("已將本週名單覆蓋到上週。掛職名單已更新，標籤狀態已重置。");
+    }
+
+    function resetCompareIgnoreAfterCopy(){
+      compareIgnore.clear();
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify([]));
+      renderCompareTags([], []); // 清空呈現
     }
 
     function undoCopy(){
-      if(!lastSnapshot){
-        alert("沒有可還原的內容。");
-        return;
-      }
+      if(!lastSnapshot){ alert("沒有可還原的內容。"); return; }
       const data = JSON.parse(lastSnapshot);
       setPanelData(lastWeekPanel, data, "last");
       saveState();
@@ -1847,9 +1457,7 @@
               }
             }
           }
-        } catch(err){
-          console.warn("檢查版本失敗", err);
-        }
+        } catch(err){ console.warn("檢查版本失敗", err); }
       }, INTERVAL);
     }
 
@@ -1868,8 +1476,7 @@
       ctx.fill();
     }
     function getTeamCanvasWidth(team) {
-      const basePad = 8;
-      const gap = 4;
+      const basePad = 8; const gap = 4;
       const squadCount = Math.min(6, team.squads ? team.squads.length : 0) || 6;
       const squadWidth = 100;
       return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
@@ -1879,21 +1486,14 @@
       const data = getPanelData(thisWeekPanel);
       const tagOrder = ["一團","二團","三團","四團"];
       const teamHeight = 272;
-      const gapX = 20;
-      const gapY = 30;
+      const gapX = 20; const gapY = 30;
 
-      const grouped = tagOrder.map(tag => ({
-        tag,
-        teams: data.filter(t => (t.tag || "一團") === tag)
-      })).filter(g => g.teams.length > 0);
+      const grouped = tagOrder.map(tag => ({ tag, teams: data.filter(t => (t.tag || "一團") === tag) })).filter(g => g.teams.length > 0);
 
       let neededWidths = [];
       grouped.forEach(group => {
         let rowWidth = gapX;
-        group.teams.forEach(team => {
-          const w = getTeamCanvasWidth(team);
-          rowWidth += w + gapX;
-        });
+        group.teams.forEach(team => { const w = getTeamCanvasWidth(team); rowWidth += w + gapX; });
         neededWidths.push(rowWidth);
       });
 
@@ -1905,17 +1505,12 @@
 
       const SCALE = 3;
       const canvas = document.createElement("canvas");
-      canvas.width = maxWidth * SCALE;
-      canvas.height = totalHeight * SCALE;
-      const ctx = canvas.getContext("2d");
-      ctx.scale(SCALE, SCALE);
+      canvas.width = maxWidth * SCALE; canvas.height = totalHeight * SCALE;
+      const ctx = canvas.getContext("2d"); ctx.scale(SCALE, SCALE);
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, maxWidth, totalHeight);
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, maxWidth, totalHeight);
 
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 22px system-ui";
-      ctx.fillText("本週名單", 20, 32);
+      ctx.fillStyle = "#0f172a"; ctx.font = "bold 22px system-ui"; ctx.fillText("本週名單", 20, 32);
 
       let currentY = 50;
       grouped.forEach(group => {
@@ -1935,33 +1530,20 @@
     }
 
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
-      ctx.fillStyle = "#ffffff";
-      fillRoundRect(ctx, x, y, w, h, 12);
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "#ffffff"; fillRoundRect(ctx, x, y, w, h, 12);
+      ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
 
       const headColor = teamColorByName(team.team);
       ctx.fillStyle = headColor;
       ctx.beginPath();
-      ctx.moveTo(x+12, y);
-      ctx.lineTo(x+w-12, y);
-      ctx.quadraticCurveTo(x+w, y, x+w, y+12);
-      ctx.lineTo(x+w, y+30);
-      ctx.lineTo(x, y+30);
-      ctx.lineTo(x, y+12);
-      ctx.quadraticCurveTo(x, y, x+12, y);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x+12, y); ctx.lineTo(x+w-12, y); ctx.quadraticCurveTo(x+w, y, x+w, y+12);
+      ctx.lineTo(x+w, y+30); ctx.lineTo(x, y+30); ctx.lineTo(x, y+12); ctx.quadraticCurveTo(x, y, x+12, y); ctx.closePath(); ctx.fill();
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 15px system-ui";
+      ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px system-ui";
       ctx.fillText("本週－" + team.team + "　(" + (team.tag || "一團") + ")", x + 12, y + 21);
 
-      const contentY = y + 30;
-      const innerPad = 8;
-      const squads = team.squads || [];
-      const gap = 4;
+      const contentY = y + 30; const innerPad = 8;
+      const squads = team.squads || []; const gap = 4;
       const squadCount = Math.min(6, squads.length || 6);
       const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
       const squadHeight = h - 30 - innerPad * 2;
@@ -1970,56 +1552,35 @@
         const sx = x + innerPad + i * (squadWidth + gap);
         const sy = contentY + innerPad;
 
-        ctx.fillStyle = "#ffffff";
-        fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.strokeRect(sx, sy, squadWidth, squadHeight);
+        ctx.fillStyle = "#ffffff"; fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
+        ctx.strokeStyle = "#e2e8f0"; ctx.strokeRect(sx, sy, squadWidth, squadHeight);
 
-        ctx.fillStyle = "#f8fafc";
-        ctx.fillRect(sx, sy, squadWidth, 22);
-        ctx.strokeStyle = "#e2e8f0";
-        ctx.strokeRect(sx, sy, squadWidth, 22);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 12px system-ui";
-        ctx.fillText("第" + (i + 1) + "小隊", sx + 6, sy + 15);
+        ctx.fillStyle = "#f8fafc"; ctx.fillRect(sx, sy, squadWidth, 22);
+        ctx.strokeStyle = "#e2e8f0"; ctx.strokeRect(sx, sy, squadWidth, 22);
+        ctx.fillStyle = "#0f172a"; ctx.font = "bold 12px system-ui"; ctx.fillText("第" + (i + 1) + "小隊", sx + 6, sy + 15);
 
         const squad = squads[i];
         let rowY = sy + 26;
         for (let m = 0; m < 6; m++) {
-          ctx.fillStyle = "#e2e8f0";
-          ctx.fillRect(sx, rowY, squadWidth, 18);
-
+          ctx.fillStyle = "#e2e8f0"; ctx.fillRect(sx, rowY, squadWidth, 18);
           if (squad && squad.members[m] && squad.members[m].name) {
             const mem = squad.members[m];
             const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-            ctx.fillStyle = jobColor;
-            ctx.fillRect(sx, rowY, 4, 18);
-            ctx.fillStyle = jobColor;
-            ctx.font = "bold 11px system-ui";
-            ctx.fillText(mem.name, sx + 6, rowY + 13);
+            ctx.fillStyle = jobColor; ctx.fillRect(sx, rowY, 4, 18);
+            ctx.fillStyle = jobColor; ctx.font = "bold 11px system-ui"; ctx.fillText(mem.name, sx + 6, rowY + 13);
           }
-
           rowY += 18;
-
-          ctx.fillStyle = "#f8fafc";
-          ctx.fillRect(sx, rowY, squadWidth, 14);
-          ctx.strokeStyle = "#e2e8f0";
-          ctx.strokeRect(sx, rowY, squadWidth, 14);
+          ctx.fillStyle = "#f8fafc"; ctx.fillRect(sx, rowY, squadWidth, 14);
+          ctx.strokeStyle = "#e2e8f0"; ctx.strokeRect(sx, rowY, squadWidth, 14);
           if (squad && squad.members[m] && squad.members[m].skill) {
-            ctx.fillStyle = "#0f172a";
-            ctx.font = "bold 10px system-ui";
-            ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
+            ctx.fillStyle = "#0f172a"; ctx.font = "bold 10px system-ui"; ctx.fillText(squad.members[m].skill, sx + 4, rowY + 11);
           }
           rowY += 16;
         }
       }
     }
 
-    function maybeOpenMemberPicker(e, input){
-      if (input.value.trim() === "") {
-        openMemberPicker(input);
-      }
-    }
+    function maybeOpenMemberPicker(e, input){ if (input.value.trim() === "") { openMemberPicker(input); } }
     function openMemberPicker(input){
       pickerTargetInput = input;
       const rect = input.getBoundingClientRect();
@@ -2056,22 +1617,13 @@
       pickerTargetInput.value = m.name;
       applyJobColor(pickerTargetInput, m.job);
       const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || "");
-      }
+      if (skillRow && skillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || ""); }
       pickerTargetInput.dataset.dirty = "1";
       saveState();
       closeMemberPicker();
     }
-    function closeMemberPicker(){
-      memberPicker.style.display = "none";
-      pickerTargetInput = null;
-    }
-    document.addEventListener("click", function(e){
-      if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) {
-        closeMemberPicker();
-      }
-    });
+    function closeMemberPicker(){ memberPicker.style.display = "none"; pickerTargetInput = null; }
+    document.addEventListener("click", function(e){ if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) { closeMemberPicker(); } });
 
     function updateSkillColor(cell) {
       const skill = cell.querySelector(".skill");
@@ -2079,6 +1631,36 @@
       const text = (skill.textContent || "").trim();
       if (text) skill.style.background = "#fef9c3";
       else skill.style.background = "transparent";
+    }
+
+    async function loadState(){
+      renderRoleTabs();
+      renderMemberList();
+
+      const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
+      if (loginStr) {
+        try { const obj = JSON.parse(loginStr); currentUser = obj.user || null; lastLoginTime = obj.time || 0; } catch(e){}
+      }
+
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) {
+        try { const localState = JSON.parse(s); applyStateToPage(localState, true); } catch(e){}
+      }
+
+      try {
+        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+        const data = await res.json();
+        if (data && data.success && data.payload) {
+          const currentLocal = localStorage.getItem(STORAGE_KEY);
+          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
+            applyStateToPage(data.payload, false);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+          }
+          if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
+        }
+      } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
+
+      startVersionWatcher();
     }
 
     loadState();

@@ -1725,20 +1725,18 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
   // 高度配置（自適應）
   let TITLE_H  = 28;  // 小隊標題盒高度（獨立圓角框）
-  let NAME_H   = 28;  // 名稱列高度
-  let SKILL_H  = 20;  // 技能列高度
+  let NAME_H   = TITLE_H;  // 名稱列高度
+  let SKILL_H  = TITLE_H;  // 技能列高度
   let SP_TITLE = 6;   // 標題與第一位成員間距
   let SPACER   = 6;   // 不同成員之間的間距（名稱+技能 與 下一位名稱之間）
 
-  const totalNeed = TITLE_H + SP_TITLE + 6*(NAME_H + SKILL_H) + 5*SPACER;
-  if (totalNeed > availH) {
-    const s = availH / totalNeed;
-    TITLE_H  = Math.max(22, Math.floor(TITLE_H * s));
-    NAME_H   = Math.max(16, Math.floor(NAME_H * s));
-    SKILL_H  = Math.max(14, Math.floor(SKILL_H * s));
-    SP_TITLE = Math.max(4,  Math.floor(SP_TITLE * s));
-    SPACER   = Math.max(4,  Math.floor(SPACER * s));
-  }
+  const totalNeed = TITLE_H + SP_TITLE + 6*(TITLE_H * 2) + 5*SPACER; // ← 改這裡
+if (totalNeed > availH) {
+  const s = availH / totalNeed;
+  TITLE_H  = Math.max(22, Math.floor(TITLE_H * s));
+}
+NAME_H  = TITLE_H;
+SKILL_H = TITLE_H;
 
   for (let i = 0; i < squadCount; i++) {
     const sx = x + INNER_PAD + i * (squadW + gap);
@@ -1919,6 +1917,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

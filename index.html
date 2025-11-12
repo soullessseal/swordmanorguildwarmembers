@@ -139,95 +139,62 @@
       border: 1px solid #e2e8f0;
       font-size: 0.78rem;
     }
-    .squad-del-btn { /*V12.2修改*/
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 999px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 14px;
-  line-height: 22px;
-  text-align: center;
-  cursor: pointer;
-  padding: 0;
-}
-    @media (max-width: 600px) { /*V12.2新增*/
-  .squad-del-btn {
-    top: 4px;
-    right: 4px;
-    width: 20px;
-    height: 20px;
-    line-height: 20px;
-    font-size: 13px;
-  }
-}
+    .squad-del-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 14px;
+      line-height: 22px;
+      text-align: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    @media (max-width: 600px) {
+      .squad-del-btn {
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        font-size: 13px;
+      }
+    }
 
-     /* 預設桌機隱藏底下圓點V13.3 */
-.team-dots {
-  display: none;
-}
+    /* 預設桌機隱藏底下圓點 */
+    .team-dots { display: none; }
 
     /* 手機：本週 / 上週 一次只顯示一團，用圓點切換；小隊不要橫向滑動 */
-@media (max-width: 900px) {
-  /* 面板本身不要橫向捲動 */
-  #thisWeek,
-  #lastWeek {
-    overflow-x: visible;
-    white-space: normal;
-  }
+    @media (max-width: 900px) {
+      #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
+      #thisWeek .teams-wrap, #lastWeek .teams-wrap { position: relative; width: 100%; }
+      #thisWeek .team-block, #lastWeek .team-block { width: 100%; display: none; }
+      #thisWeek .team-block.active, #lastWeek .team-block.active { display: block; }
 
-  #thisWeek .teams-wrap,
-  #lastWeek .teams-wrap {
-    position: relative;
-    width: 100%;
-  }
+      .team-dots {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-top: .5rem;
+      }
+      .team-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        border: none;
+        padding: 0;
+      }
+      .team-dot.active { background: #0f172a; }
 
-  #thisWeek .team-block,
-  #lastWeek .team-block {
-    width: 100%;
-    display: none;
-  }
-
-  #thisWeek .team-block.active,
-  #lastWeek .team-block.active {
-    display: block;
-  }
-
-  /* ✅ 這裡就直接寫，不要再開第二個 @media 了 */
-  .team-dots {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    margin-top: .5rem;
-  }
-  .team-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: #cbd5e1;
-    border: none;
-    padding: 0;
-  }
-  .team-dot.active {
-    background: #0f172a;
-  }
-
-  /* ❗ 取消「小隊」橫向滑動，回到直的就好 */
-  .team-block .squads {
-    overflow-x: visible;
-    width: 100%;
-  }
-  .team-block .squad {
-    min-width: 0;
-  }
-}
-
-
-
+      .team-block .squads { overflow-x: visible; width: 100%; }
+      .team-block .squad { min-width: 0; }
+    }
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input {
@@ -236,10 +203,8 @@
       box-sizing: border-box; font-weight: 700;
     }
     .readonly-skill { background:#e2e8f0; }
-    /* 把 pointer-events 拿掉，讓上週也能點到跳搜尋 */
     .locked-input { background:#e2e8f0; }
 
-    /* 深一點的綠 + 紅 */
     .highlight-new {
       background:#bbf7d0 !important;
       border:1px solid #166534 !important;
@@ -315,12 +280,10 @@
       border: 1px solid #cbd5e1; border-radius: .4rem;
     }
 
-    /* 三組帳號的框線 */
     .outline-dabai { outline: 2px solid #a855f7; outline-offset: 2px; }
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
     .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
 
-    /* 比對的人員標籤區塊 */
     #comparePanel h3 { margin-top: 0; }
     .compare-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
     .compare-tag {
@@ -336,7 +299,6 @@
       opacity:.55;
     }
 
-    /* 成員搜尋浮層 */
     #memberPicker {
       position: absolute;
       background: #fff;
@@ -347,7 +309,7 @@
       display: none;
       z-index: 9999;
       padding: .4rem;
-      overflow: hidden;            /* ← V12.1新增：不要讓 input 超出去 */
+      overflow: hidden;
     }
     #memberPicker input {
       width: 100%;
@@ -355,12 +317,9 @@
       padding: .3rem .4rem;
       border: 1px solid #cbd5e1;
       border-radius: .35rem;
-      box-sizing: border-box;      /* ← V12.1新增：扣掉 padding 的寬度 */
+      box-sizing: border-box;
     }
-    #memberPicker .picker-list {
-      max-height: 180px;
-      overflow-y: auto;
-    }
+    #memberPicker .picker-list { max-height: 180px; overflow-y: auto; }
     #memberPicker .picker-item {
       padding: .25rem .2rem;
       border-radius: .35rem;
@@ -369,96 +328,71 @@
     }
     #memberPicker .picker-item:hover { background: #e2e8f0; }
 
-   /*新測試並排下載按鈕*/
     @media (max-width: 1300px) {
-  .layout { grid-template-columns: 1fr; }
-  #allMembersPanel,
-  .right-sticky-wrap {
-    position: static;
-  }
+      .layout { grid-template-columns: 1fr; }
+      #allMembersPanel, .right-sticky-wrap { position: static; }
+      #thisWeek { position: relative; }
+      #downloadBtn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        margin-bottom: 0;
+      }
+    }
 
-  /* 這裡一定要讓本週面板是相對定位，才放得住按鈕 */
-  #thisWeek {
-    position: relative;
-  }
+    .compare-tag.new-tag {
+      background:#bbf7d0;
+      border:1px solid #166534;
+      color:#064e3b;
+    }
+    .compare-tag.missing-tag {
+      background:#fca5a5;
+      border:1px solid #b91c1c;
+      color:#7f1d1d;
+    }
 
-  /* 按鈕固定在面板右上角，不要掉下去 */
-  #downloadBtn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    margin-bottom: 0;
-  }
-}
+    input.skill-has {
+      background: #FFFFDB;
+      color: #0f172a;
+      font-weight: 600;
+    }
 
-    /* V12.1待處理成員的紅綠色 */
-.compare-tag.new-tag {
-  background:#bbf7d0;
-  border:1px solid #166534;
-  color:#064e3b;
-}
-.compare-tag.missing-tag {
-  background:#fca5a5;
-  border:1px solid #b91c1c;
-  color:#7f1d1d;
-}
-  /* 技能有內容時要變色 */
-input.skill-has {
-  background: #FFFFDB;   /* 淺黃 */
-  color: #0f172a;
-  font-weight: 600;
-}
+    /* 手機板底部按鈕 */
+    @media (max-width: 900px) {
+      .right-actions-bar {
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        background: rgba(15, 23, 42, 0.95);
+        padding: .4rem .4rem;
+        display: flex;
+        gap: .5rem;
+        justify-content: space-between;
+        z-index: 9999;
+        border-radius: 1rem;
+        height: 2.5rem;
+        align-items: center;
+      }
+      .right-actions-bar .float-btn {
+        flex: 1;
+        padding: .4rem .6rem;
+        font-size: .85rem;
+        font-weight: 600;
+        border-radius: .999rem;
+      }
+      body { padding-bottom: 5.2rem; }
+      .right-sticky-wrap { position: static; }
+    }
 
-   /* 手機板底部按鈕 */
-@media (max-width: 900px) {
-  .right-actions-bar {
-    position: fixed;
-    bottom: 1rem;              /* ← 黃色間距：調整底部距離 */
-    left: 1rem;                /* ← 黃色間距：調整左右邊距 */
-    right: 1rem;
-    background: rgba(15, 23, 42, 0.95);
-    padding: .4rem .4rem;      /* ← 調整內距，上下左右的空白感 */
-    display: flex;
-    gap: .5rem;               /* ← 紅色間距：按鈕之間距離 */
-    justify-content: space-between;
-    z-index: 9999;
-    border-radius: 1rem;
-    height: 2.5rem;            /* ← 整條高度 */
-    align-items: center;
-  }
-
-  /* 按鈕放大 */
-  .right-actions-bar .float-btn {
-    flex: 1;
-    padding: .4rem .6rem;      /* ← 控制按鈕大小 */
-    font-size: .85rem;         /* ← 放大字體 */
-    font-weight: 600;
-    border-radius: .999rem;
-  }
-
-  body {
-    padding-bottom: 5.2rem;    /* ← 底部留空避免被遮住 */
-  }
-
-  .right-sticky-wrap {
-    position: static;
-  }
-}
-
-    
-/*本週名單與下載按鈕對齊*/
-.panel-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .5rem;
-  margin-bottom: .3rem;
-}
-/* 這行是新的：把標題的底部空間拿掉，才會跟按鈕同一水平線 */
-#downloadBtn {
-  position: static;
-}
-    
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      margin-bottom: .3rem;
+    }
+    #downloadBtn { position: static; }
   </style>
 </head>
 <body>
@@ -499,63 +433,50 @@ input.skill-has {
     <!-- 上週 -->
     <div class="panel" id="lastWeek">
       <div class="panel-title-row">
-      <h3>上週名單</h3>
-     </div>
+        <h3>上週名單</h3>
+      </div>
       <small style="font-size:.7rem;color:#64748b;">只能透過「本週名單覆蓋上週」更新，不可手動編輯。</small>
     </div>
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
-  <div class="panel-title-row">
-    <h3>本週名單</h3>
-    <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
-  </div>
-  <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
-</div>
-
+      <div class="panel-title-row">
+        <h3>本週名單</h3>
+        <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
+      </div>
+      <small style="font-size:.7rem;color:#64748b;">同側互拖；拖到空白視為移除；重複成員以新位置為主。</small>
+    </div>
 
     <!-- 右側 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
         <button class="float-btn danger" onclick="requestSave()">儲存</button>
         <button class="float-btn" onclick="compare()">比對</button>
-        <!-- 移除整體清除，改下方標籤個別清 -->
         <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
         <button class="float-btn secondary" onclick="undoCopy()">還原</button>
       </div>
+
       <div class="panel" id="subs">
         <h3>替補名單</h3>
         <p style="font-size:0.7rem;margin-top:0;">可拖進本週；拖進已有成員欄位會交換。</p>
-        
-        <!-- V13更新替補列分頁 -->
         <div id="subsList"></div>
-<div class="pagination" id="subsPager">
-  <button onclick="subsPrev()">◀</button>
-  <select id="subsPageSelect" onchange="subsJump(this.value)"></select>
-  <button onclick="subsNext()">▶</button>
-</div>
-<button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
-
+        <div class="pagination" id="subsPager">
+          <button onclick="subsPrev()">◀</button>
+          <select id="subsPageSelect" onchange="subsJump(this.value)"></select>
+          <button onclick="subsNext()">▶</button>
+        </div>
+        <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
       </div>
 
-
-     <!--V14新增，檢核不在本週與上週名單上但仍有職位的人--> 
-     <div class="panel" id="comparePanel">
-  <h3>待處理成員</h3>
-  <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
-  <!-- 動態產生的本輪紅/綠 -->
-  <div id="compareTags" class="compare-tags"></div>
-
-  <!-- 把現在勾掉的紅/綠「存起來，讓別人也看得到」 -->
-  <button class="float-btn secondary" style="margin-top:.5rem;" onclick="saveCompareIgnore()">保存處理</button>
-
-  <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
-  <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
-  <!-- 這裡顯示累積沒被下架的人 -->
-  <div id="stuckList" class="compare-tags"></div>
-</div>
-
-      
+      <div class="panel" id="comparePanel">
+        <h3>待處理成員</h3>
+        <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
+        <div id="compareTags" class="compare-tags"></div>
+        <button class="float-btn secondary" style="margin-top:.5rem;" onclick="saveCompareIgnore()">保存處理</button>
+        <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
+        <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
+        <div id="stuckList" class="compare-tags"></div>
+      </div>
     </div>
   </div>
 
@@ -583,12 +504,8 @@ input.skill-has {
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
-    
-    // 1 小時
     const LOGIN_TTL = 60 * 60 * 1000;
 
-    // 前端不放帳密，改由後端驗
-    // 你要在 Apps Script 做一個 action=login，回傳 {success:true, user:"dabai"} 這樣的格式
     let currentUser = null;
     let lastLoginTime = 0;
 
@@ -641,21 +558,18 @@ input.skill-has {
     const roleTabs = document.getElementById("roleTabs");
     const compareTagsEl = document.getElementById("compareTags");
 
-    const STORAGE_IGNORE_KEY = "guildCompareIgnore";   // 存「我有按掉的紅/綠」
-    const STORAGE_STUCK_KEY  = "guildStuckMembers";    // 存「掛職名單」
-    let persistentCompareIgnore = new Set();           // 從 local / 後端載回來的忽略名單
-    let currentMissingNotIgnored = [];                 // 本輪比對下真正還是紅的(沒被你按掉)
+    const STORAGE_IGNORE_KEY = "guildCompareIgnore";
+    const STORAGE_STUCK_KEY  = "guildStuckMembers";
+    let persistentCompareIgnore = new Set();
+    let currentMissingNotIgnored = [];
 
-    
     let draggingPanelInput = null;
     let draggingPanelSide = null;
     let dragSuccess = false;
     let dragPreviewEl = null;
 
-    // 比對後可個別隱藏的人
     const compareIgnore = new Set();
 
-    // 搜尋浮層用
     let pickerTargetInput = null;
     const memberPicker = document.getElementById("memberPicker");
     const pickerList = document.getElementById("pickerList");
@@ -704,67 +618,37 @@ input.skill-has {
     }
 
     function adjustSquadWidths(block) {
-  const squadsContainer = block.querySelector('.squads');
-  if (!squadsContainer) return;
-  const squads = squadsContainer.querySelectorAll('.squad');
-  const count = squads.length || 1;
+      const squadsContainer = block.querySelector('.squads');
+      if (!squadsContainer) return;
+      const squads = squadsContainer.querySelectorAll('.squad');
+      const count = squads.length || 1;
+      const width = window.innerWidth;
 
-  const width = window.innerWidth;
-
-  // ===============================
-  // 🔸手機版（寬度 <= 768）
-  // ===============================
-  if (width <= 768) {
-    if (count <= 4) {
-      squads.forEach(sq => {
-        sq.style.flex = "0 0 calc(21% - 6px)"; 
-      });
-    } else {
-      const pct = 100 / count;
-      squads.forEach(sq => {
-        sq.style.flex = "0 0 calc(" + (pct - 4.8) + "%)";
-      });
+      if (width <= 768) {
+        if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(21% - 6px)"; });
+        else {
+          const pct = 100 / count;
+          squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 4.8) + "%)"; });
+        }
+        return;
+      }
+      if (width <= 1024) {
+        if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(22.5% - 6px)"; });
+        else {
+          const pct = 100 / count;
+          squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 3.6) + "%)"; });
+        }
+        return;
+      }
+      if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(23.5% - 6px)"; });
+      else {
+        const pct = 100 / count;
+        squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)"; });
+      }
     }
-    return;
-  }
-
-  // ===============================
-  // 🔸平板版（769～1024）
-  // ===============================
-  if (width <= 1024) {
-    if (count <= 4) {
-      squads.forEach(sq => {
-        sq.style.flex = "0 0 calc(22.5% - 6px)"; 
-      });
-    } else {
-      const pct = 100 / count;
-      squads.forEach(sq => {
-        sq.style.flex = "0 0 calc(" + (pct - 3.6) + "%)";
-      });
-    }
-    return;
-  }
-
-  // ===============================
-  // 🔸桌機版（>= 1025）
-  // ===============================
-  if (count <= 4) {
-    squads.forEach(sq => {
-      sq.style.flex = "0 0 calc(23.5% - 6px)";
+    window.addEventListener("resize", () => {
+      document.querySelectorAll(".team-block").forEach(adjustSquadWidths);
     });
-  } else {
-    const pct = 100 / count;
-    squads.forEach(sq => {
-      sq.style.flex = "0 0 calc(" + (pct - 2.3) + "%)";
-    });
-  }
-}
-
-window.addEventListener("resize", () => {
-  document.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-});
-
-
 
     function handlePanelInputChange(input){
       input.dataset.dirty = "1";
@@ -850,135 +734,91 @@ window.addEventListener("resize", () => {
       for(let s=1;s<=3;s++){
         sqs.appendChild(createSquad(s, side, teamName));
       }
-      // 初始小隊數量記下來，之後增減才知道
       block.dataset.lastSquadCount = "3";
       adjustSquadWidths(block);
       return block;
     }
 
-    // 架子
     teams.forEach(t => {
       lastWeekPanel.appendChild(createTeamBlock("last", t));
       thisWeekPanel.appendChild(createTeamBlock("this", t));
     });
 
-   // 手機版：一個面板一次只看一團，可點圓點也可左右滑
-function setupPanelCarousel(panelId) {
-  const panel = document.getElementById(panelId);
-  if (!panel) return;
+    function setupPanelCarousel(panelId) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
 
-  const blocks = Array.from(panel.querySelectorAll(".team-block"));
-  if (!blocks.length) return;
+      const blocks = Array.from(panel.querySelectorAll(".team-block"));
+      if (!blocks.length) return;
 
-  // 包起來
-  const wrap = document.createElement("div");
-  wrap.className = "teams-wrap";
-  blocks.forEach(b => wrap.appendChild(b));
-  panel.appendChild(wrap);
+      const wrap = document.createElement("div");
+      wrap.className = "teams-wrap";
+      blocks.forEach(b => wrap.appendChild(b));
+      panel.appendChild(wrap);
 
-  // 圓點容器
-  const dots = document.createElement("div");
-  dots.className = "team-dots";
-  panel.appendChild(dots);
+      const dots = document.createElement("div");
+      dots.className = "team-dots";
+      panel.appendChild(dots);
 
-  let current = 0;
+      let current = 0;
+      function show(index) {
+        current = index;
+        blocks.forEach((b, i) => {
+          b.classList.toggle("active", i === index);
+        });
+        const allDots = dots.querySelectorAll(".team-dot");
+        allDots.forEach((d, i) => {
+          d.classList.toggle("active", i === index);
+        });
+      }
 
-  function show(index) {
-    current = index;
-    blocks.forEach((b, i) => {
-      b.classList.toggle("active", i === index);
-    });
-    const allDots = dots.querySelectorAll(".team-dot");
-    allDots.forEach((d, i) => {
-      d.classList.toggle("active", i === index);
-    });
-  }
+      blocks.forEach((b, idx) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "team-dot" + (idx === 0 ? " active" : "");
+        dot.onclick = () => show(idx);
+        dots.appendChild(dot);
+      });
 
-  // 生圓點
-  blocks.forEach((b, idx) => {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "team-dot" + (idx === 0 ? " active" : "");
-    dot.onclick = () => show(idx);
-    dots.appendChild(dot);
-  });
+      let startX = 0, startY = 0, locked = false, isHorizontal = false;
+      wrap.addEventListener("touchstart", function (e) {
+        if (!e.touches || e.touches.length === 0) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        locked = false;
+        isHorizontal = false;
+      }, { passive: true });
 
-  // ========= 觸控滑動（會鎖住上下捲動） =========
-  let startX = 0;
-  let startY = 0;
-  let locked = false;      // 有沒有判斷完方向
-  let isHorizontal = false;
+      wrap.addEventListener("touchmove", function (e) {
+        const t = e.touches && e.touches[0];
+        if (!t) return;
+        const diffX = t.clientX - startX;
+        const diffY = t.clientY - startY;
 
-  wrap.addEventListener("touchstart", function (e) {
-    if (!e.touches || e.touches.length === 0) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    locked = false;
-    isHorizontal = false;
-  }, { passive: true });
-
-  wrap.addEventListener("touchmove", function (e) {
-    const t = e.touches && e.touches[0];
-    if (!t) return;
-
-    const diffX = t.clientX - startX;
-    const diffY = t.clientY - startY;
-
-    // 還沒決定方向 → 看誰大
-    if (!locked) {
-      // 要大於一點點再鎖，不然超級小的晃動會卡
-      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
-        locked = true;
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-          // 水平滑 → 我們要吃掉上下捲動
-          isHorizontal = true;
-        } else {
-          // 垂直滑 → 讓外面正常捲
-          isHorizontal = false;
+        if (!locked) {
+          if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+            locked = true;
+            isHorizontal = Math.abs(diffX) > Math.abs(diffY);
+          }
         }
-      }
+        if (locked && isHorizontal) e.preventDefault();
+      }, { passive: false });
+
+      wrap.addEventListener("touchend", function (e) {
+        if (!locked || !isHorizontal) return;
+        const endTouch = e.changedTouches && e.changedTouches[0];
+        if (!endTouch) return;
+
+        const diffX = endTouch.clientX - startX;
+        if (Math.abs(diffX) < 40) return;
+        if (diffX < 0) { if (current < blocks.length - 1) show(current + 1); }
+        else { if (current > 0) show(current - 1); }
+      });
+
+      show(0);
     }
-
-    // 已經判定是水平 → 不讓外層捲
-    if (locked && isHorizontal) {
-      e.preventDefault();
-    }
-  }, { passive: false });   // ← 這裡要 false 才能 preventDefault
-
-  wrap.addEventListener("touchend", function (e) {
-    if (!locked || !isHorizontal) return;
-
-    const endTouch = e.changedTouches && e.changedTouches[0];
-    if (!endTouch) return;
-
-    const diffX = endTouch.clientX - startX;
-
-    // 滑超過 40px 才換
-    if (Math.abs(diffX) < 40) return;
-
-    if (diffX < 0) {
-      // 往左滑 → 下一張
-      if (current < blocks.length - 1) {
-        show(current + 1);
-      }
-    } else {
-      // 往右滑 → 上一張
-      if (current > 0) {
-        show(current - 1);
-      }
-    }
-  });
-
-  // 一開始
-  show(0);
-}
-
-// 啟動
-setupPanelCarousel("lastWeek");
-setupPanelCarousel("thisWeek");
-
-
-
+    setupPanelCarousel("lastWeek");
+    setupPanelCarousel("thisWeek");
 
     function renumberSquads(block){
       const sqs = block.querySelectorAll(".squad");
@@ -989,26 +829,19 @@ setupPanelCarousel("thisWeek");
       });
     }
 
-    
-/*V12.1再次嘗試調整*/
     function addSquadToTeamFromHead(btn){
-  const block = btn.closest(".team-block");
-  const sqs = block.querySelector(".squads");
-  const side = block.dataset.side;
-  const teamName = block.dataset.team;
-  const count = sqs.children.length;
-  const newSq = createSquad(count + 1, side, teamName);
-
-  // 標記這個是「這次新增」的小隊，等一下 collectDirtyMarks 會圈它
-  newSq.dataset.newlyAdded = "1";
-
-  sqs.appendChild(newSq);
-  adjustSquadWidths(block);
-  markDirty(block);
-  // ⚠️ 不要在這裡動 block.dataset.lastSquadCount，讓儲存時才知道有多一個
-  saveState();
-}
-
+      const block = btn.closest(".team-block");
+      const sqs = block.querySelector(".squads");
+      const side = block.dataset.side;
+      const teamName = block.dataset.team;
+      const count = sqs.children.length;
+      const newSq = createSquad(count + 1, side, teamName);
+      newSq.dataset.newlyAdded = "1";
+      sqs.appendChild(newSq);
+      adjustSquadWidths(block);
+      markDirty(block);
+      saveState();
+    }
 
     function deleteThisSquad(btn){
       const squad = btn.closest(".squad");
@@ -1034,113 +867,74 @@ setupPanelCarousel("thisWeek");
       }
     }
 
-/*V14.1更新*/    
     function clearInputAndSkill(input){
-  input.value = "";
-  input.style.borderLeft = "";
-  input.style.color = "";
-  input.dataset.job = "";
-  const skillRow = input.parentElement.nextElementSibling;
-  if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-    const skillInput = skillRow.querySelector("input[data-role='skill']");
-    // 用共用函式來清 → 會把 skill-has 一起拿掉
-    setSkillInputValue(skillInput, "");
-  }
-  input.classList.remove("highlight-new","highlight-missing");
-}
+      input.value = "";
+      input.style.borderLeft = "";
+      input.style.color = "";
+      input.dataset.job = "";
+      const skillRow = input.parentElement.nextElementSibling;
+      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+        const skillInput = skillRow.querySelector("input[data-role='skill']");
+        setSkillInputValue(skillInput, "");
+      }
+      input.classList.remove("highlight-new","highlight-missing");
+    }
 
-    
     function clearHighlightOnEdit(input){
       input.classList.remove("highlight-new","highlight-missing");
     }
-    
-/*V12.1調整框線*/ /*V13調整分頁*/
-  // 一頁要顯示幾筆替補
-let subsPage = 1;
-const subsPerPage = 3;
 
-/* 替補列：產一筆 */
-function createSubRow(name = "", skill = "", markDirty = false) {
-  const row = document.createElement("div");
-  row.className = "substitute-row";
-  row.draggable = true;
-  row.dataset.subIndex = subCounter++;
-  if (markDirty) {
-    row.dataset.dirty = "1";
-  }
-  row.ondragstart = dragFromSub;
-  row.innerHTML = `
-    <input class="sub-name" placeholder="替補成員" value="${name}"
-      ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
-    <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
-    <button class="del-btn" onclick="deleteSub(this)">刪</button>
-    <span class="sub-status"></span>
-  `;
-  applyColorByName(row.querySelector(".sub-name"));
-  subsList.appendChild(row);
-}
+    let subsPage = 1;
+    const subsPerPage = 3;
 
-/* 把 subsList 裡的 row 做分頁顯示，並更新「◀ 下拉 ▶」 */
-function refreshSubsView() {
-  const rows = Array.from(subsList.children);
-  const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
-
-  // 頁碼超過就拉回最後一頁
-  if (subsPage > totalPages) subsPage = totalPages;
-
-  // 顯示當頁的 3 筆，其它隱藏
-  rows.forEach((row, idx) => {
-    const pageOfRow = Math.floor(idx / subsPerPage) + 1;
-    row.style.display = (pageOfRow === subsPage) ? "grid" : "none";
-  });
-
-  // 更新 select
-  const sel = document.getElementById("subsPageSelect");
-  if (sel) {
-    sel.innerHTML = "";
-    for (let p = 1; p <= totalPages; p++) {
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = "第 " + p + " 頁";
-      if (p === subsPage) opt.selected = true;
-      sel.appendChild(opt);
+    function createSubRow(name = "", skill = "", markDirty = false) {
+      const row = document.createElement("div");
+      row.className = "substitute-row";
+      row.draggable = true;
+      row.dataset.subIndex = subCounter++;
+      if (markDirty) row.dataset.dirty = "1";
+      row.ondragstart = dragFromSub;
+      row.innerHTML = `
+        <input class="sub-name" placeholder="替補成員" value="${name}"
+          ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
+        <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
+        <button class="del-btn" onclick="deleteSub(this)">刪</button>
+        <span class="sub-status"></span>
+      `;
+      applyColorByName(row.querySelector(".sub-name"));
+      subsList.appendChild(row);
     }
-  }
-}
 
-/* 分頁按鈕們 */
-function subsPrev() {
-  if (subsPage > 1) {
-    subsPage--;
-    refreshSubsView();
-  }
-}
-function subsNext() {
-  const rows = Array.from(subsList.children);
-  const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
-  if (subsPage < totalPages) {
-    subsPage++;
-    refreshSubsView();
-  }
-}
-function subsJump(p) {
-  subsPage = parseInt(p, 10) || 1;
-  refreshSubsView();
-}
+    function refreshSubsView() {
+      const rows = Array.from(subsList.children);
+      const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
+      if (subsPage > totalPages) subsPage = totalPages;
+      rows.forEach((row, idx) => {
+        const pageOfRow = Math.floor(idx / subsPerPage) + 1;
+        row.style.display = (pageOfRow === subsPage) ? "grid" : "none";
+      });
+      const sel = document.getElementById("subsPageSelect");
+      if (sel) {
+        sel.innerHTML = "";
+        for (let p = 1; p <= totalPages; p++) {
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = "第 " + p + " 頁";
+          if (p === subsPage) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+    }
+    function subsPrev() { if (subsPage > 1) { subsPage--; refreshSubsView(); } }
+    function subsNext() {
+      const rows = Array.from(subsList.children);
+      const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
+      if (subsPage < totalPages) { subsPage++; refreshSubsView(); }
+    }
+    function subsJump(p) { subsPage = parseInt(p, 10) || 1; refreshSubsView(); }
 
-/* 新增 / 刪除時要重畫分頁 */
-function addSub() {
-  createSubRow("", "", true);
-  saveState();
-  refreshSubsView();
-}
-
-function deleteSub(btn) {
-  subsList.removeChild(btn.parentElement);
-  saveState();
-  refreshSubsView();
-}
-
+    function addSub() { createSubRow("", "", true); saveState(); refreshSubsView(); }
+    function deleteSub(btn) { subsList.removeChild(btn.parentElement); saveState(); refreshSubsView(); }
 
     function renderRoleTabs(){
       roleTabs.innerHTML = "";
@@ -1368,15 +1162,12 @@ function deleteSub(btn) {
     }
 
     function setSkillInputValue(input, val) {
-  if (!input) return;
-  input.value = val || "";
-  if (val && val.trim() !== "") {
-    input.classList.add("skill-has");
-  } else {
-    input.classList.remove("skill-has");
-  }
-}
-    
+      if (!input) return;
+      input.value = val || "";
+      if (val && val.trim() !== "") input.classList.add("skill-has");
+      else input.classList.remove("skill-has");
+    }
+
     function clearDuplicateInPanel(panelEl, name, exceptInput){
       panelEl.querySelectorAll("input[data-role='name']").forEach(inp=>{
         if(inp !== exceptInput && inp.value.trim() === name){
@@ -1385,11 +1176,8 @@ function deleteSub(btn) {
       });
     }
 
-    // 收集這次要畫的框線
     function collectDirtyMarks() {
       const marks = [];
-
-      // 本週面板的格子
       thisWeekPanel.querySelectorAll("[data-dirty='1']").forEach(el => {
         const teamBlock = el.closest(".team-block");
         if (teamBlock) {
@@ -1402,37 +1190,24 @@ function deleteSub(btn) {
               const squadIdx = Array.from(squadEl.parentElement.children).indexOf(squadEl);
               const nameInputs = squadEl.querySelectorAll("input[data-role='name']");
               const memberIdx = Array.from(nameInputs).indexOf(el);
-              if (memberIdx !== -1) {
-                marks.push({type:"member", team, squad: squadIdx, member: memberIdx});
-              }
+              if (memberIdx !== -1) marks.push({type:"member", team, squad: squadIdx, member: memberIdx});
             }
           }
         }
       });
-
-      
-      // 檢查小隊數量變化 → 只框有標記 newlyAdded 的小隊 V12.1改
-thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
-  const team = block.dataset.team;
-  const squads = block.querySelectorAll(".squad");
-  const squ = squads.length;
-  const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
-
-  // 找出有標記 newlyAdded 的小隊 → 個別框
-  squads.forEach((sqEl, idx) => {
-    if (sqEl.dataset.newlyAdded === "1") {
-      marks.push({ type: "squadNew", team, squad: idx });
-      delete sqEl.dataset.newlyAdded; // 用完就清掉
-    }
-  });
-
-  // 儲存這次的小隊數量當基準
-  block.dataset.lastSquadCount = String(squ);
-});
-
-
-
-      // 替補
+      thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
+        const team = block.dataset.team;
+        const squads = block.querySelectorAll(".squad");
+        const squ = squads.length;
+        const orig = block.dataset.lastSquadCount ? parseInt(block.dataset.lastSquadCount) : squ;
+        squads.forEach((sqEl, idx) => {
+          if (sqEl.dataset.newlyAdded === "1") {
+            marks.push({ type: "squadNew", team, squad: idx });
+            delete sqEl.dataset.newlyAdded;
+          }
+        });
+        block.dataset.lastSquadCount = String(squ);
+      });
       subsList.querySelectorAll("[data-dirty='1']").forEach(el => {
         const row = el.closest(".substitute-row");
         if (row) {
@@ -1440,7 +1215,6 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
           marks.push({type:"sub", index: idx});
         }
       });
-
       return marks;
     }
 
@@ -1448,7 +1222,6 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       clearAllOutlines();
       if (!recentMarks || !recentMarks.user || !recentMarks.marks) return;
       const cls = OUTLINE_CLASS[recentMarks.user] || "outline-dabai";
-
       recentMarks.marks.forEach(m => {
         if (m.type === "member") {
           const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
@@ -1459,28 +1232,25 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
           const names = sq.querySelectorAll("input[data-role='name']");
           const inp = names[m.member];
           if (inp) inp.classList.add(cls);
-        } 
-        else if (m.type === "team-tag") {
+        } else if (m.type === "team-tag") {
           const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
           if (block) {
             const sel = block.querySelector(".team-tag-select");
             if (sel) sel.classList.add(cls);
           }
-        } 
-        else if (m.type === "sub") {
+        } else if (m.type === "sub") {
           const row = subsList.children[m.index];
           if (row) row.classList.add(cls);
+        } else if (m.type === "squadNew") {
+          const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
+          if (!block) return;
+          const squads = block.querySelectorAll(".squad");
+          const newsq = squads[m.squad];
+          if (newsq) {
+            const title = newsq.querySelector(".squad-title");
+            if (title) title.classList.add(cls);
+          }
         }
-        else if (m.type === "squadNew") {  //V12.1改mark標示
-  const block = thisWeekPanel.querySelector(`.team-block[data-team="${m.team}"]`);
-  if (!block) return;
-  const squads = block.querySelectorAll(".squad");
-  const newsq = squads[m.squad];
-  if (newsq) {
-    const title = newsq.querySelector(".squad-title");
-    if (title) title.classList.add(cls);  // 只圈「第X小隊」
-  }
-}
       });
     }
 
@@ -1490,144 +1260,137 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       });
     }
 
-
-  /*V14.1更新替補顏色問題修正*/  
     function dropMember(ev){
-  ev.preventDefault();
-  dragSuccess = true;
-  const data = ev.dataTransfer.getData("text/plain");
-  if (!data) return;
-  const member = JSON.parse(data);
-  const target = ev.target;
- 
+      ev.preventDefault();
+      dragSuccess = true;
+      const data = ev.dataTransfer.getData("text/plain");
+      if (!data) return;
+      const member = JSON.parse(data);
+      const target = ev.target;
+
       // ① 替補區
-if (target.classList.contains("sub-name")) {
-  // 先記住這格原本是誰（可能就是已上場的 A）
-  const prevName  = target.value.trim();
-  const prevSkill = target.parentElement.querySelector(".sub-skill").value.trim();
+      if (target.classList.contains("sub-name")) {
+        const prevName  = target.value.trim();
+        const prevSkill = target.parentElement.querySelector(".sub-skill").value.trim();
 
-  if (member.fromPanel && draggingPanelInput) {
-    // ← 來源是面板：仍維持原本的「交換」邏輯
-    const oldName  = prevName;
-    const oldSkill = prevSkill;
-    const oldJob   = getJobByName(oldName) || target.dataset.job || "";
+        if (member.fromPanel && draggingPanelInput) {
+          const oldName  = prevName;
+          const oldSkill = prevSkill;
+          const oldJob   = getJobByName(oldName) || target.dataset.job || "";
 
-    // 替補 A ← 面板拖來的 B
-    target.value = member.name;
-    applyJobColor(target, member.job);
-    target.parentElement.querySelector(".sub-skill").value = member.skill || "";
-    markDirty(target);
+          target.value = member.name;
+          applyJobColor(target, member.job);
+          target.parentElement.querySelector(".sub-skill").value = member.skill || "";
+          markDirty(target);
 
-    // 面板來源格（原本是 B） ← A（被換下來）
-    draggingPanelInput.value = oldName;
-    applyJobColor(draggingPanelInput, oldJob);
-    const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-    if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
-      setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
-    }
-    markDirty(draggingPanelInput);
+          draggingPanelInput.value = oldName;
+          applyJobColor(draggingPanelInput, oldJob);
+          const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+          if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
+            setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
+          }
+          markDirty(draggingPanelInput);
 
-    // ★ 關鍵一行：把「除了來源格」以外的 A 都清掉（避免 A 重複）
-    clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
+          // ★ 關鍵一行（避免 A 重複）：只保留來源格的 A，清掉面板上其它 A
+          clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
 
-    saveState();
-    return;
-  }
+          saveState();
+          return;
+        }
 
-  // ← 來源不是面板（例如「全部成員名單」）：覆寫替補格，並把舊人從『本週面板』移除
-  target.value = member.name;
-  applyJobColor(target, member.job);
-  const sk = target.parentElement.querySelector(".sub-skill");
-  if (sk) sk.value = member.skill ? member.skill : "";
-  markDirty(target);
-
-  // ★ 若替補格原本是某人（prevName），把他在本週面板上的舊位置清掉
-  if (prevName) {
-    clearDuplicateInPanel(thisWeekPanel, prevName, null);
-  }
-  saveState();
-  return;
-}
-
-
-  // ② 面板上的格子
-  if (target.dataset && target.dataset.role === "name") {
-    const targetSide = target.dataset.side;
-    if (targetSide === "last") {
-      return; // 上週不允許拖
-    }
-    const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
-    // 同面板互換
-    if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
-      const src = draggingPanelInput;
-      if (src === target) return;
-      const srcName = src.value.trim();
-      const srcJob  = src.dataset.job || getJobByName(srcName) || "";
-      let srcSkill  = "";
-      const srcSkillRow = src.parentElement.nextElementSibling;
-      if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
-        srcSkill = srcSkillRow.querySelector("input[data-role='skill']").value;
+        // 來源不是面板（例如從全部成員），覆寫替補格，並把舊人從本週面板移除
+        target.value = member.name;
+        applyJobColor(target, member.job);
+        const sk = target.parentElement.querySelector(".sub-skill");
+        if (sk) sk.value = member.skill ? member.skill : "";
+        markDirty(target);
+        if (prevName) {
+          clearDuplicateInPanel(thisWeekPanel, prevName, null);
+        }
+        saveState();
+        return;
       }
-      const tgtName = target.value.trim();
-      const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
-      let tgtSkill  = "";
-      const tgtSkillRow = target.parentElement.nextElementSibling;
-      if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
-        tgtSkill = tgtSkillRow.querySelector("input[data-role='skill']").value;
-      }
-      src.value = tgtName;
-      applyJobColor(src, tgtJob);
-      target.value = srcName;
-      applyJobColor(target, srcJob);
-      if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || "");
-      }
-      if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || "");
-      }
-      src.classList.remove("highlight-new", "highlight-missing");
-      target.classList.remove("highlight-new", "highlight-missing");
-      markDirty(src);
-      markDirty(target);
-      saveState();
-      return;
-    }
-    // 替補 → 面板，有東西要換回去替補
-    if (member.fromSub !== undefined && target.value.trim() !== "") {
-      const oldName = target.value.trim();
-      const oldJob  = target.dataset.job || getJobByName(oldName) || "";
-      let oldSkill  = "";
-      const skillRow = target.parentElement.nextElementSibling;
-      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-        oldSkill = skillRow.querySelector("input[data-role='skill']").value;
-      }
-      const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
-      if (subRow) {
-        subRow.querySelector(".sub-name").value = oldName;
-        applyJobColor(subRow.querySelector(".sub-name"), oldJob);
-        subRow.querySelector(".sub-skill").value = oldSkill;
-        markDirty(subRow.querySelector(".sub-name"));
-      }
-    }
-    // 不同面板不交換
-    if (member.fromPanel && member.side !== targetSide) {
-      return;
-    }
-    // 真正放進面板
-    target.value = member.name;
-    applyJobColor(target, member.job);
-    const srow = target.parentElement.nextElementSibling;
-    if (srow && srow.querySelector("input[data-role='skill']")) {
-      setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
-    }
-    clearDuplicateInPanel(thisWeekPanel, member.name, target);　//V14.1新增：確保本週名單只保留一個同名成員（把替補名單的舊位置清掉）
-    target.classList.remove("highlight-new", "highlight-missing");
-    clearDuplicateInPanel(targetPanel, member.name, target);
-    markDirty(target);
-    saveState();
-  }
-}
 
+      // ② 面板格
+      if (target.dataset && target.dataset.role === "name") {
+        const targetSide = target.dataset.side;
+        if (targetSide === "last") return;
+
+        const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
+
+        // 同面板互換
+        if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
+          const src = draggingPanelInput;
+          if (src === target) return;
+          const srcName = src.value.trim();
+          const srcJob  = src.dataset.job || getJobByName(srcName) || "";
+          let srcSkill  = "";
+          const srcSkillRow = src.parentElement.nextElementSibling;
+          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
+            srcSkill = srcSkillRow.querySelector("input[data-role='skill']").value;
+          }
+          const tgtName = target.value.trim();
+          const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
+          let tgtSkill  = "";
+          const tgtSkillRow = target.parentElement.nextElementSibling;
+          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
+            tgtSkill = tgtSkillRow.querySelector("input[data-role='skill']").value;
+          }
+          src.value = tgtName;
+          applyJobColor(src, tgtJob);
+          target.value = srcName;
+          applyJobColor(target, srcJob);
+          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
+            setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || "");
+          }
+          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
+            setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || "");
+          }
+          src.classList.remove("highlight-new", "highlight-missing");
+          target.classList.remove("highlight-new", "highlight-missing");
+          markDirty(src);
+          markDirty(target);
+          saveState();
+          return;
+        }
+
+        // 替補 → 面板 且目標格原本有值，要換回去替補
+        if (member.fromSub !== undefined && target.value.trim() !== "") {
+          const oldName = target.value.trim();
+          const oldJob  = target.dataset.job || getJobByName(oldName) || "";
+          let oldSkill  = "";
+          const skillRow = target.parentElement.nextElementSibling;
+          if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+            oldSkill = skillRow.querySelector("input[data-role='skill']").value;
+          }
+          const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
+          if (subRow) {
+            subRow.querySelector(".sub-name").value = oldName;
+            applyJobColor(subRow.querySelector(".sub-name"), oldJob);
+            subRow.querySelector(".sub-skill").value = oldSkill;
+            markDirty(subRow.querySelector(".sub-name"));
+          }
+        }
+
+        // 不同面板不交換
+        if (member.fromPanel && member.side !== targetSide) return;
+
+        // 真正放進面板
+        target.value = member.name;
+        applyJobColor(target, member.job);
+        const srow = target.parentElement.nextElementSibling;
+        if (srow && srow.querySelector("input[data-role='skill']")) {
+          setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
+        }
+        // 確保本週名單只保留此落點為主
+        clearDuplicateInPanel(thisWeekPanel, member.name, target);
+
+        target.classList.remove("highlight-new", "highlight-missing");
+        clearDuplicateInPanel(targetPanel, member.name, target);
+        markDirty(target);
+        saveState();
+      }
+    }
 
     function getPanelData(panelEl){
       const data = [];
@@ -1707,7 +1470,6 @@ if (target.classList.contains("sub-name")) {
           });
         });
         renumberSquads(block);
-        // 同步當下的小隊數量
         block.dataset.lastSquadCount = String(neededCount || 3);
         adjustSquadWidths(block);
       });
@@ -1743,7 +1505,7 @@ if (target.classList.contains("sub-name")) {
     async function loadState(){
       renderRoleTabs();
       renderMemberList();
-      // 讀登入狀態
+
       const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
       if (loginStr) {
         try {
@@ -1777,71 +1539,57 @@ if (target.classList.contains("sub-name")) {
       startVersionWatcher();
     }
 
-  
-    
-  /*V14新增，加上讀寫掛職名單＋讀 persistent ignore 的工具函式*/
-    
     function getStuckData(){
-  // 只管前端這一份，真正要存到後端會在 doSaveToBackend 一起送
-  try {
-    const raw = localStorage.getItem(STORAGE_STUCK_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e){}
-  return {};
-}
-
-function setStuckData(obj){
-  try {
-    localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {}));
-  } catch(e){}
-}
-
-function renderStuckList(){
-  const box = document.getElementById("stuckList");
-  if (!box) return;
-  const data = getStuckData();
-  const names = Object.keys(data);
-  box.innerHTML = "";
-  if (!names.length) {
-    box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
-    return;
-  }
-  names.forEach(name => {
-    const tag = document.createElement("div");
-    tag.className = "compare-tag missing-tag";
-    tag.textContent = name;
-    // 點掉代表真的處理好了 → 從掛職名單移除，順便也加到 ignore
-    tag.onclick = function(){
-      delete data[name];
-      setStuckData(data);
-      // 這個人既然真的被撤職了，就加到 ignore 裡
-      compareIgnore.add(name);
-      // 寫回 local 的永久 ignore
-      const arr = Array.from(compareIgnore);
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
-      renderStuckList();
-    };
-    box.appendChild(tag);
-  });
-}
-
-function loadPersistentIgnore(){
-  try {
-    const raw = localStorage.getItem(STORAGE_IGNORE_KEY);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      persistentCompareIgnore = new Set(arr);
-      // 同步到目前畫面用的那一份
-      compareIgnore.clear();
-      arr.forEach(n => compareIgnore.add(n));
+      try {
+        const raw = localStorage.getItem(STORAGE_STUCK_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch(e){}
+      return {};
     }
-  } catch(e){
-    persistentCompareIgnore = new Set();
-  }
-}
+    function setStuckData(obj){
+      try {
+        localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {}));
+      } catch(e){}
+    }
+    function renderStuckList(){
+      const box = document.getElementById("stuckList");
+      if (!box) return;
+      const data = getStuckData();
+      const names = Object.keys(data);
+      box.innerHTML = "";
+      if (!names.length) {
+        box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
+        return;
+      }
+      names.forEach(name => {
+        const tag = document.createElement("div");
+        tag.className = "compare-tag missing-tag";
+        tag.textContent = name;
+        tag.onclick = function(){
+          delete data[name];
+          setStuckData(data);
+          compareIgnore.add(name);
+          const arr = Array.from(compareIgnore);
+          localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
+          renderStuckList();
+        };
+        box.appendChild(tag);
+      });
+    }
+    function loadPersistentIgnore(){
+      try {
+        const raw = localStorage.getItem(STORAGE_IGNORE_KEY);
+        if (raw) {
+          const arr = JSON.parse(raw);
+          persistentCompareIgnore = new Set(arr);
+          compareIgnore.clear();
+          arr.forEach(n => compareIgnore.add(n));
+        }
+      } catch(e){
+        persistentCompareIgnore = new Set();
+      }
+    }
 
-
-    
     function applyStateToPage(state, fromLocal){
       if (state.allMembers && Array.isArray(state.allMembers)) {
         allMembers = state.allMembers;
@@ -1858,57 +1606,32 @@ function loadPersistentIgnore(){
         setPanelData(thisWeekPanel, state.thisWeek, "this");
         thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
       }
-     
-      // 替補
-subsList.innerHTML = "";
-if (state.subs && state.subs.length) {
-  // 有存過的就用存的
-  state.subs.forEach(su => createSubRow(su.name, su.skill, false));
-} 
 
-/*測試拿掉這段會不會有BUG 
-else {
-  // 沒存過 → 給 1 列空的就好（你也可以改成 0）
-  createSubRow("", "", false);
-}*/
-      
-// 不管有沒有，都重畫分頁
-refreshSubsView();
-
-
-
-   /*V14修改，吃後端的 compareIgnore / stuckMembers*/
-            if (state.recentMarks) {
-        renderRecentMarks(state.recentMarks);
-      } else {
-        clearAllOutlines();
+      subsList.innerHTML = "";
+      if (state.subs && state.subs.length) {
+        state.subs.forEach(su => createSubRow(su.name, su.skill, false));
       }
+      refreshSubsView();
 
-      // ★ 共同的「被按掉的紅/綠」(compareIgnore)
+      if (state.recentMarks) renderRecentMarks(state.recentMarks);
+      else clearAllOutlines();
+
       if (state.compareIgnore && Array.isArray(state.compareIgnore)) {
         persistentCompareIgnore = new Set(state.compareIgnore);
         compareIgnore.clear();
         state.compareIgnore.forEach(n => compareIgnore.add(n));
-        // 也寫到 localStorage，避免重整不見
         localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore));
       }
 
-      // ★ 共同的「掛職名單」
-      if (state.stuckMembers) {
-        setStuckData(state.stuckMembers);
-      }
+      if (state.stuckMembers) setStuckData(state.stuckMembers);
       renderStuckList();
     }
 
-    
-    /*V14新增，保存待處理名單中已被處理的成員紀錄，並同步到後端*/
-function saveCompareIgnore(){
-  // 先存到 local
-  const arr = Array.from(compareIgnore);
-  localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
-  // 再走一次跟「儲存」一樣的流程，讓其他編輯者也能看到
-  requestSave();
-}
+    function saveCompareIgnore(){
+      const arr = Array.from(compareIgnore);
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
+      requestSave();
+    }
 
     function requestSave(){
       const now = Date.now();
@@ -1928,92 +1651,69 @@ function saveCompareIgnore(){
     function closeLogin(){ document.getElementById("loginModal").style.display = "none"; }
 
     function doLogin(){
-  const u = document.getElementById("loginUser").value.trim();
-  const p = document.getElementById("loginPass").value.trim();
-
-  fetch(REMOTE_API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "login",   // ← 關鍵：告訴 GAS 這次是要登入
-      user: u,
-      pass: p
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data && data.success && data.user) {
-      currentUser = data.user;
-      lastLoginTime = Date.now();
-      localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
-      closeLogin();
-      doSaveToBackend();  // 登入成功後照你原本的流程去存
-    } else {
-      document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+      const u = document.getElementById("loginUser").value.trim();
+      const p = document.getElementById("loginPass").value.trim();
+      fetch(REMOTE_API, {
+        method: "POST",
+        body: JSON.stringify({ action: "login", user: u, pass: p })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success && data.user) {
+          currentUser = data.user;
+          lastLoginTime = Date.now();
+          localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({user: currentUser, time: lastLoginTime}));
+          closeLogin();
+          doSaveToBackend();
+        } else {
+          document.getElementById("loginMsg").textContent = "帳號或密碼錯誤";
+        }
+      })
+      .catch(err => {
+        console.warn("login error", err);
+        document.getElementById("loginMsg").textContent = "登入失敗";
+      });
     }
-  })
-  .catch(err => {
-    console.warn("login error", err);
-    document.getElementById("loginMsg").textContent = "登入失敗";
-  });
-}
 
-
-  /*V14修改，把掛職名單也送上去*/
     function doSaveToBackend(){
-  const state = {
-    allMembers,
-    lastWeek: getPanelData(lastWeekPanel),
-    thisWeek: getPanelData(thisWeekPanel),
-    subs: getSubsData()
-  };
+      const state = {
+        allMembers,
+        lastWeek: getPanelData(lastWeekPanel),
+        thisWeek: getPanelData(thisWeekPanel),
+        subs: getSubsData()
+      };
+      const marks = collectDirtyMarks();
+      state.recentMarks = { user: currentUser || "unknown", marks };
+      state.compareIgnore = Array.from(compareIgnore);
+      state.stuckMembers = getStuckData();
 
-  // 這次畫面上有動到的欄位 → 給你原本的顏色框線用
-  const marks = collectDirtyMarks();
-  state.recentMarks = {
-    user: currentUser || "unknown",
-    marks
-  };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
 
-  // ★ 把「我有按掉的待處理」也存上去，讓別人也看得到
-  state.compareIgnore = Array.from(compareIgnore);
-
-  // ★ 把「掛職名單」也存上去
-  state.stuckMembers = getStuckData();
-
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-
-  fetch(REMOTE_API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "save",
-      payload: state
-    })
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    if (data && data.success) {
-      alert("已儲存到後台");
-      renderRecentMarks(state.recentMarks);
-      document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-
-      // 後端存成功後，也把 compareIgnore / stuckMembers 各自的 local 寫一下，保持一致
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
-      setStuckData(state.stuckMembers || {});
-      renderStuckList();
-    } else {
-      alert("後台有回應但不是 success，請看 console");
-      console.log(data);
+      fetch(REMOTE_API, {
+        method: "POST",
+        body: JSON.stringify({ action: "save", payload: state })
+      })
+      .then(res=>res.json())
+      .then(data=>{
+        if (data && data.success) {
+          alert("已儲存到後台");
+          renderRecentMarks(state.recentMarks);
+          document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
+          localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
+          setStuckData(state.stuckMembers || {});
+          renderStuckList();
+        } else {
+          alert("後台有回應但不是 success，請看 console");
+          console.log(data);
+        }
+      })
+      .catch(err=>{
+        alert("無法連到後台，請檢查 Apps Script 部署權限");
+        console.error(err);
+      });
     }
-  })
-  .catch(err=>{
-    alert("無法連到後台，請檢查 Apps Script 部署權限");
-    console.error(err);
-  });
-}
-
 
     function compare(){
-      // 先清掉舊的紅綠
       document.querySelectorAll("input[data-role='name']").forEach(inp=>{
         inp.classList.remove("highlight-new","highlight-missing");
       });
@@ -2037,9 +1737,7 @@ function saveCompareIgnore(){
 
       thisNames.forEach(obj=>{
         if (obj.val && !lastSet.has(obj.val)) {
-          if (!compareIgnore.has(obj.val)) {
-            obj.el.classList.add("highlight-new");
-          }
+          if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
           newOnes.push(obj.val);
         }
       });
@@ -2047,14 +1745,11 @@ function saveCompareIgnore(){
       lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
         const v = inp.value.trim();
         if (v && !thisSet.has(v)) {
-          if (!compareIgnore.has(v)) {
-            inp.classList.add("highlight-missing");
-          }
+          if (!compareIgnore.has(v)) inp.classList.add("highlight-missing");
           missingOnes.push(v);
         }
       });
 
-      // 替補判斷保持原樣
       subsList.querySelectorAll(".substitute-row").forEach(row=>{
         const name = row.querySelector(".sub-name").value.trim();
         const status = row.querySelector(".sub-status");
@@ -2068,90 +1763,60 @@ function saveCompareIgnore(){
         }
       });
 
+      renderCompareTags(newOnes, missingOnes);
+      currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name));
+    }
 
-      
-       renderCompareTags(newOnes, missingOnes);
-  currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name)); // V14新增，這一輪還是紅的、而且沒有按掉的 → 等等覆蓋時要加到掛職名單
-}
-
-
-    
-/*V12.1調整紅綠色顯示排序*/
     function renderCompareTags(newList, missingList){
-  compareTagsEl.innerHTML = "";
-
-  // 綠的先
-  newList.forEach(name => {
-    const tag = document.createElement("div");
-    tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
-    tag.textContent = name;
-    tag.onclick = () => toggleCompareIgnore(name);
-    compareTagsEl.appendChild(tag);
-  });
-
-  // 再紅的
-  missingList.forEach(name => {
-    const tag = document.createElement("div");
-    tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
-    tag.textContent = name;
-    tag.onclick = () => toggleCompareIgnore(name);
-    compareTagsEl.appendChild(tag);
-  });
-}
-
+      compareTagsEl.innerHTML = "";
+      newList.forEach(name => {
+        const tag = document.createElement("div");
+        tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
+        tag.textContent = name;
+        tag.onclick = () => toggleCompareIgnore(name);
+        compareTagsEl.appendChild(tag);
+      });
+      missingList.forEach(name => {
+        const tag = document.createElement("div");
+        tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
+        tag.textContent = name;
+        tag.onclick = () => toggleCompareIgnore(name);
+        compareTagsEl.appendChild(tag);
+      });
+    }
 
     function toggleCompareIgnore(name){
-      if (compareIgnore.has(name)) {
-        compareIgnore.delete(name);
-        // 恢復標示：找出該名在兩個面板中，依現在名單再跑一次比對
-      } else {
+      if (compareIgnore.has(name)) compareIgnore.delete(name);
+      else {
         compareIgnore.add(name);
-        // 馬上把畫面上對應的人移除紅綠
         document.querySelectorAll("input[data-role='name']").forEach(inp=>{
           if (inp.value.trim() === name) {
             inp.classList.remove("highlight-new","highlight-missing");
           }
         });
       }
-      // 重新算一次比對畫面
       compare();
     }
 
-
-  /*V14修改，當覆蓋按鈕按下時，把「本輪還沒處理的紅色」塞進掛職名單*/
     function copyThisToLast(){
-  if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+      if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+      lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
 
-  // 先存一份上週給還原用
-  lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
+      const stuck = getStuckData();
+      currentMissingNotIgnored.forEach(name => {
+        if (name && !stuck[name]) {
+          stuck[name] = new Date().toISOString();
+        }
+      });
+      setStuckData(stuck);
 
-  // 讀目前掛職
-  const stuck = getStuckData();
-
-  // 把這一輪仍然紅的、而且沒被你按掉的，加進掛職
-  // currentMissingNotIgnored 是 compare() 最後填的
-  currentMissingNotIgnored.forEach(name => {
-    if (name && !stuck[name]) {
-      stuck[name] = new Date().toISOString(); // 可以放時間當紀錄
+      const thisData = getPanelData(thisWeekPanel);
+      setPanelData(lastWeekPanel, thisData, "last");
+      saveState();
+      renderStuckList();
+      alert("已將本週名單覆蓋到上週，掛職名單已更新。");
     }
-  });
 
-  // 寫回前端的掛職存檔
-  setStuckData(stuck);
-
-  // 真的做覆蓋
-  const thisData = getPanelData(thisWeekPanel);
-  setPanelData(lastWeekPanel, thisData, "last");
-  saveState();
-  renderStuckList();
-
-  alert("已將本週名單覆蓋到上週，掛職名單已更新。");
-}
-
-
-    
-
-    
     function undoCopy(){
       if(!lastSnapshot){
         alert("沒有可還原的內容。");
@@ -2171,10 +1836,7 @@ function saveCompareIgnore(){
           const data = await res.json();
           if (data && data.success) {
             const serverUpdatedAt = data.updatedAt || null;
-            if (!lastKnownUpdatedAt) {
-              lastKnownUpdatedAt = serverUpdatedAt;
-              return;
-            }
+            if (!lastKnownUpdatedAt) { lastKnownUpdatedAt = serverUpdatedAt; return; }
             if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
               const fullRes = await fetch(REMOTE_API + "?action=get");
               const fullData = await fullRes.json();
@@ -2191,7 +1853,6 @@ function saveCompareIgnore(){
       }, INTERVAL);
     }
 
-    /* ========= 下載圖片 ========= */
     function fillRoundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -2214,75 +1875,64 @@ function saveCompareIgnore(){
       return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * gap;
     }
 
-  /*V12.1修正下載圖片不同排*/  
     function downloadThisWeekImage() {
-  const data = getPanelData(thisWeekPanel);
-  const tagOrder = ["一團","二團","三團","四團"];
-  const teamHeight = 272;
-  const gapX = 20;
-  const gapY = 30;
+      const data = getPanelData(thisWeekPanel);
+      const tagOrder = ["一團","二團","三團","四團"];
+      const teamHeight = 272;
+      const gapX = 20;
+      const gapY = 30;
 
-  // 先照 tag 分
-  const grouped = tagOrder.map(tag => ({
-    tag,
-    teams: data.filter(t => (t.tag || "一團") === tag)
-  })).filter(g => g.teams.length > 0);
+      const grouped = tagOrder.map(tag => ({
+        tag,
+        teams: data.filter(t => (t.tag || "一團") === tag)
+      })).filter(g => g.teams.length > 0);
 
-  // ① 先量「每一團這一排需要多寬」
-  let neededWidths = [];
-  grouped.forEach(group => {
-    let rowWidth = gapX; // 左邊留點邊距 // 量寬
-    group.teams.forEach(team => {
-      const w = getTeamCanvasWidth(team);
-      rowWidth += w + gapX; // 區塊 + gap
-    });
-    neededWidths.push(rowWidth);
-  });
+      let neededWidths = [];
+      grouped.forEach(group => {
+        let rowWidth = gapX;
+        group.teams.forEach(team => {
+          const w = getTeamCanvasWidth(team);
+          rowWidth += w + gapX;
+        });
+        neededWidths.push(rowWidth);
+      });
 
-  // 取全部團裡面最寬的那一排，最低給個 420 就好
-const MIN_WIDTH = 420;
-const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
+      const MIN_WIDTH = 420;
+      const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
 
-  // ② 算總高度（每一團一排）
-  let totalHeight = 50; // 上面標題
-  grouped.forEach(group => {
-    totalHeight += teamHeight + gapY;
-  });
+      let totalHeight = 50;
+      grouped.forEach(() => { totalHeight += teamHeight + gapY; });
 
-  const SCALE = 3;
-  const canvas = document.createElement("canvas");
-  canvas.width = maxWidth * SCALE;
-  canvas.height = totalHeight * SCALE;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(SCALE, SCALE);
+      const SCALE = 3;
+      const canvas = document.createElement("canvas");
+      canvas.width = maxWidth * SCALE;
+      canvas.height = totalHeight * SCALE;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(SCALE, SCALE);
 
-  // 背景
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, maxWidth, totalHeight);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, maxWidth, totalHeight);
 
-  // 標題
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 22px system-ui";
-  ctx.fillText("本週名單", 20, 32);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 22px system-ui";
+      ctx.fillText("本週名單", 20, 32);
 
-  // ③ 一團一排畫下去
-  let currentY = 50;
-  grouped.forEach(group => {
-    let x = gapX;
-    group.teams.forEach(team => {
-      const w = getTeamCanvasWidth(team);
-      drawTeamBlockImage(ctx, team, x, currentY, w, teamHeight);
-      x += w + gapX;
-    });
-    currentY += teamHeight + gapY;
-  });
+      let currentY = 50;
+      grouped.forEach(group => {
+        let x = gapX;
+        group.teams.forEach(team => {
+          const w = getTeamCanvasWidth(team);
+          drawTeamBlockImage(ctx, team, x, currentY, w, teamHeight);
+          x += w + gapX;
+        });
+        currentY += teamHeight + gapY;
+      });
 
-  const link = document.createElement("a");
-  link.download = "this-week.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
+      const link = document.createElement("a");
+      link.download = "this-week.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
 
     function drawTeamBlockImage(ctx, team, x, y, w, h) {
       ctx.fillStyle = "#ffffff";
@@ -2365,7 +2015,6 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
       }
     }
 
-    /* ========= 成員搜尋浮層 ========= */
     function maybeOpenMemberPicker(e, input){
       if (input.value.trim() === "") {
         openMemberPicker(input);
@@ -2397,29 +2046,23 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
       renderPickerList(list);
     }
 
-    /*V12.1調整成員搜尋浮層的功能*/
     function selectMemberFromPicker(m){
-  if (!pickerTargetInput) return;
-
-  // 1. 先把「本週」裡面已經有這個人的欄位清掉（但不要清目前這格）
-  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
-    if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
-      clearInputAndSkill(inp);
+      if (!pickerTargetInput) return;
+      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+        if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+          clearInputAndSkill(inp);
+        }
+      });
+      pickerTargetInput.value = m.name;
+      applyJobColor(pickerTargetInput, m.job);
+      const skillRow = pickerTargetInput.parentElement.nextElementSibling;
+      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+        setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || "");
+      }
+      pickerTargetInput.dataset.dirty = "1";
+      saveState();
+      closeMemberPicker();
     }
-  });
-
-  // 2. 再把這格填上
-  pickerTargetInput.value = m.name;
-  applyJobColor(pickerTargetInput, m.job);
-  const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-  if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-  setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || "");
-}
-  pickerTargetInput.dataset.dirty = "1";
-  saveState();
-  closeMemberPicker();
-}
-    
     function closeMemberPicker(){
       memberPicker.style.display = "none";
       pickerTargetInput = null;
@@ -2430,31 +2073,17 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
       }
     });
 
-// V14.1處理技能欄位交換位置的顏色
-function updateSkillColor(cell) {
-  const skill = cell.querySelector(".skill");
-  if (!skill) return;
-  const text = (skill.textContent || "").trim();
-  // 若有技能文字 → 黃色背景
-  if (text) {
-    skill.style.background = "#fef9c3"; // 淺黃色
-  } else {
-    skill.style.background = "transparent"; // 清除顏色
-  }
-}
-    
-    
-    // 初始化
-  loadState();
-  loadPersistentIgnore(); //V14新增
-  renderStuckList(); //V14新增
+    function updateSkillColor(cell) {
+      const skill = cell.querySelector(".skill");
+      if (!skill) return;
+      const text = (skill.textContent || "").trim();
+      if (text) skill.style.background = "#fef9c3";
+      else skill.style.background = "transparent";
+    }
 
+    loadState();
+    loadPersistentIgnore();
+    renderStuckList();
   </script>
 </body>
 </html>
-
-
-
-
-
-

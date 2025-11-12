@@ -1744,8 +1744,6 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     const sx = x + INNER_PAD + i * (squadW + gap);
     const sy = y + HEAD_H + INNER_PAD;
 
-    //321123
-
     // ① 小隊標題：獨立圓角框（四角圓、滿寬、細框）
     const titleX = sx + 2;
     const titleY = sy + 2;
@@ -1774,7 +1772,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
       ctx.fillStyle = "#ffffff";
       fillRoundRectCorners(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
       // 只描上邊與左右邊，避免與技能間產生中縫
-      strokeRectEdges(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, { top:true, left:true, right:true }, "#e2e8f0");
+      strokeRectEdges(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, { top:true, bottom:true, left:true, right:true }, "#e2e8f0");
 
       const mem = (squad && squad.members[m]) ? squad.members[m] : null;
       if (mem && mem.name) {
@@ -1921,5 +1919,6 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 

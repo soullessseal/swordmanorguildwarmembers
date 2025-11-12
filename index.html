@@ -1499,39 +1499,29 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   if (!data) return;
   const member = JSON.parse(data);
   const target = ev.target;
-
-  // =========================
-  // ① 替補區的格子
-  // =========================
+  // ① 替補區
   if (target.classList.contains("sub-name")) {
-    // 情況 A：從「本週面板」拖到替補 → 要互換
     if (member.fromPanel && draggingPanelInput) {
       const oldName  = target.value.trim();
       const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
       const oldJob   = getJobByName(oldName) || target.dataset.job || "";
 
-      // 把面板上的人放到替補
       target.value = member.name;
       applyJobColor(target, member.job);
       target.parentElement.querySelector(".sub-skill").value = member.skill || "";
       markDirty(target);
-
-      // 把替補原本的人放回面板那格
+      // 面板那格塞回原來替補的人
       draggingPanelInput.value = oldName;
       applyJobColor(draggingPanelInput, oldJob);
       const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
       if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
-        const panelSkillInput = panelSkillRow.querySelector("input[data-role='skill']");
-        // 用共用的，才會把黃色一起處理
-        setSkillInputValue(panelSkillInput, oldSkill || "");
+        setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
       }
-
       markDirty(draggingPanelInput);
       saveState();
       return;
     }
-
-    // 情況 B：不是從面板來（例如成員列表拖進來）→ 直接塞
+    // 不是從面板來 → 直接塞
     target.value = member.name;
     applyJobColor(target, member.job);
     const sk = target.parentElement.querySelector(".sub-skill");
@@ -1540,24 +1530,17 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
     saveState();
     return;
   }
-
-  // =========================
   // ② 面板上的格子
-  // =========================
   if (target.dataset && target.dataset.role === "name") {
     const targetSide = target.dataset.side;
     if (targetSide === "last") {
-      // 上週不允許拖進
-      return;
+      return; // 上週不允許拖
     }
     const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
-
     // 同面板互換
     if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
       const src = draggingPanelInput;
       if (src === target) return;
-
-      // 先把兩邊的內容抓起來
       const srcName = src.value.trim();
       const srcJob  = src.dataset.job || getJobByName(srcName) || "";
       let srcSkill  = "";
@@ -1565,7 +1548,6 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
         srcSkill = srcSkillRow.querySelector("input[data-role='skill']").value;
       }
-
       const tgtName = target.value.trim();
       const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
       let tgtSkill  = "";
@@ -1573,38 +1555,24 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
         tgtSkill = tgtSkillRow.querySelector("input[data-role='skill']").value;
       }
-
-      // 交換名字與職業色
       src.value = tgtName;
       applyJobColor(src, tgtJob);
       target.value = srcName;
       applyJobColor(target, srcJob);
-
-      // 交換技能（用 setSkillInputValue，黃色會跟著）
       if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(
-          srcSkillRow.querySelector("input[data-role='skill']"),
-          tgtSkill || ""
-        );
+        setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || "");
       }
       if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
-        setSkillInputValue(
-          tgtSkillRow.querySelector("input[data-role='skill']"),
-          srcSkill || ""
-        );
+        setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || "");
       }
-
-      // 把紅綠標示拿掉
       src.classList.remove("highlight-new", "highlight-missing");
       target.classList.remove("highlight-new", "highlight-missing");
-
       markDirty(src);
       markDirty(target);
       saveState();
       return;
     }
-
-    // 替補 → 面板，且面板原本有值 → 替補那個被換回去
+    // 替補 → 面板，有東西要換回去替補
     if (member.fromSub !== undefined && target.value.trim() !== "") {
       const oldName = target.value.trim();
       const oldJob  = target.dataset.job || getJobByName(oldName) || "";
@@ -1621,23 +1589,17 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
         markDirty(subRow.querySelector(".sub-name"));
       }
     }
-
     // 不同面板不交換
     if (member.fromPanel && member.side !== targetSide) {
       return;
     }
-
-    // 填進面板格子
+    // 真正放進面板
     target.value = member.name;
     applyJobColor(target, member.job);
     const srow = target.parentElement.nextElementSibling;
     if (srow && srow.querySelector("input[data-role='skill']")) {
-      setSkillInputValue(
-        srow.querySelector("input[data-role='skill']"),
-        member.skill ? member.skill : ""
-      );
+      setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
     }
-
     target.classList.remove("highlight-new", "highlight-missing");
     clearDuplicateInPanel(targetPanel, member.name, target);
     markDirty(target);
@@ -1645,107 +1607,6 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
   }
 }
 
-
-
-      if(target.dataset && target.dataset.role === "name"){
-        const targetSide = target.dataset.side;
-        if(targetSide === "last") {
-          // 上週不允許拖進
-          return;
-        }
-        const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
-
-        // 同面板互換 V14.1更新調整交換位子技能顏色問題
-if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
-  const src = draggingPanelInput;
-  if (src === target) return;
-
-  // 先把兩邊的內容抓起來
-  const srcName = src.value.trim();
-  const srcJob  = src.dataset.job || getJobByName(srcName) || "";
-  let srcSkill  = "";
-  const srcSkillRow = src.parentElement.nextElementSibling;
-  if (srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')) {
-    srcSkill = srcSkillRow.querySelector('input[data-role="skill"]').value;
-  }
-
-  const tgtName = target.value.trim();
-  const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
-  let tgtSkill  = "";
-  const tgtSkillRow = target.parentElement.nextElementSibling;
-  if (tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')) {
-    tgtSkill = tgtSkillRow.querySelector('input[data-role="skill"]').value;
-  }
-
-  // 交換名字與職業色
-  src.value = tgtName;
-  applyJobColor(src, tgtJob);
-  target.value = srcName;
-  applyJobColor(target, srcJob);
-
-  // ★ 交換技能時改用 setSkillInputValue，黃色才會跟著換
-  if (srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')) {
-    setSkillInputValue(
-      srcSkillRow.querySelector('input[data-role="skill"]'),
-      tgtSkill || ""
-    );
-  }
-  if (tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')) {
-    setSkillInputValue(
-      tgtSkillRow.querySelector('input[data-role="skill"]'),
-      srcSkill || ""
-    );
-  }
-
-  // 把紅綠標示拿掉
-  src.classList.remove("highlight-new", "highlight-missing");
-  target.classList.remove("highlight-new", "highlight-missing");
-
-  // 標記有修改 & 存檔
-  markDirty(src);
-  markDirty(target);
-  saveState();
-  return;
-}
-
-        
-
-        // 替補 → 面板 且面板原本有值 → 替補那個被換回去
-        if(member.fromSub !== undefined && target.value.trim() !== ""){
-          const oldName = target.value.trim();
-          const oldJob = target.dataset.job || getJobByName(oldName) || "";
-          let oldSkill = "";
-          const skillRow = target.parentElement.nextElementSibling;
-          if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
-            oldSkill = skillRow.querySelector('input[data-role="skill"]').value;
-          }
-          const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
-          if(subRow){
-            subRow.querySelector(".sub-name").value = oldName;
-            applyJobColor(subRow.querySelector(".sub-name"), oldJob);
-            subRow.querySelector(".sub-skill").value = oldSkill;
-            markDirty(subRow.querySelector(".sub-name"));
-          }
-        }
-
-        // 不同面板不交換
-        if(member.fromPanel && member.side !== targetSide){
-          return;
-        }
-
-        target.value = member.name;
-        applyJobColor(target, member.job);
-        const srow = target.parentElement.nextElementSibling;
-        if (srow && srow.querySelector('input[data-role="skill"]')){
-  setSkillInputValue(srow.querySelector('input[data-role="skill"]'), member.skill ? member.skill : "");
-}
-
-        target.classList.remove("highlight-new","highlight-missing");
-        clearDuplicateInPanel(targetPanel, member.name, target);
-        markDirty(target);
-        saveState();
-      }
-    }
 
     function getPanelData(panelEl){
       const data = [];
@@ -2570,5 +2431,6 @@ function updateSkillColor(cell) {
   </script>
 </body>
 </html>
+
 
 

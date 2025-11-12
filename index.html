@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.2</title>
+  <title>幫戰名單比對工具 v14.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -124,6 +124,21 @@
     .compare-tag.new-tag { background:#bbf7d0; border:1px solid #166534; color:#064e3b; }
     .compare-tag.missing-tag { background:#fca5a5; border:1px solid #b91c1c; color:#7f1d1d; }
 
+    /* 🔺強化待處理欄位紅綠標籤文字大小與粗體 */
+    #compareTags .compare-tag.new-tag,
+    #compareTags .compare-tag.missing-tag {
+    font-size: .9rem;      /* 原本 .65rem → 放大一點 */
+    font-weight: 800;      /* 粗體加強辨識 */
+    letter-spacing: .2px;  /* 微調字距更穩 */
+    padding: .3rem .8rem;  /* 讓字放大後不會擠 */
+    }
+    #stuckList .compare-tag.missing-tag {
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: .2px;
+    padding: .3rem .8rem;
+    }
+    
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
     /* 手機板底部按鈕 */
@@ -153,7 +168,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.2</h1>
+  <h1>幫戰名單比對工具 v14.3</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -1669,5 +1684,6 @@
   </script>
 </body>
 </html>
+
 
 

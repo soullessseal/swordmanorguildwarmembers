@@ -1551,20 +1551,51 @@ function fillRoundRectCorners(ctx, x, y, w, h, r, corners) {
   roundRectPath(ctx, x, y, w, h, r, corners);
   ctx.fill();
 }
-function strokeRoundRectCorners(ctx, x, y, w, h, r, corners, color="#e2e8f0") {
+
+
+    
+/* 1px 視覺等寬：圓角矩形描邊（像素對齊） */
+function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#e2e8f0") {
+  ctx.save();
   ctx.strokeStyle = color;
-  roundRectPath(ctx, x, y, w, h, r, corners);
-  ctx.stroke();
-}
-/* 只畫特定邊（避免縫隙殘線） */
-function strokeRectEdges(ctx, x, y, w, h, edges, color = "#e2e8f0") {
-  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;           // 固定視覺 1px
+  ctx.lineJoin = "round";
+  ctx.lineCap  = "round";
+  // 讓整個外框往右下各對齊半像素，避免曲線被抗鋸齒吃寬
+  // 同時縮小 w/h 1px，確保線心都落在像素邊界
+  const tl = corners.tl ? r : 0, tr = corners.tr ? r : 0, br = corners.br ? r : 0, bl = corners.bl ? r : 0;
+  const _x = x + 0.5, _y = y + 0.5, _w = Math.max(0, w - 1), _h = Math.max(0, h - 1);
+  const _r = Math.max(0, r - 0.5);
   ctx.beginPath();
-  if (edges.top)    { ctx.moveTo(x, y + 0.5);      ctx.lineTo(x + w, y + 0.5); }
-  if (edges.right)  { ctx.moveTo(x + w - 0.5, y);  ctx.lineTo(x + w - 0.5, y + h); }
-  if (edges.bottom) { ctx.moveTo(x, y + h - 0.5);  ctx.lineTo(x + w, y + h - 0.5); }
-  if (edges.left)   { ctx.moveTo(x + 0.5, y);      ctx.lineTo(x + 0.5, y + h); }
+  ctx.moveTo(_x + (corners.tl ? _r : 0), _y);
+  ctx.lineTo(_x + _w - (corners.tr ? _r : 0), _y);
+  if (tr) ctx.arcTo(_x + _w, _y, _x + _w, _y + (tr ? _r : 0), _r); else ctx.lineTo(_x + _w, _y);
+  ctx.lineTo(_x + _w, _y + _h - (corners.br ? _r : 0));
+  if (br) ctx.arcTo(_x + _w, _y + _h, _x + _w - (br ? _r : 0), _y + _h, _r); else ctx.lineTo(_x + _w, _y + _h);
+  ctx.lineTo(_x + (corners.bl ? _r : 0), _y + _h);
+  if (bl) ctx.arcTo(_x, _y + _h, _x, _y + (bl ? _r : 0), _r); else ctx.lineTo(_x, _y + _h);
+  ctx.lineTo(_x, _y + (corners.tl ? _r : 0));
+  if (tl) ctx.arcTo(_x, _y, _x + (tl ? _r : 0), _y, _r); else ctx.lineTo(_x, _y);
   ctx.stroke();
+  ctx.restore();
+}
+
+
+    
+
+/* 1px 視覺等寬：只畫指定邊（像素對齊直線） */
+function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;           // 固定視覺 1px
+  ctx.beginPath();
+  // 直線都落在 0.5 offset，確保銳利
+  if (edges.top)    { ctx.moveTo(x + 0.5, y + 0.5);         ctx.lineTo(x + w - 0.5, y + 0.5); }
+  if (edges.right)  { ctx.moveTo(x + w - 0.5, y + 0.5);     ctx.lineTo(x + w - 0.5, y + h - 0.5); }
+  if (edges.bottom) { ctx.moveTo(x + 0.5, y + h - 0.5);     ctx.lineTo(x + w - 0.5, y + h - 0.5); }
+  if (edges.left)   { ctx.moveTo(x + 0.5, y + 0.5);         ctx.lineTo(x + 0.5, y + h - 0.5); }
+  ctx.stroke();
+  ctx.restore();
 }
 
     
@@ -1722,8 +1753,8 @@ function downloadThisWeekImage() {
 function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   // 外框白卡片（四角圓）
   ctx.fillStyle = "#ffffff";
-  fillRoundRectCorners(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true});
-  strokeRoundRectCorners(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true});
+  strokeRoundedCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, {tl:true,tr:true,br:false,bl:false});
+  strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
 
   // 頂部團隊色條（無圓角）
   const headColor = teamColorByName(team.team);
@@ -1937,6 +1968,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v13.4 </title>
+  <title>幫戰名單比對工具 v14 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -462,7 +462,7 @@ input.skill-has {
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v13.4 </h1>
+  <h1>幫戰名單比對工具 v14 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -537,12 +537,25 @@ input.skill-has {
 <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
 
       </div>
+
+
+     <!--V14新增，檢核不在本週與上週名單上但仍有職位的人--> 
+     <div class="panel" id="comparePanel">
+  <h3>待處理成員</h3>
+  <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
+  <!-- 動態產生的本輪紅/綠 -->
+  <div id="compareTags" class="compare-tags"></div>
+
+  <!-- 把現在勾掉的紅/綠「存起來，讓別人也看得到」 -->
+  <button class="float-btn secondary" style="margin-top:.5rem;" onclick="saveCompareIgnore()">保存處理</button>
+
+  <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
+  <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
+  <!-- 這裡顯示累積沒被下架的人 -->
+  <div id="stuckList" class="compare-tags"></div>
+</div>
+
       
-      <div class="panel" id="comparePanel">
-        <h3>待處理成員</h3>
-        <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>  
-        <div id="compareTags" class="compare-tags"></div>
-      </div>
     </div>
   </div>
 
@@ -628,6 +641,12 @@ input.skill-has {
     const roleTabs = document.getElementById("roleTabs");
     const compareTagsEl = document.getElementById("compareTags");
 
+    const STORAGE_IGNORE_KEY = "guildCompareIgnore";   // 存「我有按掉的紅/綠」
+    const STORAGE_STUCK_KEY  = "guildStuckMembers";    // 存「掛職名單」
+    let persistentCompareIgnore = new Set();           // 從 local / 後端載回來的忽略名單
+    let currentMissingNotIgnored = [];                 // 本輪比對下真正還是紅的(沒被你按掉)
+
+    
     let draggingPanelInput = null;
     let draggingPanelSide = null;
     let dragSuccess = false;
@@ -1733,6 +1752,71 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
       startVersionWatcher();
     }
 
+  
+    
+  /*V14新增，加上讀寫掛職名單＋讀 persistent ignore 的工具函式*/
+    
+    function getStuckData(){
+  // 只管前端這一份，真正要存到後端會在 doSaveToBackend 一起送
+  try {
+    const raw = localStorage.getItem(STORAGE_STUCK_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  return {};
+}
+
+function setStuckData(obj){
+  try {
+    localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {}));
+  } catch(e){}
+}
+
+function renderStuckList(){
+  const box = document.getElementById("stuckList");
+  if (!box) return;
+  const data = getStuckData();
+  const names = Object.keys(data);
+  box.innerHTML = "";
+  if (!names.length) {
+    box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
+    return;
+  }
+  names.forEach(name => {
+    const tag = document.createElement("div");
+    tag.className = "compare-tag missing-tag";
+    tag.textContent = name;
+    // 點掉代表真的處理好了 → 從掛職名單移除，順便也加到 ignore
+    tag.onclick = function(){
+      delete data[name];
+      setStuckData(data);
+      // 這個人既然真的被撤職了，就加到 ignore 裡
+      compareIgnore.add(name);
+      // 寫回 local 的永久 ignore
+      const arr = Array.from(compareIgnore);
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
+      renderStuckList();
+    };
+    box.appendChild(tag);
+  });
+}
+
+function loadPersistentIgnore(){
+  try {
+    const raw = localStorage.getItem(STORAGE_IGNORE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      persistentCompareIgnore = new Set(arr);
+      // 同步到目前畫面用的那一份
+      compareIgnore.clear();
+      arr.forEach(n => compareIgnore.add(n));
+    }
+  } catch(e){
+    persistentCompareIgnore = new Set();
+  }
+}
+
+
+    
     function applyStateToPage(state, fromLocal){
       if (state.allMembers && Array.isArray(state.allMembers)) {
         allMembers = state.allMembers;
@@ -1768,13 +1852,38 @@ refreshSubsView();
 
 
 
-
-      if (state.recentMarks) {
+   /*V14修改，吃後端的 compareIgnore / stuckMembers*/
+            if (state.recentMarks) {
         renderRecentMarks(state.recentMarks);
       } else {
         clearAllOutlines();
       }
+
+      // ★ 共同的「被按掉的紅/綠」(compareIgnore)
+      if (state.compareIgnore && Array.isArray(state.compareIgnore)) {
+        persistentCompareIgnore = new Set(state.compareIgnore);
+        compareIgnore.clear();
+        state.compareIgnore.forEach(n => compareIgnore.add(n));
+        // 也寫到 localStorage，避免重整不見
+        localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore));
+      }
+
+      // ★ 共同的「掛職名單」
+      if (state.stuckMembers) {
+        setStuckData(state.stuckMembers);
+      }
+      renderStuckList();
     }
+
+    
+    /*V14新增，保存待處理名單中已被處理的成員紀錄，並同步到後端*/
+function saveCompareIgnore(){
+  // 先存到 local
+  const arr = Array.from(compareIgnore);
+  localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
+  // 再走一次跟「儲存」一樣的流程，讓其他編輯者也能看到
+  requestSave();
+}
 
     function requestSave(){
       const now = Date.now();
@@ -1823,45 +1932,60 @@ refreshSubsView();
   });
 }
 
+
+  /*V14修改，把掛職名單也送上去*/
     function doSaveToBackend(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
+  const state = {
+    allMembers,
+    lastWeek: getPanelData(lastWeekPanel),
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData()
+  };
 
-      const marks = collectDirtyMarks();
-      state.recentMarks = {
-        user: currentUser || "unknown",
-        marks
-      };
+  // 這次畫面上有動到的欄位 → 給你原本的顏色框線用
+  const marks = collectDirtyMarks();
+  state.recentMarks = {
+    user: currentUser || "unknown",
+    marks
+  };
 
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  // ★ 把「我有按掉的待處理」也存上去，讓別人也看得到
+  state.compareIgnore = Array.from(compareIgnore);
 
-      fetch(REMOTE_API, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "save",
-          payload: state
-        })
-      })
-      .then(res=>res.json())
-      .then(data=>{
-        if (data && data.success) {
-          alert("已儲存到後台");
-          renderRecentMarks(state.recentMarks);
-          document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-        } else {
-          alert("後台有回應但不是 success，請看 console");
-          console.log(data);
-        }
-      })
-      .catch(err=>{
-        alert("無法連到後台，請檢查 Apps Script 部署權限");
-        console.error(err);
-      });
+  // ★ 把「掛職名單」也存上去
+  state.stuckMembers = getStuckData();
+
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+
+  fetch(REMOTE_API, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "save",
+      payload: state
+    })
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if (data && data.success) {
+      alert("已儲存到後台");
+      renderRecentMarks(state.recentMarks);
+      document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
+
+      // 後端存成功後，也把 compareIgnore / stuckMembers 各自的 local 寫一下，保持一致
+      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
+      setStuckData(state.stuckMembers || {});
+      renderStuckList();
+    } else {
+      alert("後台有回應但不是 success，請看 console");
+      console.log(data);
     }
+  })
+  .catch(err=>{
+    alert("無法連到後台，請檢查 Apps Script 部署權限");
+    console.error(err);
+  });
+}
+
 
     function compare(){
       // 先清掉舊的紅綠
@@ -1919,8 +2043,12 @@ refreshSubsView();
         }
       });
 
-      renderCompareTags(newOnes, missingOnes);
-    }
+
+      
+       renderCompareTags(newOnes, missingOnes);
+  currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name)); // V14新增，這一輪還是紅的、而且沒有按掉的 → 等等覆蓋時要加到掛職名單
+}
+
 
     
 /*V12.1調整紅綠色顯示排序*/
@@ -1964,14 +2092,41 @@ refreshSubsView();
       compare();
     }
 
+
+  /*V14修改，當覆蓋按鈕按下時，把「本輪還沒處理的紅色」塞進掛職名單*/
     function copyThisToLast(){
-      if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
-      lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
-      const thisData = getPanelData(thisWeekPanel);
-      setPanelData(lastWeekPanel, thisData, "last");
-      saveState();
-      alert("已將本週名單的內容覆蓋到上週。");
+  if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
+
+  // 先存一份上週給還原用
+  lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
+
+  // 讀目前掛職
+  const stuck = getStuckData();
+
+  // 把這一輪仍然紅的、而且沒被你按掉的，加進掛職
+  // currentMissingNotIgnored 是 compare() 最後填的
+  currentMissingNotIgnored.forEach(name => {
+    if (name && !stuck[name]) {
+      stuck[name] = new Date().toISOString(); // 可以放時間當紀錄
     }
+  });
+
+  // 寫回前端的掛職存檔
+  setStuckData(stuck);
+
+  // 真的做覆蓋
+  const thisData = getPanelData(thisWeekPanel);
+  setPanelData(lastWeekPanel, thisData, "last");
+  saveState();
+  renderStuckList();
+
+  alert("已將本週名單覆蓋到上週，掛職名單已更新。");
+}
+
+
+    
+
+    
     function undoCopy(){
       if(!lastSnapshot){
         alert("沒有可還原的內容。");
@@ -2239,8 +2394,6 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   saveState();
   closeMemberPicker();
 }
-
-
     
     function closeMemberPicker(){
       memberPicker.style.display = "none";
@@ -2251,12 +2404,16 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
         closeMemberPicker();
       }
     });
-
+    
     // 初始化
-    loadState();
+  loadState();
+  loadPersistentIgnore(); //V14新增
+  renderStuckList(); //V14新增
+
   </script>
 </body>
 </html>
+
 
 
 

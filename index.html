@@ -1744,15 +1744,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     const sx = x + INNER_PAD + i * (squadW + gap);
     const sy = y + HEAD_H + INNER_PAD;
 
-    // 小隊外框（承載容器）
-    ctx.fillStyle = "#ffffff";
-    fillRoundRectCorners(ctx, sx, sy, squadW, availH, 8, {tl:true,tr:true,br:true,bl:true});
-    strokeRoundRectCorners(ctx, sx, sy, squadW, availH, 8, {tl:true,tr:true,br:true,bl:true});
-
-    // clip 住，避免描邊外溢
-    ctx.save();
-    roundRectPath(ctx, sx, sy, squadW, availH, 8, {tl:true,tr:true,br:true,bl:true});
-    ctx.clip();
+    //321123
 
     // ① 小隊標題：獨立圓角框（四角圓、滿寬、細框）
     const titleX = sx + 2;
@@ -1929,4 +1921,5 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 

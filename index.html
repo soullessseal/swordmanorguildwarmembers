@@ -1683,7 +1683,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     // 小隊標題（連號）—— 只畫上/左/右三邊，底部不畫，給 spacer 用
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(sx, sy, squadWidth, 22);
-    strokeRectEdges(ctx, sx, sy, squadWidth, 22, {top:true,right:true,left:true}); // no bottom
+    strokeRectEdges(ctx, sx, sy, squadWidth, 22, {top:true,bottom:true,right:true,left:true}); // no bottom
 
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px system-ui";
@@ -1839,6 +1839,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

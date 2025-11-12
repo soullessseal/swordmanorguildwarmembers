@@ -1720,7 +1720,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
       const hasSkill = squad && squad.members[m] && squad.members[m].skill;
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
       ctx.fillRect(sx, rowY, squadWidth, SKILL_H);
-      strokeRectEdges(ctx, sx, rowY, squadWidth, SKILL_H, {top:true,right:true,left:true}); // no bottom
+      strokeRectEdges(ctx, sx, rowY, squadWidth, SKILL_H, {top:true,bottom:true,right:true,left:true}); // no bottom
 
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";
@@ -1839,6 +1839,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

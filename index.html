@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14 </title>
+  <title>幫戰名單比對工具 v14.1 </title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -462,7 +462,7 @@ input.skill-has {
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14 </h1>
+  <h1>幫戰名單比對工具 v14.1 </h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -1033,17 +1033,23 @@ setupPanelCarousel("thisWeek");
         saveState();
       }
     }
+
+/*V14.1更新*/    
     function clearInputAndSkill(input){
-      input.value = "";
-      input.style.borderLeft = "";
-      input.style.color = "";
-      input.dataset.job = "";
-      const skillRow = input.parentElement.nextElementSibling;
-      if(skillRow && skillRow.querySelector("input[data-role='skill']")){
-        skillRow.querySelector("input[data-role='skill']").value = "";
-      }
-      input.classList.remove("highlight-new","highlight-missing");
-    }
+  input.value = "";
+  input.style.borderLeft = "";
+  input.style.color = "";
+  input.dataset.job = "";
+  const skillRow = input.parentElement.nextElementSibling;
+  if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+    const skillInput = skillRow.querySelector("input[data-role='skill']");
+    // 用共用函式來清 → 會把 skill-has 一起拿掉
+    setSkillInputValue(skillInput, "");
+  }
+  input.classList.remove("highlight-new","highlight-missing");
+}
+
+    
     function clearHighlightOnEdit(input){
       input.classList.remove("highlight-new","highlight-missing");
     }
@@ -1532,40 +1538,60 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
         }
         const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
 
-        // 同面板互換
-        if(member.fromPanel && member.side === targetSide && draggingPanelInput){
-          const src = draggingPanelInput;
-          if(src === target) return;
-          const srcName = src.value.trim();
-          const srcJob = src.dataset.job || getJobByName(srcName) || "";
-          let srcSkill = "";
-          const srcSkillRow = src.parentElement.nextElementSibling;
-          if(srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')){
-            srcSkill = srcSkillRow.querySelector('input[data-role="skill"]').value;
-          }
+        // 同面板互換 V14.1更新調整交換位子技能顏色問題
+if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
+  const src = draggingPanelInput;
+  if (src === target) return;
 
-          const tgtName = target.value.trim();
-          const tgtJob = target.dataset.job || getJobByName(tgtName) || "";
-          let tgtSkill = "";
-          const tgtSkillRow = target.parentElement.nextElementSibling;
-          if(tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')){
-            tgtSkill = tgtSkillRow.querySelector('input[data-role="skill"]').value;
-          }
+  // 先把兩邊的內容抓起來
+  const srcName = src.value.trim();
+  const srcJob  = src.dataset.job || getJobByName(srcName) || "";
+  let srcSkill  = "";
+  const srcSkillRow = src.parentElement.nextElementSibling;
+  if (srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')) {
+    srcSkill = srcSkillRow.querySelector('input[data-role="skill"]').value;
+  }
 
-          src.value = tgtName;
-          applyJobColor(src, tgtJob);
-          if(srcSkillRow) srcSkillRow.querySelector('input[data-role="skill"]').value = tgtSkill || "";
-          src.classList.remove("highlight-new","highlight-missing");
+  const tgtName = target.value.trim();
+  const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
+  let tgtSkill  = "";
+  const tgtSkillRow = target.parentElement.nextElementSibling;
+  if (tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')) {
+    tgtSkill = tgtSkillRow.querySelector('input[data-role="skill"]').value;
+  }
 
-          target.value = srcName;
-          applyJobColor(target, srcJob);
-          if(tgtSkillRow) tgtSkillRow.querySelector('input[data-role="skill"]').value = srcSkill || "";
-          target.classList.remove("highlight-new","highlight-missing");
-          markDirty(src);
-          markDirty(target);
-          saveState();
-          return;
-        }
+  // 交換名字與職業色
+  src.value = tgtName;
+  applyJobColor(src, tgtJob);
+  target.value = srcName;
+  applyJobColor(target, srcJob);
+
+  // ★ 交換技能時改用 setSkillInputValue，黃色才會跟著換
+  if (srcSkillRow && srcSkillRow.querySelector('input[data-role="skill"]')) {
+    setSkillInputValue(
+      srcSkillRow.querySelector('input[data-role="skill"]'),
+      tgtSkill || ""
+    );
+  }
+  if (tgtSkillRow && tgtSkillRow.querySelector('input[data-role="skill"]')) {
+    setSkillInputValue(
+      tgtSkillRow.querySelector('input[data-role="skill"]'),
+      srcSkill || ""
+    );
+  }
+
+  // 把紅綠標示拿掉
+  src.classList.remove("highlight-new", "highlight-missing");
+  target.classList.remove("highlight-new", "highlight-missing");
+
+  // 標記有修改 & 存檔
+  markDirty(src);
+  markDirty(target);
+  saveState();
+  return;
+}
+
+        
 
         // 替補 → 面板 且面板原本有值 → 替補那個被換回去
         if(member.fromSub !== undefined && target.value.trim() !== ""){
@@ -2404,6 +2430,20 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
         closeMemberPicker();
       }
     });
+
+// V14.1處理技能欄位交換位置的顏色
+function updateSkillColor(cell) {
+  const skill = cell.querySelector(".skill");
+  if (!skill) return;
+  const text = (skill.textContent || "").trim();
+  // 若有技能文字 → 黃色背景
+  if (text) {
+    skill.style.background = "#fef9c3"; // 淺黃色
+  } else {
+    skill.style.background = "transparent"; // 清除顏色
+  }
+}
+    
     
     // 初始化
   loadState();
@@ -2413,29 +2453,3 @@ const maxWidth = Math.max(MIN_WIDTH, ...neededWidths);
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

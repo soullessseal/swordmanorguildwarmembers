@@ -1528,7 +1528,7 @@ function strokeRoundRect(ctx, x, y, w, h, r, color = "#e2e8f0") {
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.strokeStyle = color;
-  ctx.lineWidth = px;
+  ctx.lineWidth = 1;
   ctx.stroke();
 }
 
@@ -1584,7 +1584,7 @@ function strokeCornerArcs(ctx, x, y, w, h, r, corners = {tl:false,tr:false,br:fa
   const px = _px1(ctx);
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = px;
+  ctx.lineWidth = 1;
   ctx.lineCap   = "butt";
   ctx.lineJoin  = "miter";
   // 角弧可視區（上/下緣各一條薄 clip）
@@ -1937,6 +1937,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

@@ -1658,10 +1658,10 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
   const squadHeight = h - 30 - innerPad * 2;
 
-  // 列高與縫隙設定（確保含縫隙仍不易溢出）
+  // 列高與縫隙設定
   const NAME_H = 17;
   const SKILL_H = 13;
-  const SPACER = 4; // 名稱+技能跟下一個成員區塊之間的純留白
+  const SPACER = 4;
 
   for (let i = 0; i < squadCount; i++) {
     const sx = x + innerPad + i * (squadWidth + gap);
@@ -1673,7 +1673,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     ctx.strokeStyle = "#e2e8f0";
     ctx.strokeRect(sx, sy, squadWidth, squadHeight);
 
-    // 小隊標題（連號）
+    // 小隊標題
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(sx, sy, squadWidth, 22);
     ctx.strokeStyle = "#e2e8f0";
@@ -1682,12 +1682,11 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     ctx.font = "bold 12px system-ui";
     ctx.fillText("第" + (startIndex + i) + "小隊", sx + 6, sy + 15);
 
-    // 名稱 + 技能 6 列
     const squad = squads[i];
     let rowY = sy + 26;
 
     for (let m = 0; m < 6; m++) {
-      // 名稱列（白底 + 左側職業色條 + 加粗字）
+      // 名稱列
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(sx, rowY, squadWidth, NAME_H);
       ctx.strokeStyle = "#e2e8f0";
@@ -1695,11 +1694,12 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       if (squad && squad.members[m] && squad.members[m].name) {
         const mem = squad.members[m];
-        const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
-        // 左側職業色條
+        const jobColor =
+          mem.job && roleColors[mem.job]
+            ? darkenHex(roleColors[mem.job], 0.25)
+            : "#0f172a";
         ctx.fillStyle = jobColor;
         ctx.fillRect(sx, rowY, 4, NAME_H);
-        // 名稱字
         ctx.fillStyle = jobColor;
         ctx.font = "bold 13px system-ui";
         ctx.fillText(mem.name, sx + 6, rowY + Math.round(NAME_H * 0.76));
@@ -1707,7 +1707,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       rowY += NAME_H;
 
-      // 技能列（有值淺黃、無值白底）
+      // 技能列
       const hasSkill = squad && squad.members[m] && squad.members[m].skill;
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
       ctx.fillRect(sx, rowY, squadWidth, SKILL_H);
@@ -1722,8 +1722,10 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       rowY += SKILL_H;
 
-      // 與下一位成員之間的「純留白縫隙」—— 不畫任何線
+      // 純間距區：不畫線、不畫框（只空白）
       if (m !== 5) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(sx, rowY, squadWidth, SPACER); // 填白遮左右線
         rowY += SPACER;
       }
     }
@@ -1829,6 +1831,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

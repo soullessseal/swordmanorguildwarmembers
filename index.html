@@ -1671,12 +1671,35 @@ function getTeamCanvasWidth(team) {
   const squadWidth = 100;
   return basePad * 2 + squadCount * squadWidth + (squadCount - 1) * innerGap;
 }
+
+/* 🔹計算團隊外框的「需要高度」，確保能包覆所有小隊 */
+function getTeamCanvasHeight(team) {
+  // 這些數值需與 drawTeamBlockImage 內一致
+  const HEAD_H  = 30; // 頂部色條
+  const INNER_PAD = 8;
+  let TITLE_H  = 28; // 小隊標題卡
+  let NAME_H   = TITLE_H; // 名稱卡
+  let SKILL_H  = TITLE_H; // 技能卡
+  const SP_TITLE = 6;     // 標題→第一位
+  const SPACER   = 6;     // 成員間距
+  const MEMBERS_PER_SQUAD = 6;
+
+  // 下載圖的卡片高度會做自適應壓縮，這裡先用原始期望高度估算
+  const innerH =
+    (2 /*title卡上方的2px*/ + TITLE_H) + SP_TITLE +
+    (MEMBERS_PER_SQUAD * (NAME_H + SKILL_H)) +
+    ((MEMBERS_PER_SQUAD - 1) * SPACER);
+
+  // 外框：頭 + 內邊距 + 內容 + 內邊距，再加些 buffer 防裁切
+  return HEAD_H + INNER_PAD + innerH + INNER_PAD + 4;
+}
+
 function sortTeamsByPriority(teamsArr) {
   const order = { "進攻": 1, "拆塔": 2, "機動": 3, "防守": 4 };
   return [...teamsArr].sort((a, b) => (order[a.team] || 99) - (order[b.team] || 99));
 }
 
-// ================== 3) 下載圖片（行內團隊無水平間距） ==================
+// ================== 3) 下載圖片（行內團隊無水平間距 & 外框自動包覆） ==================
 function downloadThisWeekImage() {
   const data = getPanelData(thisWeekPanel);
 
@@ -1686,23 +1709,27 @@ function downloadThisWeekImage() {
     .filter(g => g.teams.length > 0)
     .map(g => ({ tag: g.tag, teams: sortTeamsByPriority(g.teams) }));
 
-  const teamBlockH = 272;
-  const rowHeaderH = 30;
-  const rowGapY = 30;
-  const sidePad = 20;
-  const topPad = 50;
-  const titleH = 32;
+  const rowHeaderH = 30;   // 團號灰底高度
+  const rowGapY    = 30;   // 列間距
+  const sidePad    = 20;   // 畫布左右邊界
+  const topPad     = 50;   // 標題上方留白
+  const titleH     = 32;   // 標題高度
 
-  const rowWidths = grouped.map(group => {
-    let w = 0;
-    group.teams.forEach(team => { w += getTeamCanvasWidth(team); });
-    return Math.max(420 - sidePad * 2, w);
+  // 先量每一列每個團的 w/h，取得列寬與列高（取該列最大團高）
+  const rowMeasures = grouped.map(group => {
+    const items = group.teams.map(team => ({
+      team,
+      w: getTeamCanvasWidth(team),
+      h: getTeamCanvasHeight(team)
+    }));
+    const rowW = items.reduce((s, it) => s + it.w, 0);
+    const rowH = Math.max(...items.map(it => it.h));
+    return { tag: group.tag, items, rowW, rowH };
   });
 
-  const canvasWidth = Math.max(...rowWidths.map(w => w + sidePad * 2));
-  const rowTotalH = rowHeaderH + teamBlockH;
-  const canvasHeight =
-    topPad + titleH + grouped.length * rowTotalH + (grouped.length - 1) * rowGapY + sidePad;
+  const canvasWidth  = Math.max(...rowMeasures.map(r => r.rowW + sidePad * 2), 420);
+  const contentTotalH = rowMeasures.reduce((s, r) => s + (rowHeaderH + r.rowH), 0) + (rowMeasures.length - 1) * rowGapY;
+  const canvasHeight = topPad + titleH + contentTotalH + sidePad;
 
   const SCALE = 3;
   const canvas = document.createElement("canvas");
@@ -1718,37 +1745,32 @@ function downloadThisWeekImage() {
   ctx.font = "bold 22px system-ui";
   ctx.fillText("本週名單", sidePad, topPad);
 
-  // 逐行繪製
+  // 逐列繪製
   let currentY = topPad + titleH;
-  grouped.forEach((group, rowIdx) => {
-    const teamsTotalW = rowWidths[rowIdx];
-    let x = sidePad;
-
-    // 團號灰底（上圓下直）
-    const headerX = x, headerW = teamsTotalW, headerH = rowHeaderH;
+  rowMeasures.forEach(row => {
+    // 團號灰底（寬度 = 該列所有團的總寬）
+    const headerX = sidePad, headerW = row.rowW, headerH = rowHeaderH;
     ctx.fillStyle = "#B4BBC8";
     fillRoundRectCorners(ctx, headerX, currentY, headerW, headerH, 8, { tl:true, tr:true, br:false, bl:false });
 
     // 團號文字
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 15px system-ui";
-    const tagTextW = ctx.measureText(group.tag).width;
-    ctx.fillText(group.tag, headerX + (headerW - tagTextW) / 2, currentY + headerH / 2 + 5);
+    const tagTextW = ctx.measureText(row.tag).width;
+    ctx.fillText(row.tag, headerX + (headerW - tagTextW) / 2, currentY + headerH / 2 + 5);
 
-    // 同行團隊無縫排列
-    let startIndex = 1;
+    // 同行團隊緊貼排列（每個團用各自的 h）
+    let x = sidePad;
     const teamTopY = currentY + headerH;
-    group.teams.forEach(team => {
-      const w = getTeamCanvasWidth(team);
-      drawTeamBlockImage(ctx, team, x, teamTopY, w, teamBlockH, startIndex);
-      const squadCount = Math.max(1, (team.squads ? team.squads.length : 0) || 6);
-      startIndex += squadCount;
-      x += w;
+    row.items.forEach(item => {
+      drawTeamBlockImage(ctx, item.team, x, teamTopY, item.w, item.h, /*startIndex 由函式內部算*/ 1);
+      x += item.w;
     });
 
-    currentY += rowTotalH + rowGapY;
+    currentY += headerH + row.rowH + rowGapY;
   });
 
+  // 下載
   const link = document.createElement("a");
   link.download = "this-week.png";
   link.href = canvas.toDataURL("image/png");
@@ -1966,6 +1988,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

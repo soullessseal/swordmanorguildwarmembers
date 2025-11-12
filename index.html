@@ -1500,35 +1500,32 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
 
       // 替補 ← 面板：要互換
       if(target.classList.contains("sub-name")){
-        if (member.fromPanel && draggingPanelInput) {
-          const oldName = target.value.trim();
-          const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
-          const oldJob = getJobByName(oldName) || target.dataset.job || "";
+        if (member.fromPanel && draggingPanelInput) {  //V14.1更新交換位置的技能顏色問題
+  const oldName = target.value.trim();
+  const oldSkill = target.parentElement.querySelector(".sub-skill").value.trim();
+  const oldJob = getJobByName(oldName) || target.dataset.job || "";
 
-          target.value = member.name;
-          applyJobColor(target, member.job);
-          target.parentElement.querySelector(".sub-skill").value = member.skill || "";
-          markDirty(target);
+  // 把面板上的人放到替補
+  target.value = member.name;
+  applyJobColor(target, member.job);
+  target.parentElement.querySelector(".sub-skill").value = member.skill || "";
+  markDirty(target);
 
-          draggingPanelInput.value = oldName;
-          applyJobColor(draggingPanelInput, oldJob);
-          const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-          if (panelSkillRow && panelSkillRow.querySelector('input[data-role="skill"]')) {
-            panelSkillRow.querySelector('input[data-role="skill"]').value = oldSkill;
-          }
-          markDirty(draggingPanelInput);
-          saveState();
-          return;
-        } else {
-          target.value = member.name;
-          applyJobColor(target, member.job);
-          const sk = target.parentElement.querySelector(".sub-skill");
-          if(sk) sk.value = member.skill ? member.skill : "";
-          markDirty(target);
-          saveState();
-          return;
-        }
-      }
+  // 把替補原本的人放回面板那格
+  draggingPanelInput.value = oldName;
+  applyJobColor(draggingPanelInput, oldJob);
+  const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+  if (panelSkillRow && panelSkillRow.querySelector('input[data-role="skill"]')) {
+    const panelSkillInput = panelSkillRow.querySelector('input[data-role="skill"]');
+    // ← 用共用的，才會把黃色一起處理
+    setSkillInputValue(panelSkillInput, oldSkill || "");
+  }
+
+  markDirty(draggingPanelInput);
+  saveState();
+  return;
+}
+
 
       if(target.dataset && target.dataset.role === "name"){
         const targetSide = target.dataset.side;
@@ -2453,3 +2450,4 @@ function updateSkillColor(cell) {
   </script>
 </body>
 </html>
+

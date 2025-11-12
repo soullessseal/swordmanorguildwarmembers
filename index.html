@@ -1514,7 +1514,25 @@ function copyThisToLast(){
       ctx.closePath();
       ctx.fill();
     }
+  // 只描邊圓角矩形（搭配 fillRoundRect 使用）
+function strokeRoundRect(ctx, x, y, w, h, r, color = "#e2e8f0") {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
 
+    
     //以下這段V14.6新增，整理下載圖片功能
   /* 下載圖片 v14.6 專用：計算單一團隊區塊寬度（團內小隊橫向排） */
 function getTeamCanvasWidth(team) {
@@ -1594,9 +1612,9 @@ function downloadThisWeekImage() {
     const headerW = teamsTotalW;
     const headerH = rowHeaderH;
     // 底色：只有上緣圓角
-    fillTopRoundedRect(ctx, headerX, currentY, headerW, headerH, 8, "#C1BAAC", "#cbd5e1");
+    fillTopRoundedRect(ctx, headerX, currentY, headerW, headerH, 8, "#B4BBC8", "#cbd5e1");
    // 只做「上緣」兩角的圓角矩形（左上/右上圓角，底部直角）
-    function fillTopRoundedRect(ctx, x, y, w, h, r, fill = "#C1BAAC", stroke = "#cbd5e1") {
+    function fillTopRoundedRect(ctx, x, y, w, h, r, fill = "#B4BBC8", stroke = "#cbd5e1") {
       ctx.beginPath();
   // 從左下開始，往上到左上圓角
       ctx.moveTo(x, y + h);
@@ -1649,16 +1667,16 @@ function strokeRectEdges(ctx, x, y, w, h, edges, color = "#e2e8f0") {
   if (edges.left)   { ctx.moveTo(x + 0.5, y);      ctx.lineTo(x + 0.5, y + h); }
   ctx.stroke();
 }
-/* 畫單一團隊卡片（v14.6）
-   - 團隊色條：改為矩形（無圓角）
-   - 名稱/技能列之間加入縫隙 SPACER，且縫隙不畫線
-   - 名稱列白底；技能列有值淺黃（#FFFFDB）
+/* 畫單一團隊卡片（v14.6 改版）
+   - 小隊標題（第X小隊）改用圓角外框
+   - 成員名稱／成員技能每一列都用小圓角外框
+   - 技能列加高：SKILL_H = 18
 */
 function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   // 外框白卡片
   ctx.fillStyle = "#ffffff";
   fillRoundRect(ctx, x, y, w, h, 12);
-  strokeRectEdges(ctx, x, y, w, h, {top:true,right:true,bottom:true,left:true});
+  strokeRoundRect(ctx, x, y, w, h, 12, "#e2e8f0");
 
   // 團隊色條（無圓角）
   const headColor = teamColorByName(team.team);
@@ -1675,34 +1693,36 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   const squads = team.squads || [];
   const gap = 4;
   const squadCount = Math.max(1, (squads.length || 6));
-  const squadWidth = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
+  const squadWidth  = (w - innerPad * 2 - gap * (squadCount - 1)) / squadCount;
   const squadHeight = h - 30 - innerPad * 2;
 
   // 列高與縫隙設定
-  const NAME_H = 17;
-  const SKILL_H = 13;
-  const SPACER = 4;             // 成員與成員之間的純留白
-  const SPACER_TITLE = 6;       // 小隊標題與第一個成員之間的純留白
+  const NAME_H       = 17;  // 成員名稱列高度
+  const SKILL_H      = 18;  // ★ 技能列加高
+  const SPACER       = 4;   // 成員與成員間的純留白
+  const SPACER_TITLE = 6;   // 標題與第一位成員的純留白
+  const CELL_RADIUS  = 4;   // 小框圓角半徑
+  const TITLE_RADIUS = 5;   // 小隊標題圓角半徑
 
   for (let i = 0; i < squadCount; i++) {
     const sx = x + innerPad + i * (squadWidth + gap);
     const sy = contentY + innerPad;
 
-    // 小隊卡片
+    // 小隊卡片容器（有圓角）
     ctx.fillStyle = "#ffffff";
     fillRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6);
-    strokeRectEdges(ctx, sx, sy, squadWidth, squadHeight, {top:true,right:true,bottom:true,left:true});
+    strokeRoundRect(ctx, sx, sy, squadWidth, squadHeight, 6, "#e2e8f0");
 
-    // 小隊標題（連號）—— 只畫上/左/右三邊，底部不畫，給 spacer 用
+    // 小隊標題（圓角外框）
     ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(sx, sy, squadWidth, 22);
-    strokeRectEdges(ctx, sx, sy, squadWidth, 22, {top:true,bottom:true,right:true,left:true}); // no bottom
+    fillRoundRect(ctx, sx, sy, squadWidth, 22, TITLE_RADIUS);
+    strokeRoundRect(ctx, sx, sy, squadWidth, 22, TITLE_RADIUS, "#e2e8f0");
 
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px system-ui";
     ctx.fillText("第" + (startIndex + i) + "小隊", sx + 6, sy + 15);
 
-    // 標題與第一個成員之間的「純留白」—— 完全不畫線，並稍微多蓋 1px 防鋸齒殘線
+    // 標題與第一位成員之間留白
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(sx - 1, sy + 22, squadWidth + 2, SPACER_TITLE);
 
@@ -1710,16 +1730,17 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
     let rowY = sy + 22 + SPACER_TITLE;
 
     for (let m = 0; m < 6; m++) {
-      // 名稱列：白底 + 左側職業色條；畫上/左/右，不畫下邊（避免與 spacer 接壤出線）
+      // ① 成員名稱列（小圓角外框）
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(sx, rowY, squadWidth, NAME_H);
-      strokeRectEdges(ctx, sx, rowY, squadWidth, NAME_H, {top:true,right:true,left:true}); // no bottom
+      fillRoundRect(ctx, sx, rowY, squadWidth, NAME_H, CELL_RADIUS);
+      strokeRoundRect(ctx, sx, rowY, squadWidth, NAME_H, CELL_RADIUS, "#e2e8f0");
 
       if (squad && squad.members[m] && squad.members[m].name) {
         const mem = squad.members[m];
         const jobColor = mem.job && roleColors[mem.job] ? darkenHex(roleColors[mem.job], 0.25) : "#0f172a";
         // 左側職業色條
         ctx.fillStyle = jobColor;
+        // 小圓角內再畫一條 4px 左條（不做圓角）
         ctx.fillRect(sx, rowY, 4, NAME_H);
         // 名稱字
         ctx.fillStyle = jobColor;
@@ -1729,11 +1750,11 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       rowY += NAME_H;
 
-      // 技能列：有值淺黃；同樣只畫上/左/右三邊，不畫下邊
+      // ② 成員技能列（小圓角外框；有技能→淺黃）
       const hasSkill = squad && squad.members[m] && squad.members[m].skill;
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
-      ctx.fillRect(sx, rowY, squadWidth, SKILL_H);
-      strokeRectEdges(ctx, sx, rowY, squadWidth, SKILL_H, {top:true,bottom:true,right:true,left:true}); // no bottom
+      fillRoundRect(ctx, sx, rowY, squadWidth, SKILL_H, CELL_RADIUS);
+      strokeRoundRect(ctx, sx, rowY, squadWidth, SKILL_H, CELL_RADIUS, "#e2e8f0");
 
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";
@@ -1743,7 +1764,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
       rowY += SKILL_H;
 
-      // 成員間的純留白 —— 完全不畫線，並左右各擴 1px 蓋掉可能的抗鋸齒殘線
+      // ③ 成員間純留白（不畫線）
       if (m !== 5) {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(sx - 1, rowY, squadWidth + 2, SPACER);
@@ -1852,6 +1873,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   </script>
 </body>
 </html>
+
 
 
 

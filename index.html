@@ -1600,6 +1600,7 @@ thisWeekPanel.querySelectorAll(".team-block").forEach(block => {
     if (srow && srow.querySelector("input[data-role='skill']")) {
       setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
     }
+    clearDuplicateInPanel(thisWeekPanel, member.name, target);　//V14.1新增：確保本週名單只保留一個同名成員（把替補名單的舊位置清掉）
     target.classList.remove("highlight-new", "highlight-missing");
     clearDuplicateInPanel(targetPanel, member.name, target);
     markDirty(target);
@@ -2431,6 +2432,7 @@ function updateSkillColor(cell) {
   </script>
 </body>
 </html>
+
 
 
 

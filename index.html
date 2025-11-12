@@ -127,16 +127,14 @@
     /* 🔺強化待處理欄位紅綠標籤文字大小與粗體 */
     #compareTags .compare-tag.new-tag,
     #compareTags .compare-tag.missing-tag {
-    font-size: .9rem;      /* 原本 .65rem → 放大一點 */
-    font-weight: 800;      /* 粗體加強辨識 */
-    letter-spacing: .2px;  /* 微調字距更穩 */
-    padding: .3rem .8rem;  /* 讓字放大後不會擠 */
+    font-size: 0.78rem;      /* 原本 .65rem → 放大一點 */
+    font-weight: 700;      /* 粗體加強辨識 */
+    padding: 0.3rem 0.35rem;  /* 讓字放大後不會擠 */
     }
     #stuckList .compare-tag.missing-tag {
-    font-size: .9rem;
-    font-weight: 800;
-    letter-spacing: .2px;
-    padding: .3rem .8rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.3rem 0.35rem;
     }
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
@@ -241,14 +239,24 @@
       </div>
 
       <div class="panel" id="comparePanel">
-        <h3>待處理成員</h3>
-        <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
-        <div><button class="float-btn secondary" style="margin-top:.5rem; background:rgba(239,68,68,0.85); color:#fff; border:none; font-weight:600; transition:background 0.2s ease, box-shadow 0.2s ease;" onclick="saveCompareIgnore()">保存處理</button></div>
-        <div id="compareTags" class="compare-tags"></div>
-        <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
-        <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
-        <div id="stuckList" class="compare-tags"></div>
-      </div>
+  <h3>待處理成員</h3>
+  <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
+  <!-- 操作按鈕區 -->
+  <div style="margin-bottom:.6rem;">
+    <button class="float-btn secondary" 
+      style="margin-top:.4rem; background:rgba(239,68,68,0.85); color:#fff; border:none; font-weight:600; transition:background 0.2s ease, box-shadow 0.2s ease;" 
+      onclick="saveCompareIgnore()">
+      保存處理
+    </button>
+  </div>
+  <!-- 待處理名單 -->
+  <div id="compareTags" class="compare-tags" style="margin-top:.4rem;"></div>
+  <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
+  <!-- 掛職名單 -->
+  <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
+  <div id="stuckList" class="compare-tags"></div>
+</div>
+
     </div>
   </div>
 
@@ -1684,6 +1692,7 @@
   </script>
 </body>
 </html>
+
 
 
 

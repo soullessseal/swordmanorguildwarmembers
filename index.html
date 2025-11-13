@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v15</title>
+  <title>幫戰名單比對工具 v15.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -215,7 +215,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v15</h1>
+  <h1>幫戰名單比對工具 v15.1</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -2095,24 +2095,27 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 // 以上這段 V14.7 完整下載圖片功能（名稱/技能兩張獨立卡）
     
 
-  /*V14.8修改上週名單也會出現搜尋框的問題*/
+  /*V15修正本週成員點擊問題*/
     function maybeOpenMemberPicker(e, input) {
   // 上週欄位直接略過
   if (input.dataset.side === "last") return;
-  // 如果是鎖定欄位，也不處理
   if (input.readOnly) return;
   const hasValue = (input.value || "").trim() !== "";
-  // v15新增✅ 有成員的欄位：擋掉這次點擊（不開搜尋、不往下傳）
+  // 先擋掉瀏覽器預設行為（避免又開鍵盤）
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  // 已經有名字的格子：什麼都不做，只是當「點不到」
   if (hasValue) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+    input.blur();  // 保險再收一次游標
     return;
   }
-  // v15新增✅ 空欄位才開成員搜尋浮層
+  // 空白格子：開成員搜尋浮層
+  input.blur();    // 確保不留下游標
   openMemberPicker(input);
 }
+
 
 
   /* V14.9：搜尋框貼齊欄位下緣，左右依規則自動對齊 */
@@ -2257,6 +2260,21 @@ function refreshAllNameFonts() {
     });
     
     attachIOSZoomFix();
+
+ // V15.1新增✅ 任何時候，只要「本週名單」的成員欄位被 focus，就立刻 blur 掉
+document.addEventListener("focusin", function (e) {
+  const t = e.target;
+  if (!t || !t.matches) return;
+  // 只針對本週名單的名字欄位
+  if (t.matches('#thisWeek input[data-role="name"]')) {
+    // iOS/Safari 有時候要晚一拍 blur，所以用 setTimeout 0
+    setTimeout(() => {
+      if (document.activeElement === t) {
+        t.blur();        // 把游標收掉
+      }
+    }, 0);
+  }
+});
     
     // ✅ iOS：避免本週 / 替補名字欄位被點擊時整頁 ZOOM IN
 function attachIOSZoomFix() {
@@ -2285,6 +2303,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

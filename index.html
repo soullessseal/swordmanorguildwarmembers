@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.9</title>
+  <title>幫戰名單比對工具 v15</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -215,7 +215,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.9</h1>
+  <h1>幫戰名單比對工具 v15</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -899,7 +899,9 @@ fitNameFont(inp);                        // 同步編輯時
       e.dataTransfer.setData("text/plain", JSON.stringify(m));
       const color = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#0f172a";
       showDragPreview(`${m.name} (${m.job||""})`, color);
+      blockNextClick = true;  // v15新增 ✅ 方案 A：這次拖曳結束後若瀏覽器補打一個 click，就把那次 click 擋掉
     }
+    
     function dragFromSub(e){
       const row = e.currentTarget;
       const name = row.querySelector(".sub-name").value.trim();
@@ -909,6 +911,7 @@ fitNameFont(inp);                        // 同步編輯時
       e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromSub: row.dataset.subIndex}));
       const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
       showDragPreview(`${name} (${job||""})`, color);
+      blockNextClick = true;  // v15新增 ✅ 拖完這格之後，下一個 click 不要觸發 input 的 onclick
     }
     function dragFromPanel(e){
       const input = e.target;
@@ -919,6 +922,7 @@ fitNameFont(inp);                        // 同步編輯時
       const skillRow = input.parentElement.nextElementSibling;
       if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
         skill = skillRow.querySelector('input[data-role="skill"]').value;
+      blockNextClick = true;    // v15新增 ✅ 同樣啟動「阻止下一次 click」邏輯
       }
       const job = input.dataset.job || getJobByName(name) || "";
       draggingPanelInput = input;
@@ -935,6 +939,37 @@ fitNameFont(inp);                        // 同步編輯時
       draggingPanelSide = null;
     });
 
+    
+    /*下方v15測試擋掉點擊避免zoom in*/
+    let draggingPanelInput = null;
+    let draggingPanelSide = null;
+    let dragSuccess = false;
+    let dragPreviewEl = null;
+    // ✅ 方案 A：阻止「點擊」，不阻止拖曳
+    // 拖曳開始時把這個 flag 打開，下一次 click 先被我們攔截掉，才不會誤觸搜尋框 / 聚焦
+    let blockNextClick = false;
+    // 捕獲階段先攔截，確保在原本的 onclick / addEventListener 之前擋到
+    document.addEventListener(
+      "click",
+      function (e) {
+        if (!blockNextClick) return;
+        // 用掉這個機會，下一次 click 就恢復正常
+        blockNextClick = false;
+        const t = e.target;
+        // 只針對「本週名單／替補」的名字欄位擋掉點擊
+        // 其他地方（按鈕、左側成員列表…）照常
+        if (
+          t.matches('#thisWeek input[data-role="name"]') ||
+          t.matches('#subsList .sub-name')
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true // ✅ 捕獲階段
+    );
+/*上方v15測試擋掉點擊避免zoom in*/
+    
     function allowDrop(ev){ ev.preventDefault(); }
 
     function getJobByName(name){
@@ -2066,15 +2101,23 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 
   /*V14.8修改上週名單也會出現搜尋框的問題*/
     function maybeOpenMemberPicker(e, input) {
-  // 1️⃣ 上週欄位（data-side="last"）直接跳出，不開搜尋框
+  // 上週欄位直接略過
   if (input.dataset.side === "last") return;
-  // 2️⃣ 只要是 readonly 的欄位，也不要開搜尋框（保險一層）
+  // 如果是鎖定欄位，也不處理
   if (input.readOnly) return;
-  // 3️⃣ 只有「本週 / 可編輯」而且目前是空的欄位，才打開成員搜尋
-  if (input.value.trim() === "") {
-    openMemberPicker(input);
+  const hasValue = (input.value || "").trim() !== "";
+  // v15新增✅ 有成員的欄位：擋掉這次點擊（不開搜尋、不往下傳）
+  if (hasValue) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    return;
   }
+  // v15新增✅ 空欄位才開成員搜尋浮層
+  openMemberPicker(input);
 }
+
 
   /* V14.9：搜尋框貼齊欄位下緣，左右依規則自動對齊 */
 function openMemberPicker(input){
@@ -2246,4 +2289,5 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 

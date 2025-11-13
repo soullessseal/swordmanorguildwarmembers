@@ -1025,29 +1025,36 @@ document.addEventListener(
       const m = allMembers.find(x=>x.name===name);
       return m ? m.job : "";
     }
+
+    
     function applyJobColor(input, job){
-      if(!input) return;
-      if(job && roleColors[job]){
-        const dark = darkenHex(roleColors[job],0.25);
-        input.style.borderLeft = "6px solid " + dark;
-        input.style.color = dark;
-        input.style.fontWeight = "700";
-        input.dataset.job = job;
-      } else {
-        input.style.borderLeft = "";
-        input.style.color = "";
-        input.dataset.job = "";
-        input.style.fontWeight = "700";
-      }
-      // V15.4★ 新增：本週名單名稱欄位要更新跑馬燈
+  if(!input) return;
+  if(job && roleColors[job]){
+    const dark = darkenHex(roleColors[job],0.25);
+    input.style.borderLeft = "6px solid " + dark;
+    input.style.color = dark;
+    input.style.fontWeight = "700";
+    input.dataset.job = job;
+  } else {
+    input.style.borderLeft = "";
+    input.style.color = "";
+    input.dataset.job = "";
+    input.style.fontWeight = "700";
+  }
+
+  // V15.4★ 新增：本週名單名稱欄位要更新跑馬燈
   if (input.matches('#thisWeek input[data-role="name"]')) {
     syncMarqueeText(input);
-    }
-    function applyColorByName(input){
-      const name = input.value.trim();
-      const job = getJobByName(name);
-      applyJobColor(input, job);
-    }
+  }
+}  // ← 這個是 applyJobColor 的結尾大括號
+
+// 這個函式要獨立在外面
+function applyColorByName(input){
+  const name = input.value.trim();
+  const job = getJobByName(name);
+  applyJobColor(input, job);
+}
+
 
     function setSkillInputValue(input, val) {
       if (!input) return;
@@ -2443,6 +2450,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

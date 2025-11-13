@@ -1764,10 +1764,22 @@ function downloadThisWeekImage() {
     // 同行團隊緊貼排列（每個團用各自的 h）
     let x = sidePad;
     const teamTopY = currentY + headerH;
-    row.items.forEach(item => {
-      drawTeamBlockImage(ctx, item.team, x, teamTopY, item.w, item.h, /*startIndex 由函式內部算*/ 1);
-      x += item.w;
-    });
+    // 同一個「團號」（一團 / 二團 / 三團）裡的小隊要連號
+let squadOffset = 1;  // 這一列從第1小隊開始
+
+row.items.forEach(item => {
+  const team = item.team;
+  const squadCount = (team.squads && team.squads.length) ? team.squads.length : 0;
+
+  // 把目前的起始小隊編號丟給這個團
+  drawTeamBlockImage(ctx, team, x, teamTopY, item.w, item.h, squadOffset);
+
+  // 下一個團的小隊編號接續往下排
+  squadOffset += squadCount;
+
+  x += item.w;
+});
+
 
     currentY += headerH + row.rowH + rowGapY;
   });

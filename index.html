@@ -145,41 +145,34 @@
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
+    
     /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
 @media (max-width: 900px) {
   /* 本週 / 上週：成員名稱 */
   #thisWeek .member-row input[data-role="name"],
   #lastWeek .member-row input[data-role="name"],
   #subsList .substitute-row .sub-name {
-    font-size: 13px;          /* 稍微小一點 */
-    padding: 0.24rem 0.24rem; /* 左右縮一點，騰出寬度 */
+    font-size: 13px;
+    padding: 0.24rem 0.24rem;
   }
   /* 本週 / 上週：技能欄位 */
   #thisWeek .member-row input[data-role="skill"],
   #lastWeek .member-row input[data-role="skill"],
   #subsList .substitute-row .sub-skill {
-    font-size: 11px;          /* 技能再小一點點 */
+    font-size: 11px;
     padding: 0.20rem 0.24rem;
   }
-  /* 左側「全部成員」搜尋＆浮層搜尋，維持原本視覺 */
+  /* 左側「全部成員」搜尋＆浮層搜尋，維持原本視覺＋16px 防止放大 */
   #memberSearch,
   #pickerSearch {
     font-size: 0.8rem;
   }
-  /* 避免 Safari 自動放大：正在輸入時暫時變 16px */
-  #thisWeek .member-row input:focus,
-  #subsList .substitute-row input:focus,
   #memberSearch:focus,
   #pickerSearch:focus {
     font-size: 16px;
   }
 }
 
-    /* V14.8只有本週名單＋替補，在輸入時放大到 16px，避免 Safari 自動縮放 */
-input[data-side="this"]:focus,
-#subsList input:focus {
-  font-size: 16px;
-}
 
 
     /* 手機板底部按鈕 */
@@ -657,7 +650,12 @@ input[data-side="this"]:focus,
         <button class="del-btn" onclick="deleteSub(this)">刪</button>
         <span class="sub-status"></span>
       `;
-      applyColorByName(row.querySelector(".sub-name"));
+      // ⭐ 取得替補名字欄
+  const nameInput = row.querySelector(".sub-name");
+  // 套顏色（原本就有的邏輯）
+  applyColorByName(nameInput);
+  // ⭐ 新增：一建立就先算一次字體大小
+  fitNameFont(nameInput);
       subsList.appendChild(row);
     }
 
@@ -841,6 +839,7 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
       nameInput.dataset.dirty = "1";
     }
   });
+fitNameFont(inp);                        // 同步編輯時
   // 同步存檔
   saveState();
 }
@@ -1066,7 +1065,7 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
           applyJobColor(target, member.job);
           target.parentElement.querySelector(".sub-skill").value = member.skill || "";
           markDirty(target);
-
+          fitNameFont(target);
           draggingPanelInput.value = oldName;
           applyJobColor(draggingPanelInput, oldJob);
           const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
@@ -1352,6 +1351,9 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
 
       if (state.stuckMembers) setStuckData(state.stuckMembers);
       renderStuckList();
+
+      // ⬇ 新增：狀態套完後，把所有名字欄位重新排字體
+      refreshAllNameFonts();
     }
 
     function saveCompareIgnore(){
@@ -2117,6 +2119,7 @@ function openMemberPicker(input){
       const skillRow = pickerTargetInput.parentElement.nextElementSibling;
       if (skillRow && skillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || ""); }
       pickerTargetInput.dataset.dirty = "1";
+      fitNameFont(pickerTargetInput);          // 選完成員後
       saveState();
       closeMemberPicker();
     }
@@ -2161,7 +2164,27 @@ function openMemberPicker(input){
       } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
 
       startVersionWatcher();
+      refreshAllNameFonts();
     }
+
+    // V14.9根據名字長度自動縮放字體大小（只管本週名單 + 替補名字）
+function fitNameFont(input) {
+  if (!input) return;
+  const len = (input.value || "").length;
+  // 基本邏輯：7 字以內維持原來，越長就越小一點
+  let size = 13;        // 預設（對應你手機版 CSS 的 13px）
+  if (len > 7 && len <= 9)  size = 12;
+  else if (len > 9 && len <= 11) size = 11;
+  else if (len > 11)         size = 10;
+  input.style.fontSize = size + "px";
+}
+// 一次掃描整個畫面上的名字欄位，全部套一次
+function refreshAllNameFonts() {
+  document
+    .querySelectorAll('#thisWeek input[data-role="name"], #subsList .sub-name')
+    .forEach(fitNameFont);
+}
+
 
     loadState();
     loadPersistentIgnore();
@@ -2173,17 +2196,14 @@ function openMemberPicker(input){
     });
     // 拖曳開始也視為編輯（即使尚未放下）
     document.addEventListener("dragstart", suppressOutlinesOnEdit, true);
-
+    // 使用者在「本週名單 / 替補」輸入名字時，立即重新算字體大小
+    document.addEventListener("input", function (e) {
+    const t = e.target;
+    if (t.matches('#thisWeek input[data-role="name"], #subsList .sub-name')) {
+    fitNameFont(t);
+    }
+    });
+    
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

@@ -65,7 +65,8 @@
 
     .team-dots { display: none; }
 
-   /* V15.4 手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
+    
+    /* V15.4手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
 @media (max-width: 900px) {
   .marquee-box {
     position: relative;
@@ -76,15 +77,8 @@
     position: relative;
     z-index: 1;
     color: transparent;
-    -webkit-text-fill-color: transparent;
     caret-color: transparent;
   }
-  /* ★ 技能欄不要隱藏文字，維持正常顯示 */
-  .marquee-box input[data-role="skill"] {
-    color: #0f172a !important;
-    -webkit-text-fill-color: #0f172a !important;
-    caret-color: auto;
-  }
   .marquee-text {
     position: absolute;
     left: 0.35rem;
@@ -103,32 +97,6 @@
     100% { transform: translate(-100%, -50%); }
   }
 }
-
-
-      
-  .marquee-text {
-    position: absolute;
-    left: 0.35rem;
-    right: 0.35rem;
-    top: 50%;
-    transform: translateY(-50%);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 2;
-    /* ★ 讓跑馬燈字體大小跟 input 一樣 */
-    font-size: inherit;
-    line-height: 1.2;
-}
-
-  .marquee-box.marquee-run .marquee-text {
-    animation: marquee-scroll 6s linear infinite;
-  }
-  @keyframes marquee-scroll {
-    0%   { transform: translate(0, -50%); }
-    100% { transform: translate(-100%, -50%); }
-  }
-}
-
 
     @media (max-width: 900px) {
       #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
@@ -1057,36 +1025,29 @@ document.addEventListener(
       const m = allMembers.find(x=>x.name===name);
       return m ? m.job : "";
     }
-
-    
     function applyJobColor(input, job){
-  if(!input) return;
-  if(job && roleColors[job]){
-    const dark = darkenHex(roleColors[job],0.25);
-    input.style.borderLeft = "6px solid " + dark;
-    input.style.color = dark;
-    input.style.fontWeight = "700";
-    input.dataset.job = job;
-  } else {
-    input.style.borderLeft = "";
-    input.style.color = "";
-    input.dataset.job = "";
-    input.style.fontWeight = "700";
-  }
-
-  // V15.4★ 新增：本週名單名稱欄位要更新跑馬燈
+      if(!input) return;
+      if(job && roleColors[job]){
+        const dark = darkenHex(roleColors[job],0.25);
+        input.style.borderLeft = "6px solid " + dark;
+        input.style.color = dark;
+        input.style.fontWeight = "700";
+        input.dataset.job = job;
+      } else {
+        input.style.borderLeft = "";
+        input.style.color = "";
+        input.dataset.job = "";
+        input.style.fontWeight = "700";
+      }
+      // V15.4★ 新增：本週名單名稱欄位要更新跑馬燈
   if (input.matches('#thisWeek input[data-role="name"]')) {
     syncMarqueeText(input);
-  }
-}  // ← 這個是 applyJobColor 的結尾大括號
-
-// 這個函式要獨立在外面
-function applyColorByName(input){
-  const name = input.value.trim();
-  const job = getJobByName(name);
-  applyJobColor(input, job);
-}
-
+    }
+    function applyColorByName(input){
+      const name = input.value.trim();
+      const job = getJobByName(name);
+      applyJobColor(input, job);
+    }
 
     function setSkillInputValue(input, val) {
       if (!input) return;
@@ -2482,18 +2443,3 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

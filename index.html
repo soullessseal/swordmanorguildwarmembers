@@ -65,19 +65,20 @@
 
     .team-dots { display: none; }
 
-    
     /* V15.4手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
-@media (max-width: 900px) {
+    @media (max-width: 900px) {
   .marquee-box {
     position: relative;
     overflow: hidden;
   }
-  /* input 本身只留邊框與高度，文字改交給上層 span 顯示 */
+  /* input 本體只負責框線，不顯示文字 */
   .marquee-box input {
     position: relative;
     z-index: 1;
-    color: transparent;
+    color: transparent;                 /* 一般瀏覽器隱藏文字 */
+    -webkit-text-fill-color: transparent; /* ✅ iOS / Safari 也一起隱藏 */
     caret-color: transparent;
+    text-shadow: none;                  /* 保險：避免有陰影殘影 */
   }
   .marquee-text {
     position: absolute;
@@ -97,6 +98,7 @@
     100% { transform: translate(-100%, -50%); }
   }
 }
+
 
     @media (max-width: 900px) {
       #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
@@ -2450,6 +2452,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

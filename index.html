@@ -2281,20 +2281,22 @@ function refreshAllNameFonts() {
     
     attachIOSZoomFix();
 
- // V15.1新增✅ 任何時候，只要「本週名單」的成員欄位被 focus，就立刻 blur 掉
+ // V15.1修正版✅ 只要「本週名單」或「替補名單」的成員欄位被 focus，就立刻 blur 掉
 document.addEventListener("focusin", function (e) {
   const t = e.target;
   if (!t || !t.matches) return;
-  // 只針對本週名單的名字欄位
-  if (t.matches('#thisWeek input[data-role="name"]')) {
+
+  // 本週名單名字欄位 ＋ 替補列名字欄位 都套用
+  if (t.matches('#thisWeek input[data-role="name"], #subsList .sub-name')) {
     // iOS/Safari 有時候要晚一拍 blur，所以用 setTimeout 0
     setTimeout(() => {
       if (document.activeElement === t) {
-        t.blur();        // 把游標收掉
+        t.blur();        // 把游標收掉，不讓鍵盤跳出
       }
     }, 0);
   }
 });
+
     
     // ✅ iOS：避免本週 / 替補名字欄位被點擊時整頁 ZOOM IN
 function attachIOSZoomFix() {
@@ -2323,6 +2325,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

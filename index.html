@@ -156,6 +156,12 @@
     font-size: 16px;
   }
 }
+    /* V14.8只有本週名單＋替補，在輸入時放大到 16px，避免 Safari 自動縮放 */
+input[data-side="this"]:focus,
+#subsList input:focus {
+  font-size: 16px;
+}
+
 
     /* 手機板底部按鈕 */
     @media (max-width: 900px) {
@@ -2030,27 +2036,28 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 }
 
   /*V14.8修改，搜尋框超出範圍時，內移*/ 
-    function openMemberPicker(input){
+ function openMemberPicker(input){
   pickerTargetInput = input;
   const rect = input.getBoundingClientRect();
-  const pageWidth = document.body.clientWidth;
-
-  const pickerWidth = 220;  // 搜尋框寬度
-  let left = rect.left + window.scrollX;  // 預設貼齊 input 左側
-  // ① 若搜尋框會超出右側 → 自動往左挪
-  if (left + pickerWidth > pageWidth - 10) {  
-    left = pageWidth - pickerWidth - 10;   // 右側保留 10px
-  }
-  // ② 若挪過頭跑到左邊界外 → 卡住左邊界
-  if (left < 10) left = 10;
-  memberPicker.style.width = pickerWidth + "px";
-  memberPicker.style.left  = left + "px";
-  memberPicker.style.top   = (rect.bottom + window.scrollY + 4) + "px";
+  // 以所在的 .panel 為邊界，沒找到就預設用本週名單
+  const panel = input.closest(".panel") || thisWeekPanel;
+  const panelRect = panel.getBoundingClientRect();
+  const pickerWidth = 260; // 你的彈窗寬度，可依實際調
+  // 先讓「彈窗右邊 ≈ 輸入框右邊」
+  let left = rect.right + window.scrollX - pickerWidth;
+  // 再 clamp 在 panel 裡面
+  const minLeft = panelRect.left + window.scrollX + 8;
+  const maxLeft = panelRect.right + window.scrollX - pickerWidth - 8;
+  if (left < minLeft) left = minLeft;
+  if (left > maxLeft) left = maxLeft;
+  memberPicker.style.left = left + "px";
+  memberPicker.style.top  = (rect.bottom + window.scrollY + 4) + "px";
   memberPicker.style.display = "block";
   pickerSearch.value = "";
   renderPickerList(allMembers);
   pickerSearch.focus();
 }
+
 
 
     function renderPickerList(list){
@@ -2141,6 +2148,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

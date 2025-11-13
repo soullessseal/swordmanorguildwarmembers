@@ -80,7 +80,13 @@
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input { width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem; border: 1px solid #cbd5f5; border-radius: 0.25rem; box-sizing: border-box; font-weight: 700; }
     .readonly-skill { background:#e2e8f0; }
-    .locked-input { background:#e2e8f0; }
+    .locked-input { /*V14.8修改，滑鼠完全不能互動*/
+  background: #e2e8f0;
+  pointer-events: none;     /* 滑鼠點不到 */
+  user-select: none;        /* 不能選取文字 */
+  caret-color: transparent; /* 不顯示輸入游標 */
+}
+
 
     .highlight-new { background:#bbf7d0 !important; border:1px solid #166534 !important; color:#064e3b !important; }
     .highlight-missing { background:#fca5a5 !important; border:1px solid #b91c1c !important; color:#7f1d1d !important; }
@@ -2155,6 +2161,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

@@ -65,29 +65,45 @@
 
     .team-dots { display: none; }
 
-    /* V15.4手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
-    @media (max-width: 900px) {
+   /* V15.4 手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
+@media (max-width: 900px) {
   .marquee-box {
     position: relative;
     overflow: hidden;
   }
-  /* input 本體只負責框線，不顯示文字 */
+  /* input 本身只留邊框與高度，文字改交給上層 span 顯示 */
   .marquee-box input {
     position: relative;
     z-index: 1;
-    /* ★ 只有名字欄才要透明 */
     color: transparent;
     -webkit-text-fill-color: transparent;
-
     caret-color: transparent;
-    text-shadow: none;
-}
-/* ★ 技能欄不透明，恢復正常顯示 */
-.marquee-box input[data-role="skill"] {
+  }
+  /* ★ 技能欄不要隱藏文字，維持正常顯示 */
+  .marquee-box input[data-role="skill"] {
     color: #0f172a !important;
     -webkit-text-fill-color: #0f172a !important;
     caret-color: auto;
+  }
+  .marquee-text {
+    position: absolute;
+    left: 0.35rem;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .marquee-box.marquee-run .marquee-text {
+    animation: marquee-scroll 6s linear infinite;
+  }
+  @keyframes marquee-scroll {
+    0%   { transform: translate(0, -50%); }
+    100% { transform: translate(-100%, -50%); }
+  }
 }
+
 
       
   .marquee-text {
@@ -2466,6 +2482,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

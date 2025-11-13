@@ -941,10 +941,6 @@ fitNameFont(inp);                        // 同步編輯時
 
     
     /*下方v15測試擋掉點擊避免zoom in*/
-    let draggingPanelInput = null;
-    let draggingPanelSide = null;
-    let dragSuccess = false;
-    let dragPreviewEl = null;
     // ✅ 方案 A：阻止「點擊」，不阻止拖曳
     // 拖曳開始時把這個 flag 打開，下一次 click 先被我們攔截掉，才不會誤觸搜尋框 / 聚焦
     let blockNextClick = false;
@@ -2289,5 +2285,6 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 

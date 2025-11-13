@@ -1515,7 +1515,7 @@ function copyThisToLast(){
       ctx.fill();
     }
   // 只描邊圓角矩形（搭配 fillRoundRect 使用）
-function strokeRoundRect(ctx, x, y, w, h, r, color = "#e2e8f0") {
+function strokeRoundRect(ctx, x, y, w, h, r, color = "#B4BBC8") {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -1555,7 +1555,7 @@ function fillRoundRectCorners(ctx, x, y, w, h, r, corners) {
 
     
 /* 1px 視覺等寬：圓角矩形描邊（像素對齊） */
-function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#e2e8f0") {
+function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#B4BBC8") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;           // 固定視覺 1px
@@ -1584,7 +1584,7 @@ function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:tr
     
 
 /* 1px 視覺等寬：只畫指定邊（像素對齊直線） */
-function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
+function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#B4BBC8") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;           // 固定視覺 1px
@@ -1601,7 +1601,7 @@ function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
     
 //以下這段 V14.7 下載圖片功能（含圓角友善描邊 / 視覺等粗）
 // ================== 1) 工具：像素對齊描邊 ==================
-function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#e2e8f0") {
+function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:true,bl:true}, color = "#B4BBC8") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
@@ -1630,7 +1630,7 @@ function strokeRoundedCrisp(ctx, x, y, w, h, r, corners = {tl:true,tr:true,br:tr
   ctx.restore();
 }
 
-function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#e2e8f0") {
+function strokeEdgesCrisp(ctx, x, y, w, h, edges, color = "#B4BBC8") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
@@ -1710,11 +1710,12 @@ function downloadThisWeekImage() {
     .filter(g => g.teams.length > 0)
     .map(g => ({ tag: g.tag, teams: sortTeamsByPriority(g.teams) }));
 
-  const rowHeaderH = 30;   // 團號灰底高度
-  const rowGapY    = 30;   // 列間距
+  const rowHeaderH = 25;   // 團號灰底高度
+  const rowGapY    = 12;   // 列間距
   const sidePad    = 20;   // 畫布左右邊界
-  const topPad     = 50;   // 標題上方留白
-  const titleH     = 32;   // 標題高度
+  const bottomPad  = 12;  // 畫布底部留白（新增）
+  const topPad     = 28;   // 標題上方留白
+  const titleH     = 15;   // 標題高度
 
   // 先量每一列每個團的 w/h，取得列寬與列高（取該列最大團高）
   const rowMeasures = grouped.map(group => {
@@ -1743,7 +1744,7 @@ function downloadThisWeekImage() {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 22px system-ui";
+  ctx.font = "bold 18px system-ui";
   ctx.fillText("本週名單", sidePad, topPad);
 
   // 逐列繪製
@@ -1756,7 +1757,7 @@ function downloadThisWeekImage() {
 
     // 團號文字
     ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 15px system-ui";
+    ctx.font = "bold 14px system-ui";
     const tagTextW = ctx.measureText(row.tag).width;
     ctx.fillText(row.tag, headerX + (headerW - tagTextW) / 2, currentY + headerH / 2 + 5);
 
@@ -1783,7 +1784,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   // 外框白卡片（四角圓）
   ctx.fillStyle = "#ffffff";
   fillRoundRectCorners(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true});
-  strokeRoundedCrisp(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
+  strokeRoundedCrisp(ctx, x, y, w, h, 12, {tl:true,tr:true,br:true,bl:true}, "#B4BBC8");
 
   // 頂部團隊色條（無圓角）
   const headColor = teamColorByName(team.team);
@@ -1827,9 +1828,9 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
     // ① 小隊標題（四角圓，獨立卡）
 const titleX = sx + 2, titleY = sy + 2, titleW = squadW - 4;
-ctx.fillStyle = "#f8fafc";
+ctx.fillStyle = "#D6DDF0";
 fillRoundRectCorners(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true});
-strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true}, "#e2e8f0");
+strokeRoundedCrisp(ctx, titleX, titleY, titleW, TITLE_H, 8, {tl:true,tr:true,br:true,bl:true}, "#B4BBC8");
 
 // 小隊標題文字（水平置中）
 ctx.fillStyle = "#0f172a";
@@ -1856,7 +1857,7 @@ ctx.fillText(squadTitle, titleX + (titleW - textW) / 2, titleY + Math.round(TITL
       // 名稱卡（上半圓角，獨立卡）
       ctx.fillStyle = "#ffffff";
       fillRoundRectCorners(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, { tl:true, tr:true, br:false, bl:false });
-      strokeRoundedCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, { tl:true, tr:true, br:false, bl:false }, "#e2e8f0");
+      strokeRoundedCrisp(ctx, nameBoxX, nameBoxY, nameBoxW, NAME_H, 6, { tl:true, tr:true, br:false, bl:false }, "#D8E2F2");
 
       // 左側職業色條 + 名稱文字
 if (mem && mem.name) {
@@ -1921,7 +1922,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 
       ctx.fillStyle = hasSkill ? "#FFFFDB" : "#ffffff";
       fillRoundRectCorners(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, 6, { tl:false, tr:false, br:true, bl:true });
-      strokeRoundedCrisp(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, 6, { tl:false, tr:false, br:true, bl:true }, "#e2e8f0");
+      strokeRoundedCrisp(ctx, skillBoxX, skillBoxY, skillBoxW, SKILL_H, 6, { tl:false, tr:false, br:true, bl:true }, "#D8E2F2");
 
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";

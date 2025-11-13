@@ -163,6 +163,23 @@
 
     .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .3rem; }
     #downloadBtn { position: static; }
+
+  /* V14.8手機版：避免 iOS Safari 點 input 時自動放大畫面 */
+  @media (max-width: 900px) {
+  input,
+  select,
+  textarea,
+  .member-row input,
+  .substitute-row input,
+  .add-member-form input,
+  .add-member-form select,
+  #memberPicker input,
+  #loginModal input,
+  .member-search {
+    font-size: 16px !important;  /* 關鍵：一定要 >= 16px */
+  }
+}
+
   </style>
 </head>
 <body>
@@ -2099,6 +2116,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

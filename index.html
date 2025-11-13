@@ -171,6 +171,13 @@
   #pickerSearch:focus {
     font-size: 16px;
   }
+    /* ✅ iOS 專用：focus 時用 16px 但視覺縮回 13px 左右，避免 ZOOM IN */
+  #thisWeek .member-row input[data-role="name"].ios-zoom-fix,
+  #subsList .substitute-row .sub-name.ios-zoom-fix {
+    font-size: 16px !important;      /* 給 Safari 看：我有 16px 了，別放大 */
+    transform: scale(0.8);           /* 視覺 ≒ 12.8px ≈ 你原本的 13px */
+    transform-origin: left center;   /* 從左邊縮，避免整格位移感太重 */
+  }
 }
 
 
@@ -318,6 +325,7 @@
   </div>
 
   <script>
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
@@ -2204,6 +2212,31 @@ function refreshAllNameFonts() {
     }
     });
     
+    attachIOSZoomFix();
+    
+    // ✅ iOS：避免本週 / 替補名字欄位被點擊時整頁 ZOOM IN
+function attachIOSZoomFix() {
+  if (!isIOS) return; // 只有 iPhone / iPad 才啟動
+  // focusin：誰被點到，就給它套上 ios-zoom-fix（讓字實際變 16px）
+  document.addEventListener("focusin", function (e) {
+    const t = e.target;
+    if (!t || !t.matches) return;
+    // 只針對「本週名單的名字欄位」＋「替補名字欄位」
+    if (t.matches('#thisWeek input[data-role="name"], #subsList .substitute-row .sub-name')) {
+      t.classList.add("ios-zoom-fix");
+    }
+  });
+  // focusout：離開輸入框時，把 class 拿掉，交回給 fitNameFont 控制大小
+  document.addEventListener("focusout", function (e) {
+    const t = e.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains("ios-zoom-fix")) {
+      t.classList.remove("ios-zoom-fix");
+    }
+  });
+}
+
   </script>
 </body>
 </html>
+

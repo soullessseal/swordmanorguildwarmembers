@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v15.1</title>
+  <title>幫戰名單比對工具 v15.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -215,7 +215,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v15.1</h1>
+  <h1>幫戰名單比對工具 v15.2</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -657,12 +657,15 @@
       if (markDirty) row.dataset.dirty = "1";
       row.ondragstart = dragFromSub;
       row.innerHTML = `
-        <input class="sub-name" placeholder="替補成員" value="${name}"
-          ondragover="allowDrop(event)" ondrop="dropMember(event)" onblur="applyColorByName(this); markDirty(this); saveState();">
-        <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
-        <button class="del-btn" onclick="deleteSub(this)">刪</button>
-        <span class="sub-status"></span>
-      `;
+  <input class="sub-name" placeholder="替補成員" value="${name}"
+    onclick="onSubNameClick(event, this)"
+    ondragover="allowDrop(event)" ondrop="dropMember(event)"
+    onblur="applyColorByName(this); markDirty(this); saveState();">
+  <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
+  <button class="del-btn" onclick="deleteSub(this)">刪</button>
+  <span class="sub-status"></span>
+`;  /*V15.1新增擋點擊*/
+
       // ⭐ 取得替補名字欄
   const nameInput = row.querySelector(".sub-name");
   // 套顏色（原本就有的邏輯）
@@ -672,6 +675,20 @@
       subsList.appendChild(row);
     }
 
+  /*V15.1新增 替補也鎖點擊*/
+function onSubNameClick(e, input) {
+  const val = (input.value || "").trim();
+  // ✅ 欄位裡已經有名字：不讓它進入編輯，只能當拖曳的那一列
+  if (val) {
+    e.preventDefault();
+    e.stopPropagation();
+    input.blur();  // 把游標收掉，避免跳出鍵盤
+    return;
+  }
+  // ✅ 空白欄位：保留原本行為，可以點進去打字或當 drop 目標
+}
+
+    
     function refreshSubsView() {
       const rows = Array.from(subsList.children);
       const totalPages = Math.max(1, Math.ceil(rows.length / subsPerPage));
@@ -852,7 +869,6 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
       nameInput.dataset.dirty = "1";
     }
   });
-fitNameFont(inp);                        // 同步編輯時
   // 同步存檔
   saveState();
 }
@@ -940,31 +956,35 @@ fitNameFont(inp);                        // 同步編輯時
     });
 
     
-    /*下方v15測試擋掉點擊避免zoom in*/
+    /*下方v15擋掉點擊避免zoom in*/
     // ✅ 方案 A：阻止「點擊」，不阻止拖曳
     // 拖曳開始時把這個 flag 打開，下一次 click 先被我們攔截掉，才不會誤觸搜尋框 / 聚焦
     let blockNextClick = false;
-    // 捕獲階段先攔截，確保在原本的 onclick / addEventListener 之前擋到
-    document.addEventListener(
-      "click",
-      function (e) {
-        if (!blockNextClick) return;
-        // 用掉這個機會，下一次 click 就恢復正常
-        blockNextClick = false;
-        const t = e.target;
-        // 只針對「本週名單／替補」的名字欄位擋掉點擊
-        // 其他地方（按鈕、左側成員列表…）照常
-        if (
-          t.matches('#thisWeek input[data-role="name"]') ||
-          t.matches('#subsList .sub-name')
-        ) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      },
-      true // ✅ 捕獲階段
-    );
-/*上方v15測試擋掉點擊避免zoom in*/
+document.addEventListener(
+  "click",
+  function (e) {
+    if (!blockNextClick) return;
+    const t = e.target;
+    // 用掉這次機會，下一次 click 恢復正常
+    blockNextClick = false;
+    // 只處理「本週名單 / 替補」的名字欄位
+    if (
+      t.matches('#thisWeek input[data-role="name"]') ||
+      t.matches('#subsList .sub-name')
+    ) {
+      const val = (t.value || "").trim();
+      // ✅ 只有「已經有名字」的欄位才擋掉這次 click
+      if (val) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      // ✅ 如果是空欄位，就讓這次 click 正常通過
+      //（這樣空格點一下就能打字或開浮層）
+    }
+  },
+  true
+);
+/*上方v15擋掉點擊避免zoom in*/
     
     function allowDrop(ev){ ev.preventDefault(); }
 
@@ -2303,6 +2323,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

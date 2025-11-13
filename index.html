@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.7</title>
+  <title>幫戰名單比對工具 v14.8</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -166,7 +166,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.7</h1>
+  <h1>幫戰名單比對工具 v14.8</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -755,17 +755,61 @@
         </div>
       `;
     }
-    function saveInlineEdit(id){
-      const name = document.getElementById("edit-name-"+id).value.trim();
-      const job = document.getElementById("edit-job-"+id).value.trim();
-      const skill = document.getElementById("edit-skill-"+id).value.trim();
-      const idx = allMembers.findIndex(x=>x.id===id);
-      if(idx>-1){
-        allMembers[idx] = {id, name, job, skill};
-        renderMemberList();
-        saveState();
+
+    // ✅ V14.8當全部成員名單被編輯後，同步更新「本週名單」＋「替補名單」裡同名成員
+function syncEditedMemberEverywhere(oldMember, newMember) {
+  if (!oldMember) return;
+  const oldName = (oldMember.name || "").trim();
+  const newName = (newMember.name || "").trim();
+  // 1. 本週名單
+  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+    if (inp.value.trim() === oldName) {
+      inp.value = newName;
+      applyJobColor(inp, newMember.job);   // 換職業色
+
+      const skillRow = inp.parentElement.nextElementSibling;
+      if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+        setSkillInputValue(
+          skillRow.querySelector("input[data-role='skill']"),
+          newMember.skill || ""
+        );
       }
+      inp.dataset.dirty = "1";
     }
+  });
+  // 2. 替補名單
+  subsList.querySelectorAll(".substitute-row").forEach(row => {
+    const nameInput  = row.querySelector(".sub-name");
+    const skillInput = row.querySelector(".sub-skill");
+    if (!nameInput) return;
+
+    if (nameInput.value.trim() === oldName) {
+      nameInput.value = newName;
+      applyJobColor(nameInput, newMember.job);
+      if (skillInput) skillInput.value = newMember.skill || "";
+      nameInput.dataset.dirty = "1";
+    }
+  });
+  // 同步存檔
+  saveState();
+}
+
+    /*V14.8修改*/
+    function saveInlineEdit(id){
+  const name  = document.getElementById("edit-name-"+id).value.trim();
+  const job   = document.getElementById("edit-job-"+id).value.trim();
+  const skill = document.getElementById("edit-skill-"+id).value.trim();
+  const idx   = allMembers.findIndex(x=>x.id===id);
+  if (idx > -1) {
+    const oldMember = { ...allMembers[idx] };           // ← 舊資料先留著
+    const newMember = { id, name, job, skill };
+    allMembers[idx] = newMember;                        // 更新 master
+    renderMemberList();                                 // 重畫左側清單
+    syncEditedMemberEverywhere(oldMember, newMember);   // ✅ 同步到本週＋替補
+  }
+}
+
+    
     function deleteMember(id){
       const idx = allMembers.findIndex(x=>x.id===id);
       if(idx>-1){ allMembers.splice(idx,1); renderMemberList(); saveState(); }
@@ -2051,3 +2095,4 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v15.2</title>
+  <title>幫戰名單比對工具 v15.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -215,7 +215,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v15.2</h1>
+  <h1>幫戰名單比對工具 v15.3</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -658,7 +658,7 @@
       row.ondragstart = dragFromSub;
       row.innerHTML = `
   <input class="sub-name" placeholder="替補成員" value="${name}"
-    onclick="onSubNameClick(event, this)"
+    onclick="maybeOpenMemberPicker(event, this)"
     ondragover="allowDrop(event)" ondrop="dropMember(event)"
     onblur="applyColorByName(this); markDirty(this); saveState();">
   <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
@@ -2182,22 +2182,44 @@ function openMemberPicker(input){
       renderPickerList(list);
     }
 
+
+    /*V15.3替補列空白搜尋*/
     function selectMemberFromPicker(m){
-      if (!pickerTargetInput) return;
-      thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
-        if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
-          clearInputAndSkill(inp);
-        }
-      });
-      pickerTargetInput.value = m.name;
-      applyJobColor(pickerTargetInput, m.job);
-      const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-      if (skillRow && skillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || ""); }
-      pickerTargetInput.dataset.dirty = "1";
-      fitNameFont(pickerTargetInput);          // 選完成員後
-      saveState();
-      closeMemberPicker();
+  if (!pickerTargetInput) return;
+  // 先清掉「本週」裡同名的重複成員（維持你原本邏輯）
+  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+    if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+      clearInputAndSkill(inp);
     }
+  });
+  pickerTargetInput.value = m.name;
+  applyJobColor(pickerTargetInput, m.job);
+  pickerTargetInput.dataset.dirty = "1";
+  fitNameFont(pickerTargetInput);
+  // ⭐ 區分：本週欄位 vs 替補欄位
+  if (pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
+    // 本週：維持原本 skillRow 的寫法
+    const skillRow = pickerTargetInput.parentElement.nextElementSibling;
+    if (skillRow && skillRow.querySelector("input[data-role="skill"]")) {
+      setSkillInputValue(
+        skillRow.querySelector("input[data-role="skill"]"),
+        m.skill || ""
+      );
+    }
+  } else if (pickerTargetInput.matches('#subsList .sub-name')) {
+    // 替補：在同一列找 .sub-skill
+    const row = pickerTargetInput.closest('.substitute-row');
+    if (row) {
+      const subSkill = row.querySelector('.sub-skill');
+      if (subSkill) {
+        subSkill.value = m.skill || "";
+      }
+    }
+  }
+  saveState();
+  closeMemberPicker();
+}
+
   
     
     function closeMemberPicker(){ memberPicker.style.display = "none"; pickerTargetInput = null; }
@@ -2325,6 +2347,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

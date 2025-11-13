@@ -2200,7 +2200,7 @@ function openMemberPicker(input){
   if (pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
     // 本週：維持原本 skillRow 的寫法
     const skillRow = pickerTargetInput.parentElement.nextElementSibling;
-    if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
+    if (skillRow && skillRow.querySelector('input[data-role="skill"]')) {
       setSkillInputValue(
         skillRow.querySelector("input[data-role="skill"]"),
         m.skill || ""
@@ -2347,6 +2347,7 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 
 

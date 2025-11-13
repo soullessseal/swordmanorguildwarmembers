@@ -139,6 +139,24 @@
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
+    /* V14.8手機：避免 iOS 自動放大，但平常維持原本字體大小 */
+@media (max-width: 900px) {
+  /* 平常還是用你原本的 0.78rem / 0.85rem 等大小 */
+  .member-row input,
+  .substitute-row input,
+  #memberSearch,
+  #pickerSearch {
+    font-size: 0.78rem;   /* 跟你現在設定一樣，視覺不變 */
+  }
+  /* 只有正在輸入的那一格，暫時變 16px，給 Safari 看 */
+  .member-row input:focus,
+  .substitute-row input:focus,
+  #memberSearch:focus,
+  #pickerSearch:focus {
+    font-size: 16px;
+  }
+}
+
     /* 手機板底部按鈕 */
     @media (max-width: 900px) {
       .right-actions-bar {
@@ -1999,18 +2017,41 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 // 以上這段 V14.7 完整下載圖片功能（名稱/技能兩張獨立卡）
     
 
-    function maybeOpenMemberPicker(e, input){ if (input.value.trim() === "") { openMemberPicker(input); } }
-    
+  /*V14.8修改上週名單也會出現搜尋框的問題*/
+    function maybeOpenMemberPicker(e, input) {
+  // 1️⃣ 上週欄位（data-side="last"）直接跳出，不開搜尋框
+  if (input.dataset.side === "last") return;
+  // 2️⃣ 只要是 readonly 的欄位，也不要開搜尋框（保險一層）
+  if (input.readOnly) return;
+  // 3️⃣ 只有「本週 / 可編輯」而且目前是空的欄位，才打開成員搜尋
+  if (input.value.trim() === "") {
+    openMemberPicker(input);
+  }
+}
+
+  /*V14.8修改，搜尋框超出範圍時，內移*/ 
     function openMemberPicker(input){
-      pickerTargetInput = input;
-      const rect = input.getBoundingClientRect();
-      memberPicker.style.left = (rect.left + window.scrollX) + "px";
-      memberPicker.style.top = (rect.bottom + window.scrollY + 4) + "px";
-      memberPicker.style.display = "block";
-      pickerSearch.value = "";
-      renderPickerList(allMembers);
-      pickerSearch.focus();
-    }
+  pickerTargetInput = input;
+  const rect = input.getBoundingClientRect();
+  const pageWidth = document.body.clientWidth;
+
+  const pickerWidth = 220;  // 搜尋框寬度
+  let left = rect.left + window.scrollX;  // 預設貼齊 input 左側
+  // ① 若搜尋框會超出右側 → 自動往左挪
+  if (left + pickerWidth > pageWidth - 10) {  
+    left = pageWidth - pickerWidth - 10;   // 右側保留 10px
+  }
+  // ② 若挪過頭跑到左邊界外 → 卡住左邊界
+  if (left < 10) left = 10;
+  memberPicker.style.width = pickerWidth + "px";
+  memberPicker.style.left  = left + "px";
+  memberPicker.style.top   = (rect.bottom + window.scrollY + 4) + "px";
+  memberPicker.style.display = "block";
+  pickerSearch.value = "";
+  renderPickerList(allMembers);
+  pickerSearch.focus();
+}
+
 
     function renderPickerList(list){
       pickerList.innerHTML = "";
@@ -2100,6 +2141,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

@@ -2235,7 +2235,26 @@ function attachIOSZoomFix() {
     }
   });
 }
+    
+// ⭐ 本週名單：已有成員的 input 禁止 focus，避免 iOS ZOOM
+function preventFocusIfHasValue(e) {
+  const t = e.target;
+  // 只管「本週名單」的名字欄
+  if (!t.matches('#thisWeek input[data-role="name"]')) return;
+  const v = t.value.trim();
+  if (v !== "") {
+    // 阻止焦點進入（最關鍵）
+    e.preventDefault();
+    t.blur();
+    // 同時避免開啟搜尋浮層
+    pickerTargetInput = null;
+    closeMemberPicker();
+  }
+}
+// 捕捉所有 focus 事件（捕獲階段）
+document.addEventListener("focusin", preventFocusIfHasValue, true);
 
   </script>
 </body>
 </html>
+

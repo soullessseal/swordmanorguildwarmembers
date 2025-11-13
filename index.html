@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.8</title>
+  <title>幫戰名單比對工具 v14.9</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -80,7 +80,13 @@
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input { width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem; border: 1px solid #cbd5f5; border-radius: 0.25rem; box-sizing: border-box; font-weight: 700; }
     .readonly-skill { background:#e2e8f0; }
-    .locked-input { background:#e2e8f0; }
+    .locked-input { /*V14.8修改，滑鼠完全不能互動*/
+  background: #e2e8f0;
+  pointer-events: none;     /* 滑鼠點不到 */
+  user-select: none;        /* 不能選取文字 */
+  caret-color: transparent; /* 不顯示輸入游標 */
+}
+
 
     .highlight-new { background:#bbf7d0 !important; border:1px solid #166534 !important; color:#064e3b !important; }
     .highlight-missing { background:#fca5a5 !important; border:1px solid #b91c1c !important; color:#7f1d1d !important; }
@@ -139,23 +145,42 @@
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
-    /* V14.8手機：避免 iOS 自動放大，但平常維持原本字體大小 */
+    
+    /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
 @media (max-width: 900px) {
-  /* 平常還是用你原本的 0.78rem / 0.85rem 等大小 */
-  .member-row input,
-  .substitute-row input,
+  /* 本週 / 上週：成員名稱 */
+  #thisWeek .member-row input[data-role="name"],
+  #lastWeek .member-row input[data-role="name"],
+  #subsList .substitute-row .sub-name {
+    font-size: 13px;
+    padding: 0.24rem 0.24rem;
+  }
+  /* 本週 / 上週：技能欄位 */
+  #thisWeek .member-row input[data-role="skill"],
+  #lastWeek .member-row input[data-role="skill"],
+  #subsList .substitute-row .sub-skill {
+    font-size: 11px;
+    padding: 0.20rem 0.24rem;
+  }
+  /* 左側「全部成員」搜尋＆浮層搜尋，維持原本視覺＋16px 防止放大 */
   #memberSearch,
   #pickerSearch {
-    font-size: 0.78rem;   /* 跟你現在設定一樣，視覺不變 */
+    font-size: 0.8rem;
   }
-  /* 只有正在輸入的那一格，暫時變 16px，給 Safari 看 */
-  .member-row input:focus,
-  .substitute-row input:focus,
   #memberSearch:focus,
   #pickerSearch:focus {
     font-size: 16px;
   }
+    /* ✅ iOS 專用：focus 時用 16px 但視覺縮回 13px 左右，避免 ZOOM IN */
+  #thisWeek .member-row input[data-role="name"].ios-zoom-fix,
+  #subsList .substitute-row .sub-name.ios-zoom-fix {
+    font-size: 16px !important;      /* 給 Safari 看：我有 16px 了，別放大 */
+    transform: scale(0.8);           /* 視覺 ≒ 12.8px ≈ 你原本的 13px */
+    transform-origin: left center;   /* 從左邊縮，避免整格位移感太重 */
+  }
 }
+
+
 
     /* 手機板底部按鈕 */
     @media (max-width: 900px) {
@@ -185,7 +210,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.8</h1>
+  <h1>幫戰名單比對工具 v14.9</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -300,6 +325,7 @@
   </div>
 
   <script>
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbxI39kkO1P02H-ozH3r8zD1m13ACuzcKY1db3f0wSssrooNeYLcNADntmvglirjz6Al/exec";
@@ -416,16 +442,23 @@
     function createMemberInputs(side){
       let html = "";
       for(let i=1;i<=6;i++){
-        if(side === "last"){
-          html += `
-            <div class="member-row">
-              <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" onclick="maybeOpenMemberPicker(event, this)" readonly>
-            </div>
-            <div class="member-row">
-              <input data-role="skill" class="readonly-skill locked-input" placeholder="" readonly>
-            </div>
-          `;
-        } else {
+        if (side === "last") {
+  html += `
+    <div class="member-row">
+      <input data-role="name" data-side="last"
+             class="locked-input"
+             placeholder="成員${i}"
+             readonly tabindex="-1">
+    </div>
+    <div class="member-row">
+      <input data-role="skill"
+             class="readonly-skill locked-input"
+             placeholder=""
+             readonly tabindex="-1">
+    </div>
+  `;
+}
+ else {
           html += `
             <div class="member-row">
               <input data-role="name" data-side="${side}" draggable="true"
@@ -625,7 +658,12 @@
         <button class="del-btn" onclick="deleteSub(this)">刪</button>
         <span class="sub-status"></span>
       `;
-      applyColorByName(row.querySelector(".sub-name"));
+      // ⭐ 取得替補名字欄
+  const nameInput = row.querySelector(".sub-name");
+  // 套顏色（原本就有的邏輯）
+  applyColorByName(nameInput);
+  // ⭐ 新增：一建立就先算一次字體大小
+  fitNameFont(nameInput);
       subsList.appendChild(row);
     }
 
@@ -809,6 +847,7 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
       nameInput.dataset.dirty = "1";
     }
   });
+fitNameFont(inp);                        // 同步編輯時
   // 同步存檔
   saveState();
 }
@@ -1034,7 +1073,7 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
           applyJobColor(target, member.job);
           target.parentElement.querySelector(".sub-skill").value = member.skill || "";
           markDirty(target);
-
+          fitNameFont(target);
           draggingPanelInput.value = oldName;
           applyJobColor(draggingPanelInput, oldJob);
           const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
@@ -1320,6 +1359,9 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
 
       if (state.stuckMembers) setStuckData(state.stuckMembers);
       renderStuckList();
+
+      // ⬇ 新增：狀態套完後，把所有名字欄位重新排字體
+      refreshAllNameFonts();
     }
 
     function saveCompareIgnore(){
@@ -2029,28 +2071,32 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   }
 }
 
-  /*V14.8修改，搜尋框超出範圍時，內移*/ 
-    function openMemberPicker(input){
+  /* V14.9：搜尋框貼齊欄位下緣，左右依規則自動對齊 */
+function openMemberPicker(input){
   pickerTargetInput = input;
   const rect = input.getBoundingClientRect();
-  const pageWidth = document.body.clientWidth;
-
-  const pickerWidth = 220;  // 搜尋框寬度
-  let left = rect.left + window.scrollX;  // 預設貼齊 input 左側
-  // ① 若搜尋框會超出右側 → 自動往左挪
-  if (left + pickerWidth > pageWidth - 10) {  
-    left = pageWidth - pickerWidth - 10;   // 右側保留 10px
-  }
-  // ② 若挪過頭跑到左邊界外 → 卡住左邊界
-  if (left < 10) left = 10;
-  memberPicker.style.width = pickerWidth + "px";
-  memberPicker.style.left  = left + "px";
-  memberPicker.style.top   = (rect.bottom + window.scrollY + 4) + "px";
+  // 以所在的 .panel 為邊界，沒找到就用本週名單
+  const panel = input.closest(".panel") || thisWeekPanel;
+  const panelRect = panel.getBoundingClientRect();
+  const pickerWidth = 260; // 搜尋浮層寬度
+  // ① 預設：搜尋框「左邊」 = 欄位左邊
+  //    → 最左列的小隊會齊左對齊成員
+  let left = rect.left + window.scrollX;
+  // ② 限制在 panel 內：超出才被「擠回來」
+  //    → 最右列會齊右，其餘中間只在超出時微調
+  const minLeft = panelRect.left + window.scrollX + 4;
+  const maxLeft = panelRect.right + window.scrollX - pickerWidth - 4;
+  if (left < minLeft) left = minLeft;
+  if (left > maxLeft) left = maxLeft;
+  // ③ 垂直位置：直接貼在欄位底部，**不要空隙**
+  memberPicker.style.left = left + "px";
+  memberPicker.style.top  = (rect.bottom + window.scrollY) + "px";
   memberPicker.style.display = "block";
   pickerSearch.value = "";
   renderPickerList(allMembers);
   pickerSearch.focus();
 }
+
 
 
     function renderPickerList(list){
@@ -2081,6 +2127,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
       const skillRow = pickerTargetInput.parentElement.nextElementSibling;
       if (skillRow && skillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), m.skill || ""); }
       pickerTargetInput.dataset.dirty = "1";
+      fitNameFont(pickerTargetInput);          // 選完成員後
       saveState();
       closeMemberPicker();
     }
@@ -2125,7 +2172,27 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
       } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
 
       startVersionWatcher();
+      refreshAllNameFonts();
     }
+
+    // V14.9根據名字長度自動縮放字體大小（只管本週名單 + 替補名字）
+function fitNameFont(input) {
+  if (!input) return;
+  const len = (input.value || "").length;
+  // 基本邏輯：7 字以內維持原來，越長就越小一點
+  let size = 13;        // 預設（對應你手機版 CSS 的 13px）
+  if (len > 7 && len <= 9)  size = 12;
+  else if (len > 9 && len <= 11) size = 11;
+  else if (len > 11)         size = 10;
+  input.style.fontSize = size + "px";
+}
+// 一次掃描整個畫面上的名字欄位，全部套一次
+function refreshAllNameFonts() {
+  document
+    .querySelectorAll('#thisWeek input[data-role="name"], #subsList .sub-name')
+    .forEach(fitNameFont);
+}
+
 
     loadState();
     loadPersistentIgnore();
@@ -2137,6 +2204,37 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
     });
     // 拖曳開始也視為編輯（即使尚未放下）
     document.addEventListener("dragstart", suppressOutlinesOnEdit, true);
+    // 使用者在「本週名單 / 替補」輸入名字時，立即重新算字體大小
+    document.addEventListener("input", function (e) {
+    const t = e.target;
+    if (t.matches('#thisWeek input[data-role="name"], #subsList .sub-name')) {
+    fitNameFont(t);
+    }
+    });
+    
+    attachIOSZoomFix();
+    
+    // ✅ iOS：避免本週 / 替補名字欄位被點擊時整頁 ZOOM IN
+function attachIOSZoomFix() {
+  if (!isIOS) return; // 只有 iPhone / iPad 才啟動
+  // focusin：誰被點到，就給它套上 ios-zoom-fix（讓字實際變 16px）
+  document.addEventListener("focusin", function (e) {
+    const t = e.target;
+    if (!t || !t.matches) return;
+    // 只針對「本週名單的名字欄位」＋「替補名字欄位」
+    if (t.matches('#thisWeek input[data-role="name"], #subsList .substitute-row .sub-name')) {
+      t.classList.add("ios-zoom-fix");
+    }
+  });
+  // focusout：離開輸入框時，把 class 拿掉，交回給 fitNameFont 控制大小
+  document.addEventListener("focusout", function (e) {
+    const t = e.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains("ios-zoom-fix")) {
+      t.classList.remove("ios-zoom-fix");
+    }
+  });
+}
 
   </script>
 </body>

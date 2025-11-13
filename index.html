@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v14.8</title>
+  <title>幫戰名單比對工具 v14.9</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -145,23 +145,36 @@
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
 
-    /* V14.8手機：避免 iOS 自動放大，但平常維持原本字體大小 */
+    /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
 @media (max-width: 900px) {
-  /* 平常還是用你原本的 0.78rem / 0.85rem 等大小 */
-  .member-row input,
-  .substitute-row input,
+  /* 本週 / 上週：成員名稱 */
+  #thisWeek .member-row input[data-role="name"],
+  #lastWeek .member-row input[data-role="name"],
+  #subsList .substitute-row .sub-name {
+    font-size: 13px;          /* 稍微小一點 */
+    padding: 0.24rem 0.24rem; /* 左右縮一點，騰出寬度 */
+  }
+  /* 本週 / 上週：技能欄位 */
+  #thisWeek .member-row input[data-role="skill"],
+  #lastWeek .member-row input[data-role="skill"],
+  #subsList .substitute-row .sub-skill {
+    font-size: 11px;          /* 技能再小一點點 */
+    padding: 0.20rem 0.24rem;
+  }
+  /* 左側「全部成員」搜尋＆浮層搜尋，維持原本視覺 */
   #memberSearch,
   #pickerSearch {
-    font-size: 0.78rem;   /* 跟你現在設定一樣，視覺不變 */
+    font-size: 0.8rem;
   }
-  /* 只有正在輸入的那一格，暫時變 16px，給 Safari 看 */
-  .member-row input:focus,
-  .substitute-row input:focus,
+  /* 避免 Safari 自動放大：正在輸入時暫時變 16px */
+  #thisWeek .member-row input:focus,
+  #subsList .substitute-row input:focus,
   #memberSearch:focus,
   #pickerSearch:focus {
     font-size: 16px;
   }
 }
+
     /* V14.8只有本週名單＋替補，在輸入時放大到 16px，避免 Safari 自動縮放 */
 input[data-side="this"]:focus,
 #subsList input:focus {
@@ -197,7 +210,7 @@ input[data-side="this"]:focus,
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v14.8</h1>
+  <h1>幫戰名單比對工具 v14.9</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -2048,23 +2061,26 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   }
 }
 
-  /*V14.8修改，搜尋框超出範圍時，內移*/ 
- function openMemberPicker(input){
+  /* V14.9：搜尋框貼齊欄位下緣，左右依規則自動對齊 */
+function openMemberPicker(input){
   pickerTargetInput = input;
   const rect = input.getBoundingClientRect();
-  // 以所在的 .panel 為邊界，沒找到就預設用本週名單
+  // 以所在的 .panel 為邊界，沒找到就用本週名單
   const panel = input.closest(".panel") || thisWeekPanel;
   const panelRect = panel.getBoundingClientRect();
-  const pickerWidth = 260; // 你的彈窗寬度，可依實際調
-  // 先讓「彈窗右邊 ≈ 輸入框右邊」
-  let left = rect.right + window.scrollX - pickerWidth;
-  // 再 clamp 在 panel 裡面
-  const minLeft = panelRect.left + window.scrollX + 8;
-  const maxLeft = panelRect.right + window.scrollX - pickerWidth - 8;
+  const pickerWidth = 260; // 搜尋浮層寬度
+  // ① 預設：搜尋框「左邊」 = 欄位左邊
+  //    → 最左列的小隊會齊左對齊成員
+  let left = rect.left + window.scrollX;
+  // ② 限制在 panel 內：超出才被「擠回來」
+  //    → 最右列會齊右，其餘中間只在超出時微調
+  const minLeft = panelRect.left + window.scrollX + 4;
+  const maxLeft = panelRect.right + window.scrollX - pickerWidth - 4;
   if (left < minLeft) left = minLeft;
   if (left > maxLeft) left = maxLeft;
+  // ③ 垂直位置：直接貼在欄位底部，**不要空隙**
   memberPicker.style.left = left + "px";
-  memberPicker.style.top  = (rect.bottom + window.scrollY + 4) + "px";
+  memberPicker.style.top  = (rect.bottom + window.scrollY) + "px";
   memberPicker.style.display = "block";
   pickerSearch.value = "";
   renderPickerList(allMembers);
@@ -2161,6 +2177,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

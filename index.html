@@ -351,7 +351,8 @@
     let pickerTargetInput = null;
     const memberPicker = document.getElementById("memberPicker");
     const pickerList = document.getElementById("pickerList");
-    const pickerSearch = document.getElementById("pickerSearch");
+    const pickerSearch = document.getElementById("pickerSearch");    
+    let pickerPrevScrollY = 0; // ✅ V14.8記錄打開搜尋浮層前的捲動位置（手機用）
 
     function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 
@@ -1999,16 +2000,20 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
     
 
     function maybeOpenMemberPicker(e, input){ if (input.value.trim() === "") { openMemberPicker(input); } }
+    
+    /*14.8修改，手機搜尋結束捲回畫面用*/
     function openMemberPicker(input){
-      pickerTargetInput = input;
-      const rect = input.getBoundingClientRect();
-      memberPicker.style.left = (rect.left + window.scrollX) + "px";
-      memberPicker.style.top = (rect.bottom + window.scrollY + 4) + "px";
-      memberPicker.style.display = "block";
-      pickerSearch.value = "";
-      renderPickerList(allMembers);
-      pickerSearch.focus();
-    }
+  pickerTargetInput   = input;
+  pickerPrevScrollY   = window.scrollY || document.documentElement.scrollTop || 0; // ← 記錄
+  const rect = input.getBoundingClientRect();
+  memberPicker.style.left = (rect.left + window.scrollX) + "px";
+  memberPicker.style.top  = (rect.bottom + window.scrollY + 4) + "px";
+  memberPicker.style.display = "block";
+  pickerSearch.value = "";
+  renderPickerList(allMembers);
+  pickerSearch.focus();
+}
+
     function renderPickerList(list){
       pickerList.innerHTML = "";
       list.forEach(m=>{
@@ -2040,8 +2045,25 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
       saveState();
       closeMemberPicker();
     }
-    function closeMemberPicker(){ memberPicker.style.display = "none"; pickerTargetInput = null; }
-    document.addEventListener("click", function(e){ if (!memberPicker.contains(e.target) && e.target !== pickerTargetInput) { closeMemberPicker(); } });
+  
+    
+    /*V14.8修改，手機搜尋結束後恢復畫面*/
+    function closeMemberPicker(){
+    memberPicker.style.display = "none";
+    pickerTargetInput = null;
+    // 先把搜尋欄失焦，收掉手機鍵盤
+    if (document.activeElement === pickerSearch) {
+    pickerSearch.blur();
+    }
+    // ✅ 手機上：關閉後捲回原本的位置
+    if (typeof pickerPrevScrollY === "number") {
+    window.scrollTo({
+      top: pickerPrevScrollY,
+      left: 0,
+      behavior: "auto"
+    });
+  }
+}
 
     function updateSkillColor(cell) {
       const skill = cell.querySelector(".skill");
@@ -2095,4 +2117,5 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 

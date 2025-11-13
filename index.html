@@ -144,6 +144,12 @@
     }
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
+/* ✅ V14.9鎖定本週名單的技能欄位：不能點、不能選字、沒有游標 */
+#thisWeek .member-row input[data-role="skill"] {
+  pointer-events: none;
+  user-select: none;
+  caret-color: transparent;
+}
 
     
     /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
@@ -2216,12 +2222,14 @@ function refreshAllNameFonts() {
     // ✅ iOS：避免本週 / 替補名字欄位被點擊時整頁 ZOOM IN
 function attachIOSZoomFix() {
   if (!isIOS) return; // 只有 iPhone / iPad 才啟動
-  // focusin：誰被點到，就給它套上 ios-zoom-fix（讓字實際變 16px）
+  // focusin：只有「空的欄位」才套上 ios-zoom-fix，避免已填好的人名放大
   document.addEventListener("focusin", function (e) {
     const t = e.target;
     if (!t || !t.matches) return;
     // 只針對「本週名單的名字欄位」＋「替補名字欄位」
     if (t.matches('#thisWeek input[data-role="name"], #subsList .substitute-row .sub-name')) {
+      // ✅ 若欄位已有文字，就不要放大字體
+      if ((t.value || "").trim() !== "") return;
       t.classList.add("ios-zoom-fix");
     }
   });
@@ -2234,6 +2242,8 @@ function attachIOSZoomFix() {
     }
   });
 }
+
   </script>
 </body>
 </html>
+

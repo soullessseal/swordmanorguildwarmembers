@@ -422,16 +422,23 @@ input[data-side="this"]:focus,
     function createMemberInputs(side){
       let html = "";
       for(let i=1;i<=6;i++){
-        if(side === "last"){
-          html += `
-            <div class="member-row">
-              <input data-role="name" data-side="last" class="locked-input" placeholder="成員${i}" onclick="maybeOpenMemberPicker(event, this)" readonly>
-            </div>
-            <div class="member-row">
-              <input data-role="skill" class="readonly-skill locked-input" placeholder="" readonly>
-            </div>
-          `;
-        } else {
+        if (side === "last") {
+  html += `
+    <div class="member-row">
+      <input data-role="name" data-side="last"
+             class="locked-input"
+             placeholder="成員${i}"
+             readonly tabindex="-1">
+    </div>
+    <div class="member-row">
+      <input data-role="skill"
+             class="readonly-skill locked-input"
+             placeholder=""
+             readonly tabindex="-1">
+    </div>
+  `;
+}
+ else {
           html += `
             <div class="member-row">
               <input data-role="name" data-side="${side}" draggable="true"
@@ -2148,6 +2155,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
   </script>
 </body>
 </html>
+
 
 
 

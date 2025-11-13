@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v15.4</title>
+  <title>幫戰名單比對工具 v15.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -64,39 +64,6 @@
     @media (max-width: 600px) { .squad-del-btn { top: 4px; right: 4px; width: 20px; height: 20px; line-height: 20px; font-size: 13px; } }
 
     .team-dots { display: none; }
-
-    
-    /* V15.4手機版：本週名單名稱／技能超出時自動橫向捲動（跑馬燈） */
-@media (max-width: 900px) {
-  .marquee-box {
-    position: relative;
-    overflow: hidden;
-  }
-  /* input 本身只留邊框與高度，文字改交給上層 span 顯示 */
-  .marquee-box input {
-    position: relative;
-    z-index: 1;
-    color: transparent;
-    caret-color: transparent;
-  }
-  .marquee-text {
-    position: absolute;
-    left: 0.35rem;
-    right: 0.35rem;
-    top: 50%;
-    transform: translateY(-50%);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 2;
-  }
-  .marquee-box.marquee-run .marquee-text {
-    animation: marquee-scroll 6s linear infinite;
-  }
-  @keyframes marquee-scroll {
-    0%   { transform: translate(0, -50%); }
-    100% { transform: translate(-100%, -50%); }
-  }
-}
 
     @media (max-width: 900px) {
       #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
@@ -248,7 +215,7 @@
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v15.4</h1>
+  <h1>幫戰名單比對工具 v15.3</h1>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -1025,46 +992,32 @@ document.addEventListener(
       const m = allMembers.find(x=>x.name===name);
       return m ? m.job : "";
     }
-
-    
     function applyJobColor(input, job){
-  if(!input) return;
-  if(job && roleColors[job]){
-    const dark = darkenHex(roleColors[job],0.25);
-    input.style.borderLeft = "6px solid " + dark;
-    input.style.color = dark;
-    input.style.fontWeight = "700";
-    input.dataset.job = job;
-  } else {
-    input.style.borderLeft = "";
-    input.style.color = "";
-    input.dataset.job = "";
-    input.style.fontWeight = "700";
-  }
-
-  // V15.4★ 新增：本週名單名稱欄位要更新跑馬燈
-  if (input.matches('#thisWeek input[data-role="name"]')) {
-    syncMarqueeText(input);
-  }
-}  // ← 這個是 applyJobColor 的結尾大括號
-
-// 這個函式要獨立在外面
-function applyColorByName(input){
-  const name = input.value.trim();
-  const job = getJobByName(name);
-  applyJobColor(input, job);
-}
-
+      if(!input) return;
+      if(job && roleColors[job]){
+        const dark = darkenHex(roleColors[job],0.25);
+        input.style.borderLeft = "6px solid " + dark;
+        input.style.color = dark;
+        input.style.fontWeight = "700";
+        input.dataset.job = job;
+      } else {
+        input.style.borderLeft = "";
+        input.style.color = "";
+        input.dataset.job = "";
+        input.style.fontWeight = "700";
+      }
+    }
+    function applyColorByName(input){
+      const name = input.value.trim();
+      const job = getJobByName(name);
+      applyJobColor(input, job);
+    }
 
     function setSkillInputValue(input, val) {
       if (!input) return;
       input.value = val || "";
       if (val && val.trim() !== "") input.classList.add("skill-has");
       else input.classList.remove("skill-has");
-      // V154.4★ 新增：本週名單裡的技能欄位也要跑馬燈
-  if (input.closest('#thisWeek')) {
-    syncMarqueeText(input);
-  }
     }
 
     function clearDuplicateInPanel(panelEl, name, exceptInput){
@@ -1075,59 +1028,6 @@ function applyColorByName(input){
       });
     }
 
-
-  // V15.4手機版：把本週名單／技能欄外面包一層，用 span 做跑馬燈
-function ensureMarqueeWrapper(input) {
-  // 只在手機寬度＋本週名單 panel 裡處理
-  if (window.innerWidth > 900) return;
-  if (!input.closest('#thisWeek')) return;
-  const parent = input.parentElement;
-  if (!parent || parent.classList.contains('marquee-box')) return;
-  const box = document.createElement('div');
-  box.className = 'marquee-box';
-  parent.insertBefore(box, input);
-  box.appendChild(input);
-  const span = document.createElement('span');
-  span.className = 'marquee-text';
-  box.appendChild(span);
-  // 點一下可以啟動／暫停跑馬燈（避免一直晃眼睛）
-  box.addEventListener('click', function () {
-    if (!box.classList.contains('need-marquee')) return;
-    box.classList.toggle('marquee-run');
-  });
-}
-function syncMarqueeText(input) {
-  if (window.innerWidth > 900) return;
-  if (!input.closest('#thisWeek')) return;
-  ensureMarqueeWrapper(input);
-  const box = input.parentElement;
-  const span = box.querySelector('.marquee-text');
-  if (!span) return;
-  span.textContent = input.value;
-  // 名稱沿用職業色，技能用深藍字色
-  if (input.dataset.role === 'name') {
-    span.style.color = input.style.color || '#0f172a';
-  } else {
-    span.style.color = '#0f172a';
-  }
-  span.style.fontWeight = input.style.fontWeight || '700';
-  // 判斷需不需要跑馬燈
-  box.classList.remove('need-marquee', 'marquee-run');
-  requestAnimationFrame(() => {
-    if (span.scrollWidth > box.clientWidth + 4) {
-      box.classList.add('need-marquee');
-      box.classList.add('marquee-run'); // 若想改成點一下才開始跑，可以把這行拿掉
-    }
-  });
-}
-// 一次重新檢查目前畫面上的欄位
-function refreshAllMarquees() {
-  document
-    .querySelectorAll('#thisWeek input[data-role="name"], #thisWeek input[data-role="skill"]')
-    .forEach(syncMarqueeText);
-}
-
-    
     function collectDirtyMarks() {
       const marks = [];
       thisWeekPanel.querySelectorAll("[data-dirty='1']").forEach(el => {
@@ -1225,7 +1125,7 @@ function refreshAllMarquees() {
           const oldSkill = prevSkill;
           const oldJob   = getJobByName(oldName) || target.dataset.job || "";
 
-          target.value = member.name; syncMarqueeText(target);
+          target.value = member.name;
           applyJobColor(target, member.job);
           target.parentElement.querySelector(".sub-skill").value = member.skill || "";
           markDirty(target);
@@ -1243,7 +1143,7 @@ function refreshAllMarquees() {
           return;
         }
 
-        target.value = member.name; syncMarqueeText(target);
+        target.value = member.name;
         applyJobColor(target, member.job);
         const sk = target.parentElement.querySelector(".sub-skill");
         if (sk) sk.value = member.skill ? member.skill : "";
@@ -1310,7 +1210,7 @@ function refreshAllMarquees() {
         if (member.fromPanel && member.side !== targetSide) return;
 
         // 真正放進面板
-        target.value = member.name; syncMarqueeText(target);
+        target.value = member.name;
         applyJobColor(target, member.job);
         const srow = target.parentElement.nextElementSibling;
         if (srow && srow.querySelector("input[data-role='skill']")) {
@@ -2296,7 +2196,6 @@ function openMemberPicker(input){
   applyJobColor(pickerTargetInput, m.job);
   pickerTargetInput.dataset.dirty = "1";
   fitNameFont(pickerTargetInput);
-  syncMarqueeText(pickerTargetInput);   // V15.4★ 新增
   // ⭐ 區分：本週欄位 vs 替補欄位
   if (pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
     // 本週：維持原本 skillRow 的寫法
@@ -2381,8 +2280,6 @@ function refreshAllNameFonts() {
   document
     .querySelectorAll('#thisWeek input[data-role="name"], #subsList .sub-name')
     .forEach(fitNameFont);
-  // ★ 新增：順便重算本週名單名稱／技能的跑馬燈
-  refreshAllMarquees();
 }
 
 

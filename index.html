@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v16</title>
+  <title>幫戰名單比對工具 v16.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -43,6 +43,13 @@
   display: flex;
   align-items: baseline;
   gap: .4rem;
+}
+
+/*V16.1新增顯示目前幫眾人數*/
+.guild-count {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-left: 0.4rem;
 }
 
 /* 名字在左邊，必要時可以略為截斷避免擠到技能 */
@@ -305,6 +312,13 @@
   gap: .5rem;
 }
 
+@media (max-width: 900px) {
+  #guildPositions {
+    position: static;
+    top: auto;
+  }
+}
+
 .guild-pos-note {
   font-size: .78rem;
   color: #64748b;
@@ -436,7 +450,7 @@
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v16</h1>
+    <h1>幫戰名單比對工具 v16.1</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -485,6 +499,7 @@
   <div class="guild-col-title">
     幫眾
     <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
+    <span id="guildCountLabel" class="guild-count">0/60</span>
   </div>
   <div class="guild-box" id="guildBattleBox"
        ondragover="allowDrop(event)"
@@ -704,6 +719,7 @@ function sortGuildBoxByJob(box) {
 
 // V16 在指定的大框裡新增一個職位標籤（含：去重＋上限檢查＋空位管理）
 function addGuildTag(box, member, options) {
+  const isPendingBox = (box === guildPendingBox);
   const opts = options || {};
   const bypassRules = !!opts.bypassRules; // true = 不檢查（給還原舊資料用）
   const name = (member && member.name ? member.name : "").trim();
@@ -749,10 +765,14 @@ function addGuildTag(box, member, options) {
   const nameSpan = document.createElement("span");
   nameSpan.textContent = name;
   tag.appendChild(nameSpan);
+
+ 
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "position-tag-remove";
   btn.textContent = "×";
+
+   if (!isPendingBox) {
   btn.onclick = function (e) {
     e.stopPropagation();
     tag.remove();
@@ -766,7 +786,8 @@ function addGuildTag(box, member, options) {
     }
     saveState();
   };
-  tag.appendChild(btn);
+  tag.appendChild(btn);}
+
   box.appendChild(tag);
   // ★ 新增成員後也要維持 60 格
   if (box === guildBattleBox) {
@@ -866,6 +887,12 @@ function maintainGuildBattlePlaceholders() {
   } else {
     guildBattleBox.classList.remove("empty");
   }
+/*V16.1 更新幫眾數字*/
+    const label = document.getElementById("guildCountLabel");
+  if (label) {
+    label.textContent = realCount + "/60";
+  }
+
 }
 
 
@@ -945,6 +972,21 @@ function updateGuildBattleAndWeekComparison() {
 
 }
 
+/*V16.1顯示訊息*/
+let guildNoteTimer = null;
+function showGuildSwapMessage(msg, color) {
+  const note = document.querySelector(".guild-pos-note");
+  if (!note) return;
+  note.textContent = msg;
+  note.style.color = color || "#2563eb"; // 預設藍色
+  if (guildNoteTimer) clearTimeout(guildNoteTimer);
+  guildNoteTimer = setTimeout(() => {
+    note.textContent = "比對尚未更換職位的成員。";
+    note.style.color = "#64748b";
+  }, 2500);
+}
+
+
  // ★ 交換選中的紅／綠標籤：幫眾 ↔ 學徒
 function swapSelectedGuildMembers() {
   if (!guildBattleBox || !guildPendingBox) return;
@@ -1020,6 +1062,13 @@ function swapSelectedGuildMembers() {
   requestSave();
   // 更新交換按鈕可按狀態
   updateGuildSwapButtonState();
+  // V16.1新增，靜默儲存到後台，成功後顯示訊息
+requestSave({
+  silent: true,
+  onSuccess() {
+    showGuildSwapMessage("交換完成，已同步生效", "#2563eb");
+  }
+});
 }
 
 
@@ -2155,8 +2204,6 @@ function getGuildPositionsData() {
     guildBattleBox.querySelectorAll(".position-tag").forEach(tag => {
       const name = (tag.dataset.name || "").trim();
       if (!name) return;
-      // 空位標籤可以不用存，之後用 maintainGuildBattlePlaceholders 自動補
-      if (tag.dataset.placeholder === "1") return;
       const job = tag.dataset.job || getJobByName(name) || "";
       battle.push({ name, job });
     });
@@ -2250,14 +2297,22 @@ if (state.subs && state.subs.length) {
 refreshSubsView();
     }
 
-    function requestSave(){
-      const now = Date.now();
-      if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
-        doSaveToBackend();
-      } else {
-        showLogin();
-      }
-    }
+
+    /*V16.1修改可以收options，儲存可以不跳窗*/
+function requestSave(options = {}){
+  const { silent = false, onSuccess = null } = options;
+  // 把設定暫存到函式屬性上，給 doSaveToBackend 用
+  requestSave._silentOnce = silent;
+  requestSave._onSuccess = onSuccess;
+  const now = Date.now();
+  if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
+    doSaveToBackend();
+  } else {
+    showLogin();
+  }
+}
+
+
     function showLogin(){
       document.getElementById("loginMsg").textContent = "";
       document.getElementById("loginUser").value = "";
@@ -2321,11 +2376,16 @@ function doSaveToBackend() {
     .then(data => {
       // ★ 重點 3：改回用 success 判斷
       if (data && data.success) {
+        const silent = !!requestSave._silentOnce; //V16.1新增
+        const cb = requestSave._onSuccess; //V16.1新增
         lastKnownUpdatedAt = data.updatedAt || null;
-        alert("已儲存到後台");
+        if (!silent) {alert("已儲存到後台");}
         // 如果你要順便把最近修改框線畫回來，也可以在這裡做
         // renderRecentMarks(state.recentMarks);
         // document.querySelectorAll("[data-dirty='1']").forEach(el => el.removeAttribute("data-dirty"));
+        requestSave._silentOnce = false; //V16.1新增
+        requestSave._onSuccess = null; //V16.1新增
+        if (typeof cb === "function") cb(); //V16.1新增
       } else {
         alert("後台有回應但不是 success，請看 console");
         console.log(data);
@@ -3069,6 +3129,3 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
-
-
-

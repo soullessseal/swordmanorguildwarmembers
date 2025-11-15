@@ -1012,9 +1012,13 @@ function swapSelectedGuildMembers() {
   document
     .querySelectorAll(".position-tag.guild-selected")
     .forEach(t => t.classList.remove("guild-selected"));
-  // 重新比對紅／綠、重排順序
+   // 重新比對紅／綠、重排順序
   updateGuildBattleAndWeekComparison();
+  // 先存到 localStorage
   saveState();
+  // ★ 再呼叫遠端儲存（會自動檢查登入 & 打到 GAS）
+  requestSave();
+  // 更新交換按鈕可按狀態
   updateGuildSwapButtonState();
 }
 
@@ -2311,6 +2315,7 @@ function doSaveToBackend() {
     allMembers,
     thisWeek: getPanelData(thisWeekPanel),
     subs: getSubsData(),
+    guildPositions: getGuildPositionsData(),  // ★ 把幫眾 / 學徒也存進去
     recentMarks: collectRecentMarks()  // 你新版用的標記資料
     // 如果之後要把幫眾 / 學徒職位也存進去，可以在這裡再多加欄位
     // guildBattle: serializeGuildBattleState() 之類的
@@ -3081,4 +3086,5 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 

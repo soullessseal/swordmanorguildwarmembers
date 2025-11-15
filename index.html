@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v15.3</title>
+  <title>幫戰名單比對工具 v16</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -22,7 +22,7 @@
       font-size: 16px;
     }
     h1 { color: #fff; margin: 0 0 .75rem; }
-    .layout { display: grid; grid-template-columns: 0.65fr 1.45fr 1.45fr 0.65fr; gap: 1rem; align-items: flex-start; }
+    .layout {  display: grid;  grid-template-columns: 0.7fr 1.0fr 1.5fr 0.7fr; gap: 1rem;  align-items: flex-start;}
     .panel { background: var(--card); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(15, 23, 42, 0.05); box-shadow: 0 10px 30px rgba(0,0,0,.04); }
     #allMembersPanel { position: sticky; top: 1rem; z-index: 5; }
     .right-sticky-wrap { position: sticky; top: 1rem; z-index: 6; display: flex; flex-direction: column; gap: .6rem; }
@@ -36,9 +36,30 @@
     .role-tab.active { border: 1px solid #0f172a44; }
     .member-list { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.4rem; background: #f8fafc; }
     .member-item { display: flex; justify-content: space-between; gap: .35rem; align-items: center; background: #fff; border-radius: .35rem; padding: .3rem .35rem; margin-bottom: .3rem; border: 1px solid #e2e8f0; cursor: grab; }
-    .member-left { flex: 1 1 auto; min-width: 0; }
-    .member-name { font-weight: 700; font-size: .9rem; }
-    .member-skill { font-size: .7rem; opacity:.7; }
+    /* 左側成員文字區：改成橫排，名字 + 技能 對齊一行 */
+.member-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+}
+
+/* 名字在左邊，必要時可以略為截斷避免擠到技能 */
+.member-name {
+  font-weight: 700;
+  font-size: .9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 技能固定靠右，跟每一列的右邊距離一致 */
+.member-skill {
+  font-size: .75rem;
+  opacity: .7;
+  margin-left: auto;   /* ★ 把技能推到最右邊，名字多長都不影響位置 */
+}
     .member-actions { display:flex; gap:.25rem; }
     .member-actions button { border:none; background:#e2e8f0; font-size:.65rem; border-radius:.35rem; padding:.25rem .45rem; cursor:pointer; }
     .pagination { display:flex; justify-content:center; gap:.35rem; margin-top:.4rem; }
@@ -65,11 +86,45 @@
 
     .team-dots { display: none; }
 
+
+    /* V16讓標題與儲存按鈕排在同一行 */
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;           /* 標題跟按鈕之間留一點距離 */
+  margin-bottom: 0.75rem;
+  /* 把這行拿掉：justify-content: space-between; */
+}
+/* 桌面版儲存按鈕的樣式 */
+.save-btn-desktop {
+  background: #ef4444;
+  color: #fff;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999rem;
+  font-size: 0.95rem;
+  margin-top: -0.73rem;
+  cursor: pointer;
+  border: none;
+}
+/* 手機版不顯示桌面儲存按鈕 */
+@media (max-width: 900px) {
+  .save-btn-desktop {
+    display: none;
+  }
+}
+/* 電腦版不顯示手機儲存按鈕 */
+@media (min-width: 901px) {
+  .right-actions-bar {
+    display: none !important;
+  }
+}
+
+
     @media (max-width: 900px) {
-      #thisWeek, #lastWeek { overflow-x: visible; white-space: normal; }
-      #thisWeek .teams-wrap, #lastWeek .teams-wrap { position: relative; width: 100%; }
-      #thisWeek .team-block, #lastWeek .team-block { width: 100%; display: none; }
-      #thisWeek .team-block.active, #lastWeek .team-block.active { display: block; }
+      #thisWeek { overflow-x: visible; white-space: normal; }
+      #thisWeek .teams-wrap .teams-wrap { position: relative; width: 100%; }
+      #thisWeek .team-block .team-block { width: 100%; display: none; }
+      #thisWeek .team-block.active .team-block.active { display: block; }
       .team-dots { display: flex; gap: 6px; justify-content: center; margin-top: .5rem; }
       .team-dot { width: 8px; height: 8px; border-radius: 999px; background: #cbd5e1; border: none; padding: 0; }
       .team-dot.active { background: #0f172a; }
@@ -87,9 +142,59 @@
   caret-color: transparent; /* 不顯示輸入游標 */
 }
 
+/* 幫會職位比對：幫眾在職位裡，但沒出現在本週 → 紅色膠囊 */
+.position-tag.guild-missing-in-week {
+  background: #fee2e2 !important;   /* 淺紅底 */
+  border-color: #fca5a5 !important; /* 外框淡紅 */
+  color: #b91c1c !important;        /* 深紅字 */
+  border-left: 1px solid #fca5a5 !important; /* 左邊色條也改成紅色 */
+}
 
-    .highlight-new { background:#bbf7d0 !important; border:1px solid #166534 !important; color:#064e3b !important; }
-    .highlight-missing { background:#fca5a5 !important; border:1px solid #b91c1c !important; color:#7f1d1d !important; }
+/* 幫會職位比對：本週有上場，但沒掛幫眾 → 綠色膠囊（出現在學徒欄位） */
+.position-tag.guild-from-week-only {
+  background: #bbf7d0 !important;   /* 淺綠底 */
+  border-color: #4ade80 !important; /* 外框綠色 */
+  color: #166534 !important;        /* 深綠字 */
+  border-left: 1px solid #4ade80 !important;
+}
+
+/* 紅／綠標籤可以點選 */
+.position-tag.guild-missing-in-week,
+.position-tag.guild-from-week-only {
+  cursor: pointer;
+}
+
+/* 被選中的狀態 */
+.position-tag.guild-selected {
+  box-shadow: 0 0 0 2px #0ea5e9;
+  transform: translateY(-1px);
+}
+
+/*V16新增幫眾添加成員按鈕*/
+.guild-add-btn {
+  margin-left: .35rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  border: none;
+  background: #0ea5e9;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: .78rem;
+  line-height: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  /* 保險：就算有誤上職業色，也蓋掉左邊色條 */
+  border-left: none !important;
+}
+.guild-add-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(34,197,94,0.25);
+}
+
 
     #subsList { display:flex; flex-direction:column; gap:.25rem; }
     .substitute-row { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-rows: auto auto; gap: 0.25rem; align-items: center; border: 1px solid #e2e8f0; border-radius: 0.35rem; padding: 0.25rem; background: #f8fafc; }
@@ -110,11 +215,6 @@
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
     .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
 
-    #comparePanel h3 { margin-top: 0; }
-    .compare-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
-    .compare-tag { background:#e2e8f0; border-radius:999px; padding:.2rem .6rem; font-size:.65rem; cursor:pointer; user-select:none; }
-    .compare-tag.muted { background:#0f172a; color:#fff; opacity:.55; }
-
     #memberPicker { position: absolute; background: #fff; border: 1px solid #cbd5e1; border-radius: .5rem; box-shadow: 0 15px 30px rgba(15,23,42,.12); width: 220px; display: none; z-index: 9999; padding: .4rem; overflow: hidden; }
     #memberPicker input { width: 100%; margin-bottom: .35rem; padding: .3rem .4rem; border: 1px solid #cbd5e1; border-radius: .35rem; box-sizing: border-box; }
     #memberPicker .picker-list { max-height: 180px; overflow-y: auto; }
@@ -123,24 +223,8 @@
 
     @media (max-width: 1300px) {
       .layout { grid-template-columns: 1fr; }
-      #allMembersPanel, .right-sticky-wrap { position: static; }
+      #allMembersPanel, #guildPositions, .right-sticky-wrap { position: static; }
       #downloadBtn { position: absolute; top: 1rem; right: 1rem; margin-bottom: 0; }
-    }
-
-    .compare-tag.new-tag { background:#bbf7d0; border:1px solid #166534; color:#064e3b; }
-    .compare-tag.missing-tag { background:#fca5a5; border:1px solid #b91c1c; color:#7f1d1d; }
-
-    /* 🔺強化待處理欄位紅綠標籤文字大小與粗體 */
-    #compareTags .compare-tag.new-tag,
-    #compareTags .compare-tag.missing-tag {
-    font-size: 0.78rem;      /* 原本 .65rem → 放大一點 */
-    font-weight: 700;      /* 粗體加強辨識 */
-    padding: 0.3rem 0.35rem;  /* 讓字放大後不會擠 */
-    }
-    #stuckList .compare-tag.missing-tag {
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 0.3rem 0.35rem;
     }
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
@@ -154,16 +238,14 @@
     
     /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
 @media (max-width: 900px) {
-  /* 本週 / 上週：成員名稱 */
+  /* 本週成員名稱 */
   #thisWeek .member-row input[data-role="name"],
-  #lastWeek .member-row input[data-role="name"],
   #subsList .substitute-row .sub-name {
     font-size: 13px;
     padding: 0.24rem 0.24rem;
   }
-  /* 本週 / 上週：技能欄位 */
+  /* 本週技能欄位 */
   #thisWeek .member-row input[data-role="skill"],
-  #lastWeek .member-row input[data-role="skill"],
   #subsList .substitute-row .sub-skill {
     font-size: 11px;
     padding: 0.20rem 0.24rem;
@@ -212,10 +294,151 @@
     .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .3rem; }
     #downloadBtn { position: static; }
 
+
+/* V16幫會職位欄位：也做成 sticky，跟左邊一樣貼在頂部 */
+#guildPositions {
+  position: sticky;
+  top: 1rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.guild-pos-note {
+  font-size: .78rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.guild-pos-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;  /* 左幫眾 / 中間按鈕 / 右學徒 */
+  gap: .75rem;
+  align-items: stretch;
+}
+
+.guild-swap-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guild-swap-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: none;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(15,23,42,.25);
+}
+
+.guild-swap-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.guild-col {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.guild-col-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+/* ★ 一個大框，裡面自動排標籤 */
+.guild-box {
+  min-height: 96px;
+  border-radius: .75rem;
+  border: 1px dashed #cbd5e1;
+  padding: .4rem .55rem;
+  box-sizing: border-box;
+  background: #f8fafc;
+  /* 直向排版：一列一個標籤 */
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: .25rem;
+}
+/* 幫眾欄：最多顯示約 15 個高度，其餘用滾輪 */
+#guildBattleBox {
+  max-height: 27.5rem;   /* 可自行微調，約 15 個標籤高度 */
+  overflow-y: auto;
+}
+
+/* 空的大框顯示淡淡提示文字（可選） */
+.guild-box.empty::before {
+  content: " ";
+  font-size: .75rem;
+  color: #94a3b8;
+}
+
+/* 成員標籤 */
+.position-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: .18rem .45rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  font-size: .85rem;
+  font-weight: 700;
+  max-width: 100%;
+  box-sizing: border-box;
+  letter-spacing: -0.02em;
+  width: 100%;                 /* 撐滿整列 */
+  justify-content: space-between;/* 文字在左，叉叉靠右 */
+}
+/* 刪除按鈕（叉叉） */
+.position-tag-remove {
+  margin-left: auto;           /* 往最右邊貼 */
+  border: none;
+  background: transparent;
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 1rem;             /* 叉叉變大 */
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.position-tag-remove:hover {
+  color: #ef4444;
+}
+
+/* RWD：手機版幫會職位欄位改成上下排列 */
+@media (max-width: 900px) {
+  /* 手機版幫會職位：允許標籤並排 */
+  .guild-box {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .position-tag {
+    width: auto;          /* 不要撐滿整列，改成膠囊 */
+    flex: 0 1 auto;
+  }
+}
+
+
   </style>
 </head>
 <body>
-  <h1>幫戰名單比對工具 v15.3</h1>
+  <div class="header-row">
+    <h1>幫戰名單比對工具 v16</h1>
+    <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
+  </div>
 
   <div class="layout">
     <!-- 左側：全部成員 -->
@@ -246,16 +469,46 @@
           <input id="newSkill" placeholder="成員技能（可不填）" />
           <button class="float-btn" style="width:100%;text-align:center;" onclick="addMember()">確認新增</button>
         </div>
+        <!-- ★ 新增：滿員提示文字 -->
+  <p id="memberLimitMsg" style="display:none;font-size:.7rem;color:#b91c1c;margin-top:.25rem;">
+    目前已滿員，請移除離開的成員後再新增。
       </div>
     </div>
 
-    <!-- 上週 -->
-    <div class="panel" id="lastWeek">
-      <div class="panel-title-row">
-        <h3>上週名單</h3>
-      </div>
-      <small style="font-size:.7rem;color:#64748b;">只能透過「本週名單覆蓋上週」更新，不可手動編輯。</small>
-    </div>
+ <!-- V16★ 新增：幫會職位欄位 -->
+  <div class="panel" id="guildPositions">
+    <h3>幫會職位</h3>
+    <p class="guild-pos-note">比對尚未更換職位的成員。</p>
+    <div class="guild-pos-grid">
+  <!-- 可參戰幫眾 -->
+  <div class="guild-col" data-type="battle">
+  <div class="guild-col-title">
+    幫眾
+    <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
+  </div>
+  <div class="guild-box" id="guildBattleBox"
+       ondragover="allowDrop(event)"
+       ondrop="dropMember(event)"></div>
+</div>
+
+  <!-- 中間交換按鈕 -->
+  <div class="guild-swap-wrap">
+    <button id="guildSwapBtn"
+            type="button"
+            class="guild-swap-btn"
+            onclick="swapSelectedGuildMembers()"
+            disabled>⇄</button>
+  </div>
+  <!-- 待上架學徒 -->
+  <div class="guild-col" data-type="pending">
+    <div class="guild-col-title">學徒</div>
+    <div class="guild-box" id="guildPendingBox"
+         ondragover="allowDrop(event)"
+         ondrop="dropMember(event)"></div>
+  </div>
+</div>
+
+  </div>
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
@@ -270,9 +523,6 @@
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
         <button class="float-btn danger" onclick="requestSave()">儲存</button>
-        <button class="float-btn" onclick="compare()">比對</button>
-        <button class="float-btn secondary" onclick="copyThisToLast()">本週名單覆蓋上週</button>
-        <button class="float-btn secondary" onclick="undoCopy()">還原</button>
       </div>
 
       <div class="panel" id="subs">
@@ -286,25 +536,6 @@
         </div>
         <button class="float-btn secondary" style="margin-top:.5rem;" onclick="addSub()">新增替補列</button>
       </div>
-
-      <div class="panel" id="comparePanel">
-  <h3>待處理成員</h3>
-  <p style="font-size:0.7rem;margin-top:0;">點一下隱藏/恢復那個人的紅綠標示</p>
-  <!-- 操作按鈕區 -->
-  <div style="margin-bottom:.6rem;">
-    <button class="float-btn secondary" 
-      style="margin-top:.4rem; background:rgba(239,68,68,0.85); color:#fff; border:none; font-weight:600; transition:background 0.2s ease, box-shadow 0.2s ease;" 
-      onclick="saveCompareIgnore()">
-      保存處理
-    </button>
-  </div>
-  <!-- 待處理名單 -->
-  <div id="compareTags" class="compare-tags" style="margin-top:.4rem;"></div>
-  <hr style="margin:.6rem 0;border:none;border-top:1px dashed #cbd5e1;">
-  <!-- 掛職名單 -->
-  <h4 style="font-size:.8rem;margin:.3rem 0 .25rem;">掛職名單：</h4>
-  <div id="stuckList" class="compare-tags"></div>
-</div>
 
     </div>
   </div>
@@ -328,6 +559,8 @@
       <p id="loginMsg" style="color:#b91c1c;font-size:.7rem;margin-top:.4rem;"></p>
     </div>
   </div>
+
+
 
   <script>
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -371,6 +604,75 @@
       {id:11, name: "煙雨", job: "九靈", skill: ""}
     ];
 
+/* V16新增 幫會職位用的職業排序（你想要的職業順序） */
+const guildJobOrder = ["九靈","鐵衣","素問","龍吟","神相","碎夢","血河"];
+
+// V16幫眾＋號：開啟成員搜尋浮層
+function openGuildAddPicker(btn) {
+  window.guildAddMode = true;
+  // 用按鈕本身當作定位元素（只拿來算位置）
+  const target = btn || document.getElementById("guildBattleBox");
+  if (!target) return;
+  openMemberPicker(target);
+}
+
+
+
+// ★ 依目前選取狀態，決定交換按鈕是否可按
+function updateGuildSwapButtonState() {
+  const btn = document.getElementById("guildSwapBtn");
+  if (!btn) return;
+  const battleSelected = guildBattleBox
+    ? guildBattleBox.querySelectorAll(".position-tag.guild-selected").length
+    : 0;
+  const pendingSelected = guildPendingBox
+    ? guildPendingBox.querySelectorAll(".position-tag.guild-selected").length
+    : 0;
+  const total = battleSelected + pendingSelected;
+  btn.disabled = total === 0;   // 沒有選任何紅／綠標籤就不能按
+}
+
+
+/* ★ 依職業重排某一個 guildBox（幫眾或學徒）
+   紅／綠標籤一律排在最前面，再依職業順序與名字排序 */
+function sortGuildBoxByJob(box) {
+  if (!box) return;
+  const tags = Array.from(box.querySelectorAll(".position-tag"));
+  if (!tags.length) {
+    box.classList.add("empty");
+    return;
+  }
+  tags.sort((a, b) => {
+    const highlightedA =
+      a.classList.contains("guild-missing-in-week") ||
+      a.classList.contains("guild-from-week-only");
+    const highlightedB =
+      b.classList.contains("guild-missing-in-week") ||
+      b.classList.contains("guild-from-week-only");
+    // 先比：紅綠標籤優先
+    if (highlightedA !== highlightedB) {
+      return highlightedA ? -1 : 1;
+    }
+    // 再比：職業順序
+    const nameA = (a.dataset.name || "").trim();
+    const nameB = (b.dataset.name || "").trim();
+    const jobA  = a.dataset.job || getJobByName(nameA) || "";
+    const jobB  = b.dataset.job || getJobByName(nameB) || "";
+    const idxA = guildJobOrder.indexOf(jobA);
+    const idxB = guildJobOrder.indexOf(jobB);
+    const orderA = idxA === -1 ? 999 : idxA;
+    const orderB = idxB === -1 ? 999 : idxB;
+    if (orderA !== orderB) return orderA - orderB;
+    // 同職業就用名字排序，讓順序穩定
+    return nameA.localeCompare(nameB, "zh-Hant");
+  });
+
+  box.innerHTML = "";
+  tags.forEach(t => box.appendChild(t));
+  box.classList.remove("empty");
+}
+
+
     let nextMemberId = 12;
     let activeRoleFilter = "";
     let lastSnapshot = null;
@@ -378,30 +680,344 @@
     const pageSize = 8;
     let subCounter = 0;
 
-    const lastWeekPanel = document.getElementById("lastWeek");
     const thisWeekPanel = document.getElementById("thisWeek");
     const subsList = document.getElementById("subsList");
     const memberList = document.getElementById("memberList");
     const searchInput = document.getElementById("memberSearch");
     const roleTabs = document.getElementById("roleTabs");
-    const compareTagsEl = document.getElementById("compareTags");
+    //V16新增以下兩個
+    const guildBattleBox = document.getElementById("guildBattleBox");
+    const guildPendingBox = document.getElementById("guildPendingBox");
 
-    const STORAGE_IGNORE_KEY = "guildCompareIgnore";
-    const STORAGE_STUCK_KEY  = "guildStuckMembers";
-    let persistentCompareIgnore = new Set();
-    let currentMissingNotIgnored = [];
+    /*忘記幹嘛用得先隱藏let currentMissingNotIgnored = [];*/
 
     let draggingPanelInput = null;
     let draggingPanelSide = null;
     let dragSuccess = false;
     let dragPreviewEl = null;
 
-    const compareIgnore = new Set();
-
     let pickerTargetInput = null;
     const memberPicker = document.getElementById("memberPicker");
     const pickerList = document.getElementById("pickerList");
     const pickerSearch = document.getElementById("pickerSearch");    
+
+
+// V16 在指定的大框裡新增一個職位標籤（含：去重＋上限檢查＋空位管理）
+function addGuildTag(box, member, options) {
+  const opts = options || {};
+  const bypassRules = !!opts.bypassRules; // true = 不檢查（給還原舊資料用）
+  const name = (member && member.name ? member.name : "").trim();
+  if (!box || !name) return;
+  // ── 一般操作時才檢查規則 ─────────────────
+  if (!bypassRules) {
+    // ✅ 只檢查「幫眾欄位」裡不能重複
+    if (box === guildBattleBox) {
+      const battleTags = guildBattleBox.querySelectorAll(".position-tag");
+      for (const t of battleTags) {
+        // 跳過空位標籤
+        if (t.dataset.placeholder === "1") continue;
+        if ((t.dataset.name || "").trim() === name) {
+          alert(name + " 已經在幫眾名單裡了");
+          return;
+        }
+      }
+
+      // ❷ 可參戰職位（幫眾）最多 60 人：只算真正成員，不算空位
+      const currentRealCount = Array.from(
+        guildBattleBox.querySelectorAll(".position-tag")
+      ).filter(t => t.dataset.placeholder !== "1").length;
+
+      if (currentRealCount >= 60) {
+        alert("可參戰職位（幫眾）最多只能放 60 人");
+        return;
+      }
+    }
+    // ✅ 學徒欄位：不做「不可重複」檢查，讓你自由放
+  }
+  // ── 建立標籤 UI ─────────────────────────
+  box.classList.remove("empty");
+  const tag = document.createElement("div");
+  tag.className = "position-tag";
+  tag.dataset.name = name;
+  tag.dataset.job = member.job || getJobByName(name) || "";
+  const job = tag.dataset.job;
+  if (job && roleColors[job]) {
+    const dark = darkenHex(roleColors[job], 0.25);
+    tag.style.borderLeft = "4px solid " + dark;
+    tag.style.color = dark;
+  }
+  const nameSpan = document.createElement("span");
+  nameSpan.textContent = name;
+  tag.appendChild(nameSpan);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "position-tag-remove";
+  btn.textContent = "×";
+  btn.onclick = function (e) {
+    e.stopPropagation();
+    tag.remove();
+    if (!box.querySelector(".position-tag")) {
+      box.classList.add("empty");
+    }
+    // ★ 刪成員後要重新補空位
+    if (box === guildBattleBox) {
+      maintainGuildBattlePlaceholders();
+      updateGuildBattleAndWeekComparison();
+    }
+    saveState();
+  };
+  tag.appendChild(btn);
+  box.appendChild(tag);
+  // ★ 新增成員後也要維持 60 格
+  if (box === guildBattleBox) {
+    maintainGuildBattlePlaceholders();
+    updateGuildBattleAndWeekComparison();
+  }
+
+
+
+  // ★ 紅／綠標籤可點選成「選中狀態」
+  tag.addEventListener("click", function (e) {
+    // 點到叉叉不算選取
+    if (e.target.closest(".position-tag-remove")) return;
+    // 只有紅／綠標籤才能被選取
+    if (
+      !tag.classList.contains("guild-missing-in-week") &&
+      !tag.classList.contains("guild-from-week-only")
+    ) {
+      return;
+    }
+    tag.classList.toggle("guild-selected");
+    updateGuildSwapButtonState();
+  });
+
+  // ★ 找到「最後一個同職業標籤」，讓同職業排在一起
+  let insertBefore = null;
+  if (job) {
+    const siblings = Array.from(box.querySelectorAll(".position-tag"));
+    let lastSameJob = null;
+    siblings.forEach(t => {
+      if ((t.dataset.job || "") === job) {
+        lastSameJob = t;
+      }
+    });
+    if (lastSameJob) {
+      insertBefore = lastSameJob.nextSibling;
+    }
+  }
+
+  if (insertBefore) {
+    box.insertBefore(tag, insertBefore);
+  } else {
+    box.appendChild(tag);
+  }
+}
+
+// V16★ 維持「可參戰幫眾」固定 60 格：不足用空位紅標籤補齊
+function maintainGuildBattlePlaceholders() {
+  if (!guildBattleBox) return;
+  const MAX = 60;
+  const allTags = Array.from(
+    guildBattleBox.querySelectorAll(".position-tag")
+  );
+  // 真實幫眾（有名字的）
+  const realTags = allTags.filter(t => t.dataset.placeholder !== "1");
+  // 空位標籤
+  let placeholders = allTags.filter(t => t.dataset.placeholder === "1");
+  const realCount = realTags.length;
+  let needPlaceholders = Math.max(0, MAX - realCount);
+  // 多餘的空位標籤移除
+  if (placeholders.length > needPlaceholders) {
+    const extra = placeholders.slice(needPlaceholders);
+    extra.forEach(t => t.remove());
+    placeholders = placeholders.slice(0, needPlaceholders);
+  }
+  // 不足的空位標籤補齊
+  if (placeholders.length < needPlaceholders) {
+    const toAdd = needPlaceholders - placeholders.length;
+    for (let i = 0; i < toAdd; i++) {
+      const tag = document.createElement("div");
+      // ★ 空位 = 紅標籤（跟缺席幫眾同一種）
+      tag.className = "position-tag guild-missing-in-week";
+      tag.dataset.placeholder = "1";     // 標記這顆是「空位」
+
+      const span = document.createElement("span");
+      span.textContent = "尚有空閒位置";     // 想改「空閒位置」也可以
+      tag.appendChild(span);
+
+      // ★ 空位也可以被選取，參與交換
+      tag.addEventListener("click", function (e) {
+        // 雖然空位沒有叉叉，這行是防呆
+        if (e.target.closest(".position-tag-remove")) return;
+        // 這顆本身就是紅標籤 → 切換選取狀態
+        tag.classList.toggle("guild-selected");
+        updateGuildSwapButtonState();
+      });
+      guildBattleBox.appendChild(tag);
+      placeholders.push(tag);
+    }
+  }
+  // ★ 讓「空位紅標籤」排在最前面，再排真實幫眾
+  const ordered = [...placeholders, ...realTags];
+  ordered.forEach(tag => guildBattleBox.appendChild(tag));
+
+  if (ordered.length === 0) {
+    guildBattleBox.classList.add("empty");
+  } else {
+    guildBattleBox.classList.remove("empty");
+  }
+}
+
+
+
+
+// V16 比對：幫眾 vs 本週名單
+function updateGuildBattleAndWeekComparison() {
+  if (!guildBattleBox || !guildPendingBox) return;
+  // 1. 收集「本週名單」所有成員名稱
+  const weekNames = new Set();
+  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+    const n = (inp.value || "").trim();
+    if (n) weekNames.add(n);
+  });
+  // 2. 收集「幫眾」目前有哪些人
+  maintainGuildBattlePlaceholders();   // 先確保幫眾空位正確
+  const battleTags = Array.from(
+    guildBattleBox.querySelectorAll(".position-tag")
+  ).filter(tag => tag.dataset.placeholder !== "1"); // ★ 排除空位
+  const pendingTags = Array.from(
+    guildPendingBox.querySelectorAll(".position-tag")
+  );
+
+  const battleNames = new Set();
+  battleTags.forEach(tag => {
+    const n = (tag.dataset.name || "").trim();
+    if (n) battleNames.add(n);
+  });
+  const pendingBox = guildPendingBox;
+  // 2-1. 幫眾裡「沒出現在本週名單」的 → 紅色標籤
+  battleTags.forEach(tag => {
+    const n = (tag.dataset.name || "").trim();
+    if (n && !weekNames.has(n)) {
+      tag.classList.add("guild-missing-in-week");
+    } else {
+      tag.classList.remove("guild-missing-in-week");
+    }
+  });
+  // 3. 先清掉之前【自動產生】的學徒標籤（避免越疊越多）
+  pendingBox
+    .querySelectorAll(".position-tag[data-auto='1']")
+    .forEach(tag => tag.remove());
+  // 重新讀一次學徒欄位現有的人（只算手動放的）
+  const pendingNames = new Set();
+  pendingBox.querySelectorAll(".position-tag").forEach(tag => {
+    const n = (tag.dataset.name || "").trim();
+    if (n) pendingNames.add(n);
+  });
+  // 4. 本週名單裡「沒有出現在幫眾」的 → 綠色標籤出現在學徒欄位
+  weekNames.forEach(name => {
+    if (battleNames.has(name)) return;   // 已經是幫眾
+    if (pendingNames.has(name)) return;  // 學徒原本就有人，不重複
+
+    const job = getJobByName(name) || "";
+    // 用 bypassRules，避免被「成員不可重複 / 60 人上限」擋下
+    addGuildTag(
+      pendingBox,
+      { name, job },
+      { bypassRules: true }
+    );
+    // 把剛新增那顆學徒標籤標記成「自動產生＋綠色」
+    const tag = Array.from(
+      pendingBox.querySelectorAll(".position-tag")
+    ).find(t => (t.dataset.name || "").trim() === name);
+    if (tag) {
+      tag.dataset.auto = "1";
+      tag.classList.add("guild-from-week-only");
+      tag.classList.remove("guild-missing-in-week"); // 確保不會誤套紅色
+    }
+  });
+  // 5. 排順序（同職業擺一起）
+  sortGuildBoxByJob(guildBattleBox);
+  sortGuildBoxByJob(guildPendingBox);
+
+  // 6. 更新交換按鈕是否可按
+  updateGuildSwapButtonState();
+
+}
+
+ // ★ 交換選中的紅／綠標籤：幫眾 ↔ 學徒
+function swapSelectedGuildMembers() {
+  if (!guildBattleBox || !guildPendingBox) return;
+
+  const redSelected = Array.from(
+    guildBattleBox.querySelectorAll(
+      ".position-tag.guild-missing-in-week.guild-selected"
+    )
+  );
+  const greenSelected = Array.from(
+    guildPendingBox.querySelectorAll(
+      ".position-tag.guild-from-week-only.guild-selected"
+    )
+  );
+  const redCount = redSelected.length;
+  const greenCount = greenSelected.length;
+  if (redCount === 0 && greenCount === 0) {
+    return;   // 理論上此時按鈕已 disabled
+  }
+  if (redCount !== greenCount) {
+    // 數量不一樣 → 顯示是哪邊少選了幾個
+    let msg = "無法交換：";
+    if (redCount < greenCount) {
+      msg += "幫眾少選了 " + (greenCount - redCount) + " 個。";
+    } else {
+      msg += "學徒少選了 " + (redCount - greenCount) + " 個。";
+    }
+    alert(msg);
+    return;
+  }
+  // 先確認交換後幫眾不會超過 60 人
+  const currentBattleCount = guildBattleBox.querySelectorAll(".position-tag").length;
+  const afterBattle = currentBattleCount - redCount + greenCount;
+  if (afterBattle > 60) {
+    alert("可參戰職位（幫眾）最多 60 人，交換後會超過 60 人，請少選幾個。");
+    return;
+  }
+  // 先記錄要從學徒升上來的人
+  const promoteList = greenSelected.map(tag => {
+    const name = (tag.dataset.name || "").trim();
+    const job  = tag.dataset.job || getJobByName(name) || "";
+    return { name, job };
+  });
+  // 把學徒中選中的綠標籤移除
+  greenSelected.forEach(tag => {
+    const box = tag.parentElement;
+    tag.remove();
+    if (box && !box.querySelector(".position-tag")) {
+      box.classList.add("empty");
+    }
+  });
+  // 把幫眾中選中的紅標籤移除（等於移出幫眾名單）
+  redSelected.forEach(tag => {
+    const box = tag.parentElement;
+    tag.remove();
+    if (box && !box.querySelector(".position-tag")) {
+      box.classList.add("empty");
+    }
+  });
+  // 把原本學徒的綠標籤，新增成幫眾（視為正式幫眾）
+  promoteList.forEach(m => {
+    addGuildTag(guildBattleBox, m, { bypassRules: true });
+  });
+  // 清掉所有選取狀態
+  document
+    .querySelectorAll(".position-tag.guild-selected")
+    .forEach(t => t.classList.remove("guild-selected"));
+  // 重新比對紅／綠、重排順序
+  updateGuildBattleAndWeekComparison();
+  saveState();
+  updateGuildSwapButtonState();
+}
+
 
     function sameJSON(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 
@@ -441,43 +1057,44 @@
       document.querySelectorAll(".team-block").forEach(adjustSquadWidths);
     });
 
-    function handlePanelInputChange(input){ input.dataset.dirty = "1"; clearHighlightOnEdit(input); saveState(); }
+    function handlePanelInputChange(input){ input.dataset.dirty = "1"; clearHighlightOnEdit(input); saveState(); 
+    // ★ 本週名單的成員欄位變動 → 重新比對幫眾／學徒
+    if (input.dataset.side === "this" && input.dataset.role === "name") {
+    updateGuildBattleAndWeekComparison();
+    }}
     function markDirty(el){ if (el) el.dataset.dirty = "1"; }
 
-    function createMemberInputs(side){
-      let html = "";
-      for(let i=1;i<=6;i++){
-        if (side === "last") {
-  html += `
-    <div class="member-row">
-      <input data-role="name" data-side="last"
-             class="locked-input"
-             placeholder="成員${i}"
-             readonly tabindex="-1">
-    </div>
-    <div class="member-row">
-      <input data-role="skill"
-             class="readonly-skill locked-input"
-             placeholder=""
-             readonly tabindex="-1">
-    </div>
-  `;
+function createMemberInputs(side) {
+  let html = "";
+  for (let i = 1; i <= 6; i++) {
+    html += `
+      <div class="member-row">
+        <input
+          data-role="name"
+          data-side="${side}"
+          draggable="true"
+          ondragstart="dragFromPanel(event)"
+          ondragover="allowDrop(event)"
+          ondrop="dropMember(event)"
+          oncontextmenu="clearPanelCell(event)"
+          oninput="handlePanelInputChange(this)"
+          onclick="maybeOpenMemberPicker(event, this)"
+          placeholder="成員${i}"
+        >
+      </div>
+      <div class="member-row">
+        <input
+          data-role="skill"
+          class="readonly-skill"
+          placeholder=""
+          readonly
+        >
+      </div>
+    `;
+  }
+  return html;
 }
- else {
-          html += `
-            <div class="member-row">
-              <input data-role="name" data-side="${side}" draggable="true"
-                ondragstart="dragFromPanel(event)" ondragover="allowDrop(event)" ondrop="dropMember(event)"
-                oncontextmenu="clearPanelCell(event)" oninput="handlePanelInputChange(this)" onclick="maybeOpenMemberPicker(event, this)" placeholder="成員${i}">
-            </div>
-            <div class="member-row">
-              <input data-role="skill" class="readonly-skill" placeholder="" readonly>
-            </div>
-          `;
-        }
-      }
-      return html;
-    }
+
 
     function createGroupTagSelect(selected="一團") {
       const opts = ["一團","二團","三團","四團"];
@@ -500,35 +1117,42 @@
       return sq;
     }
 
-    function createTeamBlock(side, teamName, tag="一團"){
-      const block = document.createElement("div");
-      block.className = "team-block";
-      block.dataset.team = teamName;
-      block.dataset.side = side;
-      const headColor = teamColorByName(teamName);
-      block.innerHTML = `
-        <div class="team-head" style="background:${headColor}">
-          <div class="team-head-left">
-            <span class="th-title">${side==="last"?"上週－":"本週－"}${teamName}</span>
-            ${side==="last" ? `<span class="team-tag-label">${tag}</span>` : createGroupTagSelect(tag)}
-          </div>
-          <div class="head-actions">
-            ${side==="this" ? `<button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>` : `<button class="head-add-btn disabled" disabled>＋ 新增小隊</button>`}
-          </div>
-        </div>
-        <div class="squads"></div>
-      `;
-      const sqs = block.querySelector(".squads");
-      for(let s=1;s<=3;s++){ sqs.appendChild(createSquad(s, side, teamName)); }
-      block.dataset.lastSquadCount = "3";
-      adjustSquadWidths(block);
-      return block;
-    }
+function createTeamBlock(side, teamName, tag = "一團") {
+  const block = document.createElement("div");
+  block.className = "team-block";
+  block.dataset.team = teamName;
+  block.dataset.side = side;        // 現在實際只會是 "this"
+  const headColor = teamColorByName(teamName);
 
-    teams.forEach(t => {
-      lastWeekPanel.appendChild(createTeamBlock("last", t));
-      thisWeekPanel.appendChild(createTeamBlock("this", t));
-    });
+  block.innerHTML = `
+    <div class="team-head" style="background:${headColor}">
+      <div class="team-head-left">
+        <!-- 固定就是本週 -->
+        <span class="th-title">本週－${teamName}</span>
+        <!-- 一律用下拉選擇團別 -->
+        ${createGroupTagSelect(tag)}
+      </div>
+      <div class="head-actions">
+        <!-- 一律可新增小隊 -->
+        <button class="head-add-btn" onclick="addSquadToTeamFromHead(this)">＋ 新增小隊</button>
+      </div>
+    </div>
+    <div class="squads"></div>
+  `;
+
+  const sqs = block.querySelector(".squads");
+  for (let s = 1; s <= 3; s++) {
+    sqs.appendChild(createSquad(s, side, teamName));
+  }
+  block.dataset.lastSquadCount = "3";
+  adjustSquadWidths(block);
+  return block;
+}
+
+teams.forEach(t => {
+  thisWeekPanel.appendChild(createTeamBlock("this", t));
+});
+
 
     function setupPanelCarousel(panelId) {
       const panel = document.getElementById(panelId);
@@ -585,7 +1209,6 @@
 
       show(0);
     }
-    setupPanelCarousel("lastWeek");
     setupPanelCarousel("thisWeek");
 
     function renumberSquads(block){
@@ -621,15 +1244,21 @@
       }
     }
 
-    function clearPanelCell(e){
-      e.preventDefault();
-      const input = e.target;
-      if(input.dataset.role === "name" && input.dataset.side !== "last"){
-        clearInputAndSkill(input);
-        markDirty(input);
-        saveState();
-      }
+function clearPanelCell(e) {
+  e.preventDefault();
+  const input = e.target;
+  if (input.dataset.role === "name") {
+    clearInputAndSkill(input);
+    markDirty(input);
+    saveState();
+    // ★ 若是本週名單 → 重新比對
+    if (input.dataset.side === "this") {
+      updateGuildBattleAndWeekComparison();
     }
+  }
+}
+
+
 
     function clearInputAndSkill(input){
       input.value = "";
@@ -777,7 +1406,7 @@ function onSubNameClick(e, input) {
 
       const sel = document.getElementById("pageSelect");
       sel.innerHTML = "";
-      for(let p=1;p<=totalPages && p<=8;p++){
+      for(let p=1;p<=totalPages;p++){
         const opt = document.createElement("option");
         opt.value = p;
         opt.textContent = "第 " + p + " 頁";
@@ -791,24 +1420,48 @@ function onSubNameClick(e, input) {
       if(memberPage<totalPages){ memberPage++; renderMemberList(); }
     }
     function jumpPage(p){ memberPage = parseInt(p,10); renderMemberList(); }
+    
+    /*V16新增檢查人數*/
+    function toggleAddMember() {
+  const form = document.getElementById("addMemberForm");
+  const limitMsg = document.getElementById("memberLimitMsg");
+  if (allMembers.length >= 80) {
+    // 滿員：不打開表單，只顯示提示文字
+    if (form) form.style.display = "none";
+    if (limitMsg) limitMsg.style.display = "block";
+    return;
+  }
+  if (limitMsg) limitMsg.style.display = "none";
+  form.style.display = form.style.display === "flex" ? "none" : "flex";
+}
 
-    function toggleAddMember(){
-      const form = document.getElementById("addMemberForm");
-      form.style.display = form.style.display==="flex" ? "none" : "flex";
-    }
-    function addMember(){
-      const name = document.getElementById("newName").value.trim();
-      const job = document.getElementById("newJob").value;
-      const skill = document.getElementById("newSkill").value.trim();
-      if(!name || !job){ alert("成員名稱與職業必填"); return; }
-      allMembers.push({id: ++nextMemberId, name, job, skill});
-      document.getElementById("newName").value = "";
-      document.getElementById("newJob").value = "";
-      document.getElementById("newSkill").value = "";
-      renderMemberList();
-      document.getElementById("addMemberForm").style.display = "none";
-      saveState();
-    }
+
+    /*V16更新檢查人數*/
+    function addMember() {
+  const limitMsg = document.getElementById("memberLimitMsg");
+  // ★ 先檢查上限 80 人
+  if (allMembers.length >= 80) {
+    if (limitMsg) limitMsg.style.display = "block";
+    // 不新增
+    return;
+  }
+  const name = document.getElementById("newName").value.trim();
+  const job = document.getElementById("newJob").value;
+  const skill = document.getElementById("newSkill").value.trim();
+  if (!name || !job) {
+    alert("成員名稱與職業必填");
+    return;
+  }
+  allMembers.push({ id: ++nextMemberId, name, job, skill });
+  document.getElementById("newName").value = "";
+  document.getElementById("newJob").value = "";
+  document.getElementById("newSkill").value = "";
+  renderMemberList();
+  document.getElementById("addMemberForm").style.display = "none";
+  if (limitMsg) limitMsg.style.display = "none";
+  saveState();
+}
+
 
     function startInlineEdit(id){
       const item = [...memberList.querySelectorAll(".member-left")].find(div=>parseInt(div.dataset.id,10)===id);
@@ -829,13 +1482,13 @@ function onSubNameClick(e, input) {
         </select>
         <input class="edit-input" id="edit-skill-${id}" value="${m.skill||""}">
         <div style="display:flex;gap:.3rem;">
-          <button class="float-btn" style="font-size:.65rem;padding:.2rem .4rem;" onclick="saveInlineEdit(${id})">儲存</button>
-          <button class="float-btn secondary" style="font-size:.65rem;padding:.2rem .4rem;" onclick="renderMemberList()">取消</button>
+          <button class="float-btn" style="margin-top:.3rem;font-size:.65rem;padding:.2rem .4rem;" onclick="saveInlineEdit(${id})">儲存</button>
+          <button class="float-btn secondary" style="margin-top:.3rem;font-size:.65rem;padding:.2rem .4rem;" onclick="renderMemberList()">取消</button>
         </div>
       `;
     }
 
-    // ✅ V14.8當全部成員名單被編輯後，同步更新「本週名單」＋「替補名單」裡同名成員
+// V16✅ 當全部成員名單被編輯後，同步更新：本週＋替補＋幫會職位
 function syncEditedMemberEverywhere(oldMember, newMember) {
   if (!oldMember) return;
   const oldName = (oldMember.name || "").trim();
@@ -844,7 +1497,7 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
   thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
     if (inp.value.trim() === oldName) {
       inp.value = newName;
-      applyJobColor(inp, newMember.job);   // 換職業色
+      applyJobColor(inp, newMember.job);
 
       const skillRow = inp.parentElement.nextElementSibling;
       if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
@@ -869,9 +1522,34 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
       nameInput.dataset.dirty = "1";
     }
   });
+  // 3. 幫會職位（幫眾／學徒標籤）
+  document.querySelectorAll(".guild-box .position-tag").forEach(tag => {
+    const tagName = (tag.dataset.name || "").trim();
+    if (tagName === oldName) {
+      // 更新名字
+      tag.dataset.name = newName;
+      const span = tag.querySelector("span");
+      if (span) span.textContent = newName;
+      // 更新職業與顏色
+      const job = newMember.job || getJobByName(newName) || "";
+      tag.dataset.job = job;
+      if (job && roleColors[job]) {
+        const dark = darkenHex(roleColors[job], 0.25);
+        tag.style.borderLeft = "4px solid " + dark;
+        tag.style.color = dark;
+      } else {
+        tag.style.borderLeft = "1px solid #cbd5e1";
+        tag.style.color = "#0f172a";
+      }
+    }
+  });
+  // ★ 改完職業後，幫眾／學徒各自重新排序一次
+  sortGuildBoxByJob(guildBattleBox);
+  sortGuildBoxByJob(guildPendingBox);
   // 同步存檔
   saveState();
 }
+
 
     /*V14.8修改*/
     function saveInlineEdit(id){
@@ -885,14 +1563,54 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
     allMembers[idx] = newMember;                        // 更新 master
     renderMemberList();                                 // 重畫左側清單
     syncEditedMemberEverywhere(oldMember, newMember);   // ✅ 同步到本週＋替補
+    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
   }
 }
 
     
-    function deleteMember(id){
-      const idx = allMembers.findIndex(x=>x.id===id);
-      if(idx>-1){ allMembers.splice(idx,1); renderMemberList(); saveState(); }
+// V16更新 刪除「全部成員」中的某個成員，全部更動
+function deleteMember(id) {
+  const m = allMembers.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`確定要刪除「${m.name}」嗎？`)) return;
+  const name = m.name;
+  // 1) 從 allMembers 中移除
+  allMembers = allMembers.filter(x => x.id !== id);
+  // 2) 把本週名單與替補名單裡同名成員清空
+  const nameInputs = document.querySelectorAll(
+    '#thisWeek input[data-role="name"], #subsList .sub-name'
+  );
+  nameInputs.forEach(input => {
+    if ((input.value || "").trim() === name) {
+      // 清名稱
+      input.value = "";
+      // 找到對應技能欄一起清空
+      const row = input.closest(".member-row") || input.closest(".substitute-row");
+      if (row) {
+        const skillInput = row.querySelector('input[data-role="skill"]') ||
+                           row.querySelector(".sub-skill");
+        if (skillInput) skillInput.value = "";
+      }
     }
+  });
+  // 3) 從幫會職位欄位移除該成員標籤
+  const guildTags = document.querySelectorAll(".guild-box .position-tag");
+  guildTags.forEach(tag => {
+    if ((tag.dataset.name || "").trim() === name) {
+      tag.remove();
+    }
+  });
+  // 重新補幫眾空位
+  maintainGuildBattlePlaceholders();
+  // 4) 重畫左側全部成員列表 & 替補分頁
+  renderMemberList();
+  updateSubsPager();
+  // 5) 重跑幫眾 vs 本週名單比對
+  updateGuildBattleAndWeekComparison();
+  // 6) 存檔
+  saveState();
+}
+
 
     function showDragPreview(text, color){
       dragPreviewEl = document.createElement("div");
@@ -929,31 +1647,57 @@ function syncEditedMemberEverywhere(oldMember, newMember) {
       showDragPreview(`${name} (${job||""})`, color);
       blockNextClick = true;  // v15新增 ✅ 拖完這格之後，下一個 click 不要觸發 input 的 onclick
     }
-    function dragFromPanel(e){
-      const input = e.target;
-      if(input.dataset.side === "last") { e.preventDefault(); return; }
-      const side = input.dataset.side;
-      const name = input.value.trim();
-      let skill = "";
-      const skillRow = input.parentElement.nextElementSibling;
-      if(skillRow && skillRow.querySelector('input[data-role="skill"]')){
-        skill = skillRow.querySelector('input[data-role="skill"]').value;
-      blockNextClick = true;    // v15新增 ✅ 同樣啟動「阻止下一次 click」邏輯
-      }
-      const job = input.dataset.job || getJobByName(name) || "";
-      draggingPanelInput = input;
-      draggingPanelSide = side;
-      dragSuccess = false;
-      e.dataTransfer.setData("text/plain", JSON.stringify({name, skill, job, fromPanel: true, side}));
-      const color = job && roleColors[job] ? darkenHex(roleColors[job],0.25) : "#0f172a";
-      showDragPreview(`${name || "空欄位"} ${job? "(" + job + ")":""}`, color);
+
+
+function dragFromPanel(e) {
+  const input = e.target;
+  // 現在只有本週面板，直接取 side（實際只會是 "this"）
+  const side = input.dataset.side;
+  const name = input.value.trim();
+  // 同列下一行是技能列，把技能一起帶出去
+  let skill = "";
+  const skillRow = input.parentElement.nextElementSibling;
+  if (skillRow) {
+    const skillInput = skillRow.querySelector('input[data-role="skill"]');
+    if (skillInput) {
+      skill = skillInput.value;
     }
+  }
+  // v15 新增：拖拉後擋掉下一次 click，避免 iOS 誤點放大
+  blockNextClick = true;
+  const job = input.dataset.job || getJobByName(name) || "";
+  draggingPanelInput = input;
+  draggingPanelSide = side;
+  dragSuccess = false;
+
+  e.dataTransfer.setData(
+    "text/plain",
+    JSON.stringify({ name, skill, job, fromPanel: true, side })
+  );
+  const color =
+    job && roleColors[job] ? darkenHex(roleColors[job], 0.25) : "#0f172a";
+  showDragPreview(
+    `${name || "空欄位"} ${job ? "(" + job + ")" : ""}`,
+    color
+  );
+}
+
+/*V16新增比對偵測*/
     document.addEventListener("dragend", function(){
-      hideDragPreview();
-      if(draggingPanelInput && !dragSuccess){ clearInputAndSkill(draggingPanelInput); saveState(); }
-      draggingPanelInput = null;
-      draggingPanelSide = null;
-    });
+  hideDragPreview();
+  if (draggingPanelInput && !dragSuccess) {
+    clearInputAndSkill(draggingPanelInput);
+    saveState();
+    // ★ 若是本週名單欄位 → 重新比對
+    if (draggingPanelInput.dataset.side === "this" &&
+        draggingPanelInput.dataset.role === "name") {
+      updateGuildBattleAndWeekComparison();
+    }
+  }
+  draggingPanelInput = null;
+  draggingPanelSide = null;
+});
+
 
     
     /*下方v15擋掉點擊避免zoom in*/
@@ -1107,122 +1851,205 @@ document.addEventListener(
       });
     }
 
-    function dropMember(ev){
-      ev.preventDefault();
-      dragSuccess = true;
-      const data = ev.dataTransfer.getData("text/plain");
-      if (!data) return;
-      const member = JSON.parse(data);
-      const target = ev.target;
+  function dropMember(ev) {
+  ev.preventDefault();
+  dragSuccess = true;
 
-      // ① 替補區
-      if (target.classList.contains("sub-name")) {
-        const prevName  = target.value.trim();
-        const prevSkill = target.parentElement.querySelector(".sub-skill").value.trim();
+  const data = ev.dataTransfer.getData("text/plain");
+  if (!data) return;
+  const member = JSON.parse(data);
+  const target = ev.target;
 
-        if (member.fromPanel && draggingPanelInput) {
-          const oldName  = prevName;
-          const oldSkill = prevSkill;
-          const oldJob   = getJobByName(oldName) || target.dataset.job || "";
+  // V16★ 先判斷是不是丟到幫會職位大框
+    const guildBox = ev.target.closest(".guild-box");
+  if (guildBox) {
+    // ★ 學徒欄位不接受拖曳
+    if (guildBox === guildPendingBox) {
+      // 想要有提示就開啟下面這行
+      // alert("學徒欄位目前不開放拖曳設定");
+      return;
+    }
+    addGuildTag(guildBox, {
+      name: member.name,
+      job: member.job || getJobByName(member.name) || ""
+    });
+    saveState();
+    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    return;
+  }
 
-          target.value = member.name;
-          applyJobColor(target, member.job);
-          target.parentElement.querySelector(".sub-skill").value = member.skill || "";
-          markDirty(target);
-          fitNameFont(target);
-          draggingPanelInput.value = oldName;
-          applyJobColor(draggingPanelInput, oldJob);
-          const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-          if (panelSkillRow && panelSkillRow.querySelector("input[data-role='skill']")) {
-            setSkillInputValue(panelSkillRow.querySelector("input[data-role='skill']"), oldSkill || "");
-          }
-          markDirty(draggingPanelInput);
+    // ② 替補區：sub-name
+  if (target.classList.contains("sub-name")) {
+    const subRow = target.parentElement;
+    const subSkillInput = subRow.querySelector(".sub-skill");
 
-          clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
-          saveState();
-          return;
+    const prevName  = target.value.trim();
+    const prevSkill = subSkillInput ? subSkillInput.value.trim() : "";
+
+    // 面板 → 替補（互換）
+    if (member.fromPanel && draggingPanelInput) {
+      const oldName  = prevName;
+      const oldSkill = prevSkill;
+      const oldJob   = getJobByName(oldName) || target.dataset.job || "";
+
+      // 把拖來的放到替補
+      target.value = member.name;
+      applyJobColor(target, member.job);
+      if (subSkillInput) {
+        subSkillInput.value = member.skill || "";
+      }
+      markDirty(target);
+      fitNameFont(target);
+
+      // 原本替補上的人（如果有）換回到原 panel 格子
+      draggingPanelInput.value = oldName;
+      applyJobColor(draggingPanelInput, oldJob);
+      const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+      if (panelSkillRow) {
+        const panelSkillInput = panelSkillRow.querySelector("input[data-role='skill']");
+        if (panelSkillInput) {
+          setSkillInputValue(panelSkillInput, oldSkill || "");
         }
+      }
+      markDirty(draggingPanelInput);
 
-        target.value = member.name;
-        applyJobColor(target, member.job);
-        const sk = target.parentElement.querySelector(".sub-skill");
-        if (sk) sk.value = member.skill ? member.skill : "";
-        markDirty(target);
-        if (prevName) { clearDuplicateInPanel(thisWeekPanel, prevName, null); }
-        saveState();
-        return;
+      // 清掉本週面板中的重複名字（保留剛剛互換的那一格）
+      clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
+      saveState();
+      updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+      return;
+    }
+
+    // 其他來源 → 替補（覆蓋）
+    target.value = member.name;
+    applyJobColor(target, member.job);
+    if (subSkillInput) {
+      subSkillInput.value = member.skill ? member.skill : "";
+    }
+    markDirty(target);
+
+    // 若原本該替補格有名字，從本週名單中清掉舊名字
+    if (prevName) {
+      clearDuplicateInPanel(thisWeekPanel, prevName, null);
+    }
+    saveState();
+    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    return;
+  }
+
+  // ③ 面板格：本週名單（name 欄位）
+  if (target.dataset && target.dataset.role === "name") {
+    const targetSide = target.dataset.side;   // 現在實際只會是 "this"
+
+    // 同面板互換（本週內部互換）
+    if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
+      const src = draggingPanelInput;
+      if (src === target) return;
+
+      const srcName = src.value.trim();
+      const srcJob  = src.dataset.job || getJobByName(srcName) || "";
+      let srcSkill  = "";
+      const srcSkillRow = src.parentElement.nextElementSibling;
+      if (srcSkillRow) {
+        const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
+        if (srcSkillInput) {
+          srcSkill = srcSkillInput.value;
+        }
       }
 
-      // ② 面板格
-      if (target.dataset && target.dataset.role === "name") {
-        const targetSide = target.dataset.side;
-        if (targetSide === "last") return;
-
-        const targetPanel = targetSide === "this" ? thisWeekPanel : lastWeekPanel;
-
-        // 同面板互換
-        if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
-          const src = draggingPanelInput;
-          if (src === target) return;
-          const srcName = src.value.trim();
-          const srcJob  = src.dataset.job || getJobByName(srcName) || "";
-          let srcSkill  = "";
-          const srcSkillRow = src.parentElement.nextElementSibling;
-          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) {
-            srcSkill = srcSkillRow.querySelector("input[data-role='skill']").value;
-          }
-          const tgtName = target.value.trim();
-          const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
-          let tgtSkill  = "";
-          const tgtSkillRow = target.parentElement.nextElementSibling;
-          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) {
-            tgtSkill = tgtSkillRow.querySelector("input[data-role='skill']").value;
-          }
-          src.value = tgtName; applyJobColor(src, tgtJob);
-          target.value = srcName; applyJobColor(target, srcJob);
-          if (srcSkillRow && srcSkillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(srcSkillRow.querySelector("input[data-role='skill']"), tgtSkill || ""); }
-          if (tgtSkillRow && tgtSkillRow.querySelector("input[data-role='skill']")) { setSkillInputValue(tgtSkillRow.querySelector("input[data-role='skill']"), srcSkill || ""); }
-          src.classList.remove("highlight-new", "highlight-missing");
-          target.classList.remove("highlight-new", "highlight-missing");
-          markDirty(src); markDirty(target); saveState();
-          return;
+      const tgtName = target.value.trim();
+      const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
+      let tgtSkill  = "";
+      const tgtSkillRow = target.parentElement.nextElementSibling;
+      if (tgtSkillRow) {
+        const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
+        if (tgtSkillInput) {
+          tgtSkill = tgtSkillInput.value;
         }
+      }
 
-        // 替補 → 面板 且目標格原本有值，要換回去替補
-        if (member.fromSub !== undefined && target.value.trim() !== "") {
-          const oldName = target.value.trim();
-          const oldJob  = target.dataset.job || getJobByName(oldName) || "";
-          let oldSkill  = "";
-          const skillRow = target.parentElement.nextElementSibling;
-          if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
-            oldSkill = skillRow.querySelector("input[data-role='skill']").value;
-          }
-          const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
-          if (subRow) {
-            subRow.querySelector(".sub-name").value = oldName;
-            applyJobColor(subRow.querySelector(".sub-name"), oldJob);
-            subRow.querySelector(".sub-skill").value = oldSkill;
-            markDirty(subRow.querySelector(".sub-name"));
-          }
+      // 互換名字 & 顏色
+      src.value = tgtName;
+      applyJobColor(src, tgtJob);
+      target.value = srcName;
+      applyJobColor(target, srcJob);
+
+      // 互換技能
+      if (srcSkillRow) {
+        const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
+        if (srcSkillInput) {
+          setSkillInputValue(srcSkillInput, tgtSkill || "");
         }
-
-        // 不同面板不交換
-        if (member.fromPanel && member.side !== targetSide) return;
-
-        // 真正放進面板
-        target.value = member.name;
-        applyJobColor(target, member.job);
-        const srow = target.parentElement.nextElementSibling;
-        if (srow && srow.querySelector("input[data-role='skill']")) {
-          setSkillInputValue(srow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
+      }
+      if (tgtSkillRow) {
+        const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
+        if (tgtSkillInput) {
+          setSkillInputValue(tgtSkillInput, srcSkill || "");
         }
-        clearDuplicateInPanel(thisWeekPanel, member.name, target);
-        target.classList.remove("highlight-new", "highlight-missing");
-        clearDuplicateInPanel(targetPanel, member.name, target);
-        markDirty(target);
-        saveState();
+      }
+
+      // 清掉比對用標示
+      src.classList.remove("highlight-new", "highlight-missing");
+      target.classList.remove("highlight-new", "highlight-missing");
+
+      markDirty(src);
+      markDirty(target);
+      saveState();
+      updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+      return;
+    }
+
+    // 替補 → 面板且目標格原本有值：把舊值放回替補
+    if (member.fromSub !== undefined && target.value.trim() !== "") {
+      const oldName = target.value.trim();
+      const oldJob  = target.dataset.job || getJobByName(oldName) || "";
+      let oldSkill  = "";
+      const skillRow = target.parentElement.nextElementSibling;
+      if (skillRow) {
+        const skillInput = skillRow.querySelector("input[data-role='skill']");
+        if (skillInput) {
+          oldSkill = skillInput.value;
+        }
+      }
+
+      const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
+      if (subRow) {
+        const subNameInput  = subRow.querySelector(".sub-name");
+        const subSkillInput = subRow.querySelector(".sub-skill");
+        if (subNameInput) {
+          subNameInput.value = oldName;
+          applyJobColor(subNameInput, oldJob);
+          markDirty(subNameInput);
+        }
+        if (subSkillInput) {
+          subSkillInput.value = oldSkill;
+        }
       }
     }
+
+    // 真正放進面板
+    target.value = member.name;
+    applyJobColor(target, member.job);
+
+    const srow = target.parentElement.nextElementSibling;
+    if (srow) {
+      const skillInput = srow.querySelector("input[data-role='skill']");
+      if (skillInput) {
+        setSkillInputValue(skillInput, member.skill ? member.skill : "");
+      }
+    }
+
+    // 清掉本週面板裡重複的名字（保留這個 target）
+    clearDuplicateInPanel(thisWeekPanel, member.name, target);
+
+    // 清掉比對標示
+    target.classList.remove("highlight-new", "highlight-missing");
+
+    markDirty(target);
+    saveState();
+    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+  }
+}
 
     function getPanelData(panelEl){
       const data = [];
@@ -1250,46 +2077,87 @@ document.addEventListener(
       return data;
     }
 
-    function setPanelData(panelEl, data, side){
-      data.forEach(teamData=>{
-        const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
-        if(!block) return;
-        if (side === "this") {
-          const tagSelect = block.querySelector(".team-tag-select");
-          if (tagSelect && teamData.tag) tagSelect.value = teamData.tag;
-        } else {
-          const label = block.querySelector(".team-tag-label");
-          if (label && teamData.tag) label.textContent = teamData.tag;
-        }
-        const squadsContainer = block.querySelector(".squads");
-        let currentCount = squadsContainer.children.length;
-        const neededCount = teamData.squads.length;
-        while(currentCount < neededCount){ squadsContainer.appendChild(createSquad(currentCount+1, side, teamData.team)); currentCount++; }
-        while(squadsContainer.children.length > neededCount){ squadsContainer.removeChild(squadsContainer.lastElementChild); }
-        teamData.squads.forEach((sqData, idx)=>{
-          const sqEl = squadsContainer.children[idx];
-          const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
-          nameInputs.forEach((inp, mIdx)=>{
-            const member = sqData.members[mIdx];
-            if(member){
-              inp.value = member.name || "";
-              if(side==="last"){ inp.classList.add("locked-input"); inp.readOnly = true; }
-              if(member.job){ applyJobColor(inp, member.job); } else { applyColorByName(inp); }
-              const skillRow = inp.parentElement.nextElementSibling;
-              if(skillRow && skillRow.querySelector("input[data-role='skill']")){
-                setSkillInputValue(skillRow.querySelector("input[data-role='skill']"), member.skill ? member.skill : "");
-                if(side==="last"){ const si = skillRow.querySelector("input[data-role='skill']"); si.readOnly = true; si.classList.add("locked-input"); }
-              }
-            } else {
-              clearInputAndSkill(inp);
-            }
-          });
-        });
-        renumberSquads(block);
-        block.dataset.lastSquadCount = String(neededCount || 3);
-        adjustSquadWidths(block);
-      });
+function setPanelData(panelEl, data, side) {
+  data.forEach(teamData => {
+    const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
+    if (!block) return;
+    // 目前只會有 "this" 面板：用下拉選單設定團別標籤
+    const tagSelect = block.querySelector(".team-tag-select");
+    if (tagSelect && teamData.tag) {
+      tagSelect.value = teamData.tag;
     }
+    const squadsContainer = block.querySelector(".squads");
+    let currentCount = squadsContainer.children.length;
+    const neededCount = teamData.squads.length;
+    // 小隊數量補到需要的數量
+    while (currentCount < neededCount) {
+      squadsContainer.appendChild(createSquad(currentCount + 1, side, teamData.team));
+      currentCount++;
+    }
+    // 多的就砍掉
+    while (squadsContainer.children.length > neededCount) {
+      squadsContainer.removeChild(squadsContainer.lastElementChild);
+    }
+    // 套入每個小隊與成員資料
+    teamData.squads.forEach((sqData, idx) => {
+      const sqEl = squadsContainer.children[idx];
+      if (!sqEl) return;
+      const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
+      nameInputs.forEach((inp, mIdx) => {
+        const member = sqData.members[mIdx];
+        if (member) {
+          inp.value = member.name || "";
+          // 套職業顏色
+          if (member.job) {
+            applyJobColor(inp, member.job);
+          } else {
+            applyColorByName(inp);
+          }
+          // 技能欄位
+          const skillRow = inp.parentElement.nextElementSibling;
+          if (skillRow) {
+            const skillInput = skillRow.querySelector("input[data-role='skill']");
+            if (skillInput) {
+              setSkillInputValue(skillInput, member.skill ? member.skill : "");
+            }
+          }
+        } else {
+          // 該格沒人 → 清空名字與技能
+          clearInputAndSkill(inp);
+        }
+      });
+    });
+    // 重新編號小隊、調整寬度
+    renumberSquads(block);
+    block.dataset.lastSquadCount = String(neededCount || 3);
+    adjustSquadWidths(block);
+  });
+}
+
+//V16新增
+function getGuildPositionsData() {
+  const battle = [];
+  const pending = [];
+  if (guildBattleBox) {
+    guildBattleBox.querySelectorAll(".position-tag").forEach(tag => {
+      const name = (tag.dataset.name || "").trim();
+      if (!name) return;
+      const job = tag.dataset.job || getJobByName(name) || "";
+      battle.push({ name, job });
+    });
+  }
+  if (guildPendingBox) {
+    guildPendingBox.querySelectorAll(".position-tag").forEach(tag => {
+      const name = (tag.dataset.name || "").trim();
+      if (!name) return;
+      const job = tag.dataset.job || getJobByName(name) || "";
+      pending.push({ name, job });
+    });
+  }
+  return { battle, pending };
+}
+
+
 
     function getSubsData(){
       const arr = [];
@@ -1299,23 +2167,25 @@ document.addEventListener(
       return arr;
     }
 
-    function saveState(){
-      const state = { allMembers, lastWeek: getPanelData(lastWeekPanel), thisWeek: getPanelData(thisWeekPanel), subs: getSubsData() };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-    }
+    function saveState() {
+    const state = {
+    allMembers,
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData(),
+    guildPositions: getGuildPositionsData()
+  };
+    try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+
 
     function fetchWithTimeout(url, ms=3000){
       const ctrl = new AbortController();
       const id = setTimeout(()=>ctrl.abort(), ms);
       return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
     }
-
-    /* 取得掛職名單物件 */
-    function getStuckData(){
-      try { const raw = localStorage.getItem(STORAGE_STUCK_KEY); if (raw) return JSON.parse(raw); } catch(e){}
-      return {};
-    }
-    function setStuckData(obj){ try { localStorage.setItem(STORAGE_STUCK_KEY, JSON.stringify(obj || {})); } catch(e){} }
 
     /* 本週所有名字 Set（含空白濾除） */
     function getThisWeekNameSet(){
@@ -1326,60 +2196,6 @@ document.addEventListener(
       return set;
     }
 
-    /* 掛職名單列表渲染：若該人本週有上場 → 暫時隱藏；點擊只切換樣式，不刪除 */
-    function renderStuckList(){
-  const box = document.getElementById("stuckList");
-  if (!box) return;
-  const data = getStuckData();
-  const names = Object.keys(data);
-  const thisSet = getThisWeekNameSet();
-  box.innerHTML = "";
-  if (!names.length) {
-    box.innerHTML = '<span style="font-size:.7rem;color:#94a3b8;">目前無掛職成員</span>';
-    return;
-  }
-  names.forEach(name => {
-    if (thisSet.has(name)) { /* 暫時隱藏 */ return; }
-    const tag = document.createElement("div");
-    tag.className = "compare-tag missing-tag";
-    if (compareIgnore.has(name)) tag.classList.add("muted");
-    tag.textContent = name;
-    tag.title = "點擊切換樣式（不會刪除）";
-    tag.onclick = function(){
-      // 點擊掛職名單的標籤：也要把所有「最近修改框線」隱藏
-      suppressOutlinesOnEdit();
-      toggleStuckMute(name);
-    };
-    box.appendChild(tag);
-  });
-}
-
-
-    /* 切換掛職名單的 muted 樣式（寫入 compareIgnore，不刪除資料） */
-    function toggleStuckMute(name){
-  // 無論從哪裡呼叫，切換掛職標籤時都隱藏最近修改框線
-  suppressOutlinesOnEdit();
-  if (compareIgnore.has(name)) compareIgnore.delete(name);
-  else compareIgnore.add(name);
-  localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(Array.from(compareIgnore)));
-  renderStuckList();
-}
-
-
-    function loadPersistentIgnore(){
-      try {
-        const raw = localStorage.getItem(STORAGE_IGNORE_KEY);
-        if (raw) {
-          const arr = JSON.parse(raw);
-          persistentCompareIgnore = new Set(arr);
-          compareIgnore.clear();
-          arr.forEach(n => compareIgnore.add(n));
-        }
-      } catch(e){
-        persistentCompareIgnore = new Set();
-      }
-    }
-
     function applyStateToPage(state, fromLocal){
       if (state.allMembers && Array.isArray(state.allMembers)) {
         allMembers = state.allMembers;
@@ -1388,42 +2204,54 @@ document.addEventListener(
       }
       renderMemberList();
 
-      if (state.lastWeek) {
-        setPanelData(lastWeekPanel, state.lastWeek, "last");
-        lastWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-      }
       if (state.thisWeek) {
-        setPanelData(thisWeekPanel, state.thisWeek, "this");
-        thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-      }
+  setPanelData(thisWeekPanel, state.thisWeek, "this");
+  thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+}
 
-      subsList.innerHTML = "";
-      if (state.subs && state.subs.length) {
-        state.subs.forEach(su => createSubRow(su.name, su.skill, false));
-      }
-      refreshSubsView();
+/* V16★ 還原幫會職位欄位 */
+if (guildBattleBox) {
+  guildBattleBox.innerHTML = "";
+  guildBattleBox.classList.add("empty");
+}
+if (guildPendingBox) {
+  guildPendingBox.innerHTML = "";
+  guildPendingBox.classList.add("empty");
+}
+if (state.guildPositions) {
+  const gp = state.guildPositions;
+  if (gp.battle && guildBattleBox) {
+    gp.battle.forEach(m => {
+      addGuildTag(
+        guildBattleBox,
+        { name: m.name, job: m.job },
+        { bypassRules: true }      // ← 還原資料：不套「去重＋60人上限」
+      );
+    });
+  }
+  if (gp.pending && guildPendingBox) {
+    gp.pending.forEach(m => {
+      addGuildTag(
+        guildPendingBox,
+        { name: m.name, job: m.job },
+        { bypassRules: true }      // ← 同上
+      );
+    });
+  }
+  // 如果加完之後有標籤，就把 empty 樣式拿掉
+  if (guildBattleBox && guildBattleBox.querySelector(".position-tag")) {
+    guildBattleBox.classList.remove("empty");
+  }
+  if (guildPendingBox && guildPendingBox.querySelector(".position-tag")) {
+    guildPendingBox.classList.remove("empty");
+  }
+}
 
-      if (state.recentMarks) renderRecentMarks(state.recentMarks);
-      else clearAllOutlines();
-
-      if (state.compareIgnore && Array.isArray(state.compareIgnore)) {
-        persistentCompareIgnore = new Set(state.compareIgnore);
-        compareIgnore.clear();
-        state.compareIgnore.forEach(n => compareIgnore.add(n));
-        localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore));
-      }
-
-      if (state.stuckMembers) setStuckData(state.stuckMembers);
-      renderStuckList();
-
-      // ⬇ 新增：狀態套完後，把所有名字欄位重新排字體
-      refreshAllNameFonts();
-    }
-
-    function saveCompareIgnore(){
-      const arr = Array.from(compareIgnore);
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(arr));
-      requestSave();
+subsList.innerHTML = "";
+if (state.subs && state.subs.length) {
+  state.subs.forEach(su => createSubRow(su.name, su.skill, false));
+}
+refreshSubsView();
     }
 
     function requestSave(){
@@ -1468,175 +2296,44 @@ document.addEventListener(
       });
     }
 
-    function doSaveToBackend(){
-      const state = {
-        allMembers,
-        lastWeek: getPanelData(lastWeekPanel),
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData()
-      };
-      const marks = collectDirtyMarks();
-      state.recentMarks = { user: currentUser || "unknown", marks };
-      state.compareIgnore = Array.from(compareIgnore);
-      state.stuckMembers = getStuckData();
+function doSaveToBackend() {
+  const payload = {
+    allMembers,
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData(),
+    recentMarks: collectRecentMarks()  // 沿用你原本收集框線標記的函式名
+  };
 
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-
-      fetch(REMOTE_API, {
-        method: "POST",
-        body: JSON.stringify({ action: "save", payload: state })
-      })
-      .then(res=>res.json())
-      .then(data=>{
-      if (data && data.success) {
-      alert("已儲存到後台");
-      // 解除抑制，儲存後恢復顯示最近修改框線
-      outlinesSuppressed = false;
-      renderRecentMarks(state.recentMarks);
-      document.querySelectorAll("[data-dirty='1']").forEach(el=>el.removeAttribute("data-dirty"));
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify(state.compareIgnore || []));
-      setStuckData(state.stuckMembers || {});
-      renderStuckList();
-      } else {
-      alert("後台有回應但不是 success，請看 console");
-      console.log(data);
-        }
-      })
-
-      .catch(err=>{
-        alert("無法連到後台，請檢查 Apps Script 部署權限");
-        console.error(err);
-      });
-    }
-
-    /* 比對：若掛職名單成員本週有上場 → 待處理名單與掛職名單都暫時隱藏 */
-    function compare(){
-  // 按下比對：立刻隱藏所有「最近修改框線」
-  suppressOutlinesOnEdit(); // 會把 outlinesSuppressed 設為 true 並呼叫 clearAllOutlines()
-  document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-    inp.classList.remove("highlight-new","highlight-missing");
-  });
-
-  const lastNames = [];
-  lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-    const v = inp.value.trim(); if(v) lastNames.push(v);
-  });
-  const lastSet = new Set(lastNames);
-  const thisNames = [];
-  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-    const v = inp.value.trim(); if(v) thisNames.push({val:v, el:inp});
-  });
-  const thisSet = new Set(thisNames.map(x=>x.val));
-  const stuck = getStuckData();
-  const stuckSet = new Set(Object.keys(stuck));
-  const newOnes = [];
-  const missingOnes = [];
-  // 新增：排除「同時在掛職名單」的人（3-1）
-  thisNames.forEach(obj=>{
-    if (obj.val && !lastSet.has(obj.val)) {
-      if (!stuckSet.has(obj.val)) { // 只要不是掛職名單，就依 compareIgnore 上色
-        if (!compareIgnore.has(obj.val)) obj.el.classList.add("highlight-new");
-        newOnes.push(obj.val);
-      }
-    }
-  });
-  // 缺席：維持原邏輯（掛職者仍可顯示為缺席紅標；掛職列表另列）
-  lastWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp=>{
-    const v = inp.value.trim();
-    if (v && !thisSet.has(v)) {
-      if (!compareIgnore.has(v)) inp.classList.add("highlight-missing");
-      missingOnes.push(v);
-    }
-  });
-  // 替補標示
-  subsList.querySelectorAll(".substitute-row").forEach(row=>{
-    const name = row.querySelector(".sub-name").value.trim();
-    const status = row.querySelector(".sub-status");
-    if(!name){ status.textContent = ""; return; }
-    if(thisSet.has(name)){ status.textContent = "本週已上場 ✅"; status.style.color = "#16a34a"; }
-    else { status.textContent = "本週未上場"; status.style.color = "#b91c1c"; }
-  });
-  renderCompareTags(newOnes, missingOnes);
-  currentMissingNotIgnored = missingOnes.filter(name => !compareIgnore.has(name));
-  // 掛職名單同步（對於「本週有上場」者暫時隱藏）
-  renderStuckList();
-}
-
-
-    function renderCompareTags(newList, missingList){
-      compareTagsEl.innerHTML = "";
-      newList.forEach(name => {
-        const tag = document.createElement("div");
-        tag.className = "compare-tag new-tag" + (compareIgnore.has(name) ? " muted" : "");
-        tag.textContent = name;
-        tag.onclick = () => toggleCompareIgnore(name);
-        compareTagsEl.appendChild(tag);
-      });
-      missingList.forEach(name => {
-        const tag = document.createElement("div");
-        tag.className = "compare-tag missing-tag" + (compareIgnore.has(name) ? " muted" : "");
-        tag.textContent = name;
-        tag.onclick = () => toggleCompareIgnore(name);
-        compareTagsEl.appendChild(tag);
-      });
-    }
-
-    function toggleCompareIgnore(name){
-  // 點擊待處理名單的標籤：也要把所有「最近修改框線」隱藏
-  suppressOutlinesOnEdit();
-  if (compareIgnore.has(name)) compareIgnore.delete(name);
-  else {
-    compareIgnore.add(name);
-    document.querySelectorAll("input[data-role='name']").forEach(inp=>{
-      if (inp.value.trim() === name) { inp.classList.remove("highlight-new","highlight-missing"); }
-    });
+  // 先存一份 localStorage 備份
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.error(e);
   }
-  compare();
+
+  fetch(REMOTE_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "save",
+      user: currentUser || "unknown",
+      data: payload
+    })
+  })
+    .then(res => res.json())
+    .then(json => {
+      if (json && json.status === "ok") {
+        lastKnownUpdatedAt = json.updatedAt || null;
+        alert("儲存成功！");
+      } else {
+        alert("儲存失敗，但已在本機備份。");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("儲存到雲端失敗，但本機已有備份。");
+    });
 }
-
-
-    /* 覆蓋後：1) 新缺席加入掛職； 2) 本週有上場者從掛職正式移除；2.5) 取消狀態持續到覆蓋 → 視為沒職位，從掛職名單刪除； 3) 清空 compareIgnore（重置狀態） */
-function copyThisToLast(){
-  if(!confirm("確定要用『本週名單』覆蓋『上週名單』嗎？")) return;
-  lastSnapshot = JSON.stringify(getPanelData(lastWeekPanel));
-
-  const stuck = getStuckData();
-  // 1) 將本次比對「未忽略」的缺席者加入掛職
-  currentMissingNotIgnored.forEach(name => {
-    if (name && !stuck[name]) { stuck[name] = new Date().toISOString(); }
-  });
-  // 2) 正式移除：若掛職者本週有上場 → 從掛職名單刪除
-  const thisSet = getThisWeekNameSet();
-  Object.keys(stuck).forEach(n => { if (thisSet.has(n)) delete stuck[n]; });
-  // 2.5) 若掛職者被你點「取消」（muted = 在 compareIgnore Set 裡），
-  // 且在覆蓋這一刻仍是取消狀態 → 視為已無職位，直接從掛職名單刪除
-  Object.keys(stuck).forEach(n => {
-    if (compareIgnore.has(n)) { delete stuck[n]; }
-  });
-  setStuckData(stuck);
-  // 3) 清空 compareIgnore（重置所有被取消的標籤狀態）
-  resetCompareIgnoreAfterCopy();
-  // 實際覆蓋 UI
-  const thisData = getPanelData(thisWeekPanel);
-  setPanelData(lastWeekPanel, thisData, "last");
-  saveState();
-  renderStuckList();
-  alert("已將本週名單覆蓋到上週。標籤狀態已重置。");
-}
-
-    function resetCompareIgnoreAfterCopy(){
-      compareIgnore.clear();
-      localStorage.setItem(STORAGE_IGNORE_KEY, JSON.stringify([]));
-      renderCompareTags([], []); // 清空呈現
-    }
-
-    function undoCopy(){
-      if(!lastSnapshot){ alert("沒有可還原的內容。"); return; }
-      const data = JSON.parse(lastSnapshot);
-      setPanelData(lastWeekPanel, data, "last");
-      saveState();
-      alert("已還原到覆蓋前的上週名單。");
-    }
 
     function startVersionWatcher(){
       const INTERVAL = 4000;
@@ -2115,10 +2812,9 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 // 以上這段 V14.7 完整下載圖片功能（名稱/技能兩張獨立卡）
     
 
-  /*V15修正本週成員點擊問題*/
-    function maybeOpenMemberPicker(e, input) {
-  // 上週欄位直接略過
-  if (input.dataset.side === "last") return;
+/* V15 修正本週成員點擊問題 */
+function maybeOpenMemberPicker(e, input) {
+  // 現在只有本週欄位，直接依照「是否只讀 / 是否有值」決定行為
   if (input.readOnly) return;
   const hasValue = (input.value || "").trim() !== "";
   // 先擋掉瀏覽器預設行為（避免又開鍵盤）
@@ -2185,6 +2881,21 @@ function openMemberPicker(input){
 
     /*V15.3替補列空白搜尋*/
     function selectMemberFromPicker(m){
+      // ★ 1. 若是「幫眾＋」模式：直接加到幫眾欄位，完全不碰 pickerTargetInput
+  if (window.guildAddMode) {
+    window.guildAddMode = false;
+    addGuildTag(
+      guildBattleBox,
+      { name: m.name, job: m.job || getJobByName(m.name) || "" },
+      { bypassRules: false }
+    );
+    closeMemberPicker();
+    saveState();
+    updateGuildBattleAndWeekComparison();
+    return;
+  }
+
+  // ★ 2. 一般情況：原本的流程（本週名單 or 替補）維持不動
   if (!pickerTargetInput) return;
   // 先清掉「本週」裡同名的重複成員（維持你原本邏輯）
   thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
@@ -2217,6 +2928,11 @@ function openMemberPicker(input){
     }
   }
   saveState();
+  // ★ 若這次選的是「本週名單」的成員欄位 → 重新比對
+  if (pickerTargetInput &&
+      pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
+    updateGuildBattleAndWeekComparison();
+  }
   closeMemberPicker();
 }
 
@@ -2236,6 +2952,7 @@ function openMemberPicker(input){
     async function loadState(){
       renderRoleTabs();
       renderMemberList();
+
 
       const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
       if (loginStr) {
@@ -2262,6 +2979,9 @@ function openMemberPicker(input){
 
       startVersionWatcher();
       refreshAllNameFonts();
+      // ★ 一開頁面就自動比對＋補幫眾空位
+  updateGuildBattleAndWeekComparison();
+  maintainGuildBattlePlaceholders();
     }
 
     // V14.9根據名字長度自動縮放字體大小（只管本週名單 + 替補名字）
@@ -2284,8 +3004,6 @@ function refreshAllNameFonts() {
 
 
     loadState();
-    loadPersistentIgnore();
-    renderStuckList();
     // 面板與替補區：任何 input/change 皆視為編輯
     ["input","change"].forEach(evt=>{
     thisWeekPanel.addEventListener(evt, suppressOutlinesOnEdit, true);
@@ -2347,9 +3065,3 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
-
-
-
-
-
-

@@ -1812,6 +1812,15 @@ document.addEventListener(
       return marks;
     }
 
+// 收集「最近標記」資料：沿用舊版結構 { user, marks }
+function collectRecentMarks() {
+  const marks = collectDirtyMarks();
+  return {
+    user: currentUser || "unknown",
+    marks
+  };
+}
+
     function renderRecentMarks(recentMarks) {
   clearAllOutlines();
   // 編輯期間先不顯示框線，等下一次儲存才畫

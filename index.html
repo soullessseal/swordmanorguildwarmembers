@@ -36,13 +36,15 @@
     .role-tab.active { border: 1px solid #0f172a44; }
     .member-list { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.4rem; background: #f8fafc; }
     .member-item { display: flex; justify-content: space-between; gap: .35rem; align-items: center; background: #fff; border-radius: .35rem; padding: .3rem .35rem; margin-bottom: .3rem; border: 1px solid #e2e8f0; cursor: grab; }
-    /* 左側成員文字區：改成橫排，名字 + 技能 對齊一行 */
+
+    /* 左邊：名字＋技能改成兩欄固定排版 */
 .member-left {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: .4rem;
+  display: grid;
+  grid-template-columns: 6.5em 1fr;   /* ← 調這個寬度，可以微調技能起始位置 */
+  column-gap: .4rem;
+  align-items: center;
 }
 
 /*V16.1新增顯示目前幫眾人數*/
@@ -52,21 +54,23 @@
   margin-left: 0.4rem;
 }
 
-/* 名字在左邊，必要時可以略為截斷避免擠到技能 */
+/* 名字：如果太長就…省略 */
 .member-name {
   font-weight: 700;
   font-size: .9rem;
-  white-space: nowrap;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 技能固定靠右，跟每一列的右邊距離一致 */
+/* 技能：一律齊左 */
 .member-skill {
-  font-size: .75rem;
-  opacity: .7;
-  margin-left: auto;   /* ★ 把技能推到最右邊，名字多長都不影響位置 */
+  font-size: .8rem;
+  color: #64748b;
+  text-align: left;
 }
+
     .member-actions { display:flex; gap:.25rem; }
     .member-actions button { border:none; background:#e2e8f0; font-size:.65rem; border-radius:.35rem; padding:.25rem .45rem; cursor:pointer; }
     .pagination { display:flex; justify-content:center; gap:.35rem; margin-top:.4rem; }
@@ -658,30 +662,24 @@ function sortGuildBoxByJob(box) {
     return;
   }
   tags.sort((a, b) => {
-    const highlightedA =
-      a.classList.contains("guild-missing-in-week") ||
-      a.classList.contains("guild-from-week-only");
-    const highlightedB =
-      b.classList.contains("guild-missing-in-week") ||
-      b.classList.contains("guild-from-week-only");
-    // 先比：紅綠標籤優先
-    if (highlightedA !== highlightedB) {
-      return highlightedA ? -1 : 1;
+    // ① 空位優先
+    const isPlaceholderA = a.dataset.placeholder === "1";
+    const isPlaceholderB = b.dataset.placeholder === "1";
+    if (isPlaceholderA !== isPlaceholderB) {
+      return isPlaceholderA ? -1 : 1;  // 空位永遠排最前面
     }
-    // 再比：職業順序
-    const nameA = (a.dataset.name || "").trim();
-    const nameB = (b.dataset.name || "").trim();
-    const jobA  = a.dataset.job || getJobByName(nameA) || "";
-    const jobB  = b.dataset.job || getJobByName(nameB) || "";
-    const idxA = guildJobOrder.indexOf(jobA);
-    const idxB = guildJobOrder.indexOf(jobB);
-    const orderA = idxA === -1 ? 999 : idxA;
-    const orderB = idxB === -1 ? 999 : idxB;
-    if (orderA !== orderB) return orderA - orderB;
-    // 同職業就用名字排序，讓順序穩定
-    return nameA.localeCompare(nameB, "zh-Hant");
+    // ② 再來是紅／綠高亮（缺席 / 新學徒）
+    const highlightedA = a.classList.contains("guild-missing-in-week") || a.classList.contains("guild-new-in-week");
+    const highlightedB = b.classList.contains("guild-missing-in-week") || b.classList.contains("guild-new-in-week");
+    if (highlightedA && !highlightedB) return -1;
+    if (!highlightedA && highlightedB) return 1;
+    // ③ 其餘照職業順序
+    const jobA = guildJobOrder[a.dataset.job] || 99;
+    const jobB = guildJobOrder[b.dataset.job] || 99;
+    if (jobA !== jobB) return jobA - jobB;
+    // ④ 同職業再按名字
+    return (a.dataset.memberName || "").localeCompare(b.dataset.memberName || "", "zh-Hant");
   });
-
   box.innerHTML = "";
   tags.forEach(t => box.appendChild(t));
   box.classList.remove("empty");

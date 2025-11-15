@@ -1129,7 +1129,7 @@ requestSave({
       const width = window.innerWidth;
 
       if (width <= 768) {
-        if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(21% - 6px)"; });
+        if (count <= 4) squads.forEach(sq => { sq.style.flex = "0 0 calc(21.5% - 6px)"; });
         else { const pct = 100 / count; squads.forEach(sq => { sq.style.flex = "0 0 calc(" + (pct - 4.8) + "%)"; }); }
         return;
       }
@@ -3164,3 +3164,4 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+

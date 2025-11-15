@@ -2148,27 +2148,22 @@ function setPanelData(panelEl, data, side) {
 }
 
 //V16新增
+// 只記錄「幫眾欄」的狀態，學徒欄不入庫
 function getGuildPositionsData() {
   const battle = [];
-  const pending = [];
   if (guildBattleBox) {
     guildBattleBox.querySelectorAll(".position-tag").forEach(tag => {
       const name = (tag.dataset.name || "").trim();
       if (!name) return;
+      // 空位標籤可以不用存，之後用 maintainGuildBattlePlaceholders 自動補
+      if (tag.dataset.placeholder === "1") return;
       const job = tag.dataset.job || getJobByName(name) || "";
       battle.push({ name, job });
     });
   }
-  if (guildPendingBox) {
-    guildPendingBox.querySelectorAll(".position-tag").forEach(tag => {
-      const name = (tag.dataset.name || "").trim();
-      if (!name) return;
-      const job = tag.dataset.job || getJobByName(name) || "";
-      pending.push({ name, job });
-    });
-  }
-  return { battle, pending };
+  return { battle };   // ★ 沒有 pending 了
 }
+
 
 
 
@@ -2222,43 +2217,31 @@ function getGuildPositionsData() {
   thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
 }
 
-/* V16★ 還原幫會職位欄位 */
+/* V16★ 還原幫會職位欄位（只還原幫眾） */
 if (guildBattleBox) {
   guildBattleBox.innerHTML = "";
   guildBattleBox.classList.add("empty");
 }
 if (guildPendingBox) {
+  // 學徒欄每次都由比對重新產生，不做還原
   guildPendingBox.innerHTML = "";
   guildPendingBox.classList.add("empty");
 }
-if (state.guildPositions) {
+if (state.guildPositions && guildBattleBox) {
   const gp = state.guildPositions;
-  if (gp.battle && guildBattleBox) {
-    gp.battle.forEach(m => {
-      addGuildTag(
-        guildBattleBox,
-        { name: m.name, job: m.job },
-        { bypassRules: true }      // ← 還原資料：不套「去重＋60人上限」
-      );
-    });
-  }
-  if (gp.pending && guildPendingBox) {
-    gp.pending.forEach(m => {
-      addGuildTag(
-        guildPendingBox,
-        { name: m.name, job: m.job },
-        { bypassRules: true }      // ← 同上
-      );
-    });
-  }
-  // 如果加完之後有標籤，就把 empty 樣式拿掉
-  if (guildBattleBox && guildBattleBox.querySelector(".position-tag")) {
+  const battle = gp.battle || [];
+  battle.forEach(m => {
+    addGuildTag(
+      guildBattleBox,
+      { name: m.name, job: m.job },
+      { bypassRules: true }   // 還原資料，不做 60 人上限 & 去重
+    );
+  });
+  if (guildBattleBox.querySelector(".position-tag")) {
     guildBattleBox.classList.remove("empty");
   }
-  if (guildPendingBox && guildPendingBox.querySelector(".position-tag")) {
-    guildPendingBox.classList.remove("empty");
-  }
-}
+}// ★ 學徒欄不還原，等 loadState() 結尾的 updateGuildBattleAndWeekComparison() //    依據「幫眾」＋「本週名單」重新算出學徒名單
+
 
 subsList.innerHTML = "";
 if (state.subs && state.subs.length) {
@@ -3086,5 +3069,6 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+
 
 

@@ -2306,43 +2306,50 @@ refreshSubsView();
     }
 
 function doSaveToBackend() {
-  const payload = {
+  // 這裡的 state 就是要存到雲端的完整狀態
+  const state = {
     allMembers,
     thisWeek: getPanelData(thisWeekPanel),
     subs: getSubsData(),
-    recentMarks: collectRecentMarks()  // 沿用你原本收集框線標記的函式名
+    recentMarks: collectRecentMarks()  // 你新版用的標記資料
+    // 如果之後要把幫眾 / 學徒職位也存進去，可以在這裡再多加欄位
+    // guildBattle: serializeGuildBattleState() 之類的
   };
-
-  // 先存一份 localStorage 備份
+  // 先存一份 localStorage 備份（延續你現在的做法）
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     console.error(e);
   }
-
+  // ★ 重點 1：不要自己加 Content-Type，寫法回到舊版那種
   fetch(REMOTE_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "save",
-      user: currentUser || "unknown",
-      data: payload
+      payload: state  // ★ 重點 2：欄位名改回 payload，對應 GAS
     })
   })
     .then(res => res.json())
-    .then(json => {
-      if (json && json.status === "ok") {
-        lastKnownUpdatedAt = json.updatedAt || null;
-        alert("儲存成功！");
+    .then(data => {
+      // ★ 重點 3：改回用 success 判斷
+      if (data && data.success) {
+        lastKnownUpdatedAt = data.updatedAt || null;
+        alert("已儲存到後台");
+        // 如果你要順便把最近修改框線畫回來，也可以在這裡做
+        // renderRecentMarks(state.recentMarks);
+        // document.querySelectorAll("[data-dirty='1']").forEach(el => el.removeAttribute("data-dirty"));
       } else {
-        alert("儲存失敗，但已在本機備份。");
+        alert("後台有回應但不是 success，請看 console");
+        console.log(data);
       }
     })
     .catch(err => {
+      // 這裡就沿用你一開始 v15.3 的提醒文字
+      alert("無法連到後台，請檢查 Apps Script 部署權限");
       console.error(err);
-      alert("儲存到雲端失敗，但本機已有備份。");
     });
 }
+
 
     function startVersionWatcher(){
       const INTERVAL = 4000;
@@ -3074,3 +3081,4 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+

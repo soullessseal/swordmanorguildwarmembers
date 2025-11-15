@@ -130,18 +130,55 @@
   }
 }
 
+/*V16.1手機翻頁恢復*/
+   @media (max-width: 900px) {
+  /* 只控制本週名單的團隊翻頁 */
+  #thisWeek {
+    overflow-x: visible;
+    white-space: normal;
+  }
+  /* 外層包團的容器 */
+  #thisWeek .teams-wrap {
+    position: relative;
+    width: 100%;
+  }
+  /* 每一個團 block：手機時預設隱藏 */
+  #thisWeek .team-block {
+    width: 100%;
+    display: none;
+  }
+  /* 只有 active 的那一團會顯示 */
+  #thisWeek .team-block.active {
+    display: block;
+  }
+  /* 底部的小圓點（維持你原本的樣式） */
+  .team-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: .5rem;
+  }
+  .team-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    border: none;
+    padding: 0;
+  }
+  .team-dot.active {
+    background: #0f172a;
+  }
+  /* 團裡面的隊伍排版維持原本的行為 */
+  #thisWeek .team-block .squads {
+    overflow-x: visible;
+    width: 100%;
+  }
+  #thisWeek .team-block .squad {
+    min-width: 0;
+  }
+}
 
-    @media (max-width: 900px) {
-      #thisWeek { overflow-x: visible; white-space: normal; }
-      #thisWeek .teams-wrap .teams-wrap { position: relative; width: 100%; }
-      #thisWeek .team-block .team-block { width: 100%; display: none; }
-      #thisWeek .team-block.active .team-block.active { display: block; }
-      .team-dots { display: flex; gap: 6px; justify-content: center; margin-top: .5rem; }
-      .team-dot { width: 8px; height: 8px; border-radius: 999px; background: #cbd5e1; border: none; padding: 0; }
-      .team-dot.active { background: #0f172a; }
-      .team-block .squads { overflow-x: visible; width: 100%; }
-      .team-block .squad { min-width: 0; }
-    }
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
     .member-row input { width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem; border: 1px solid #cbd5f5; border-radius: 0.25rem; box-sizing: border-box; font-weight: 700; }
@@ -285,15 +322,15 @@
       .right-actions-bar {
         position: fixed;
         bottom: 1rem;
-        left: 1rem;
-        right: 1rem;
+        left: 3rem;
+        right: 3rem;
         background: rgba(15, 23, 42, 0.95);
-        padding: .4rem .4rem;
+        padding: .4rem .6rem;
         display: flex;
         gap: .5rem;
         justify-content: space-between;
         z-index: 9999;
-        border-radius: 1rem;
+        border-radius: 3rem;
         height: 2.5rem;
         align-items: center;
       }

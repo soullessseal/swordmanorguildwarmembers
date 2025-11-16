@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v16.1</title>
+  <title>幫戰名單比對工具 v16.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -95,7 +95,45 @@
     .squad-del-btn { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border: none; border-radius: 999px; background: #ef4444; color: #fff; font-size: 14px; line-height: 22px; text-align: center; cursor: pointer; padding: 0; }
     @media (max-width: 600px) { .squad-del-btn { top: 4px; right: 4px; width: 20px; height: 20px; line-height: 20px; font-size: 13px; } }
 
-    .team-dots { display: none; }
+    /* V16.2本週名單底部的切換圓點：桌機＋手機都顯示 */
+    .team-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: .5rem;
+    }
+
+    /*V16.2滑動動畫*/
+    /* 右邊滑進來 */
+@keyframes teamSlideFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+/* 左邊滑進來 */
+@keyframes teamSlideFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+/* 根據 JS 加上的 class 播放不同方向的 slide */
+#thisWeek .team-block.slide-from-right {
+  animation: teamSlideFromRight .25s ease-out;
+}
+#thisWeek .team-block.slide-from-left {
+  animation: teamSlideFromLeft .25s ease-out;
+}
+
 
 
     /* V16讓標題與儲存按鈕排在同一行 */
@@ -151,24 +189,6 @@
   #thisWeek .team-block.active {
     display: block;
   }
-  /* 底部的小圓點（維持你原本的樣式） */
-  .team-dots {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    margin-top: .5rem;
-  }
-  .team-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: #cbd5e1;
-    border: none;
-    padding: 0;
-  }
-  .team-dot.active {
-    background: #0f172a;
-  }
   /* 團裡面的隊伍排版維持原本的行為 */
   #thisWeek .team-block .squads {
     overflow-x: visible;
@@ -179,8 +199,33 @@
   }
 }
 
+/* ✅ V16.2所有裝置共用的小圓點樣式（桌機＋手機） */
+.team-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+}
+.team-dot.active {
+  opacity: 1;
+  transform: scale(1.3);
+  box-shadow: 0 0 0 1px rgba(15,23,42,.25);
+}
+
 
     .member-row { display:flex; gap:.25rem; margin-bottom:.3rem; }
+    /* 針對「本週名單」內的小隊，微調每一列的上下距離 */
+#thisWeek .squad .member-row:nth-child(odd) {
+  margin-bottom: 0.2rem;  /* 名字列 → 跟技能靠近一點 */
+}
+#thisWeek .squad .member-row:nth-child(even) {
+  margin-bottom: 0.5rem;  /* 技能列 → 和下一位成員保持原本間距 */
+}
+
     .member-row input { width: 100%; font-size: 0.78rem; padding: 0.3rem 0.35rem; border: 1px solid #cbd5f5; border-radius: 0.25rem; box-sizing: border-box; font-weight: 700; }
     .readonly-skill { background:#e2e8f0; }
     .locked-input { /*V14.8修改，滑鼠完全不能互動*/
@@ -243,6 +288,18 @@
   box-shadow: 0 2px 8px rgba(34,197,94,0.25);
 }
 
+/* V16.2本週名單：一律一次只顯示一團，由 .active 控制 */
+#thisWeek .teams-wrap {
+  position: relative;
+  width: 100%;
+}
+#thisWeek .team-block {
+  width: 100%;
+  display: none;      /* 預設都隱藏 */
+}
+#thisWeek .team-block.active {
+  display: block;     /* 只有 .active 那團顯示 */
+}
 
     #subsList { display:flex; flex-direction:column; gap:.25rem; }
     .substitute-row { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-rows: auto auto; gap: 0.25rem; align-items: center; border: 1px solid #e2e8f0; border-radius: 0.35rem; padding: 0.25rem; background: #f8fafc; }
@@ -425,7 +482,7 @@
 }
 /* 幫眾欄：最多顯示約 15 個高度，其餘用滾輪 */
 #guildBattleBox {
-  max-height: 27.5rem;   /* 可自行微調，約 15 個標籤高度 */
+  max-height: 28rem;   /* 可自行微調，約 15 個標籤高度 */
   overflow-y: auto;
 }
 
@@ -486,12 +543,11 @@
   }
 }
 
-
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v16.1</h1>
+    <h1>幫戰名單比對工具 v16.2</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -1119,6 +1175,14 @@ requestSave({
     function rgbToHsl(r,g,b){r/=255; g/=255; b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){h=s=0;} else{const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min); switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;} h/=6;} return {h,s,l};}
     function hslToHex(h,s,l){function f(n){const k=(n+h*12)%12; const a=s*Math.min(l,1-l); const c=l-a*Math.max(-1, Math.min(k-3, Math.min(9-k,1))); return Math.round(255*c).toString(16).padStart(2,'0');} return "#"+f(0)+f(8)+f(4);}
     function darkenHex(hex, amt=0.25){ const {r,g,b} = hexToRgb(hex); const {h,s,l} = rgbToHsl(r,g,b); const nl = Math.max(0, l - amt); return hslToHex(h,s,nl); }
+    /*V16.2新增*/
+    function lightenHex(hex, amt = 0.25) {
+    const { r, g, b } = hexToRgb(hex);
+    const { h, s, l } = rgbToHsl(r, g, b);
+    const nl = Math.min(1, l + amt);
+    return hslToHex(h, s, nl);
+    }
+
 
     /* 依據寬度調整小隊欄寬 */
     function adjustSquadWidths(block) {
@@ -1258,21 +1322,75 @@ teams.forEach(t => {
       dots.className = "team-dots";
       panel.appendChild(dots);
 
+      /*V16.2滑動動畫*/
       let current = 0;
-      function show(index) {
-        current = index;
-        blocks.forEach((b, i) => { b.classList.toggle("active", i === index); });
-        const allDots = dots.querySelectorAll(".team-dot");
-        allDots.forEach((d, i) => { d.classList.toggle("active", i === index); });
+  function show(index) {
+  if (index < 0 || index >= blocks.length) return;
+  // ★ 先決定是往左還是往右
+  let dir = null;
+  if (index > current) dir = "right";
+  else if (index < current) dir = "left";
+  current = index;
+  blocks.forEach((b, i) => {
+    const willActive = (i === index);
+    b.classList.toggle("active", willActive);
+    // 只有要顯示的那一團才套動畫
+    if (willActive) {
+      b.classList.remove("slide-from-left", "slide-from-right");
+      // 強制 reflow，讓動畫可以重播
+      void b.offsetWidth;
+      if (dir === "right") {
+        b.classList.add("slide-from-right");
+      } else if (dir === "left") {
+        b.classList.add("slide-from-left");
       }
+    }
+  });
+  const allDots = dots.querySelectorAll(".team-dot");
+  allDots.forEach((d, i) => { d.classList.toggle("active", i === index); });
+  // 保留你原本的 thisWeekCarousel 邏輯
+  if (panelId === "thisWeek") {
+    if (!window.thisWeekCarousel) window.thisWeekCarousel = {};
+    window.thisWeekCarousel._show = show;
+    window.thisWeekCarousel.index = index;
+    window.thisWeekCarousel.count = blocks.length;
+  }
+}
 
-      blocks.forEach((b, idx) => {
-        const dot = document.createElement("button");
-        dot.type = "button";
-        dot.className = "team-dot" + (idx === 0 ? " active" : "");
-        dot.onclick = () => show(idx);
-        dots.appendChild(dot);
-      });
+
+
+  /*V16.2修改圓點顏色*/
+  blocks.forEach((b, idx) => {
+  const dot = document.createElement("button");
+  dot.type = "button";
+  dot.className = "team-dot" + (idx === 0 ? " active" : "");
+  // ★ 你可以自由改這裡的顏色（圓點用）
+const teamDotColors = {
+  "進攻": "#fecaca", // 淺紅
+  "拆塔": "#fed7aa", // 淺橘
+  "機動": "#ddd6fe", // 淺紫
+  "防守": "#bfdbfe"  // 淺藍
+};
+  // ★ 用團隊名稱決定圓點底色
+  const teamName = b.dataset.team || "";
+  // 先看有沒有你自己指定的圓點顏色
+  const customDotColor = teamDotColors[teamName];
+  if (customDotColor) {
+  dot.style.background = customDotColor;
+  } else {
+  // 沒設定時才退回原本邏輯
+  const baseColor = teamColorByName(teamName);
+  if (baseColor) {
+    dot.style.background = lightenHex(baseColor, 0.35);
+  } else {
+    dot.style.background = "#e2e8f0";
+  }
+}
+
+  dot.onclick = () => show(idx);
+  dots.appendChild(dot);
+});
+
 
       let startX = 0, startY = 0, locked = false, isHorizontal = false;
       wrap.addEventListener("touchstart", function (e) {
@@ -1295,9 +1413,87 @@ teams.forEach(t => {
         else { if (current > 0) show(current - 1); }
       });
 
-      show(0);
+      /*V16.2新增團隊切換控制器*/
+      if (panelId === "thisWeek") {
+  window.thisWeekCarousel = window.thisWeekCarousel || {};
+  window.thisWeekCarousel._show = show;
+  window.thisWeekCarousel.index = 0;
+  window.thisWeekCarousel.count = blocks.length;
+  window.thisWeekCarousel.next = function () {
+    if (this.index < this.count - 1) {
+      this._show(this.index + 1);
+    }
+  };
+  window.thisWeekCarousel.prev = function () {
+    if (this.index > 0) {
+      this._show(this.index - 1);
+    }
+  };
+}
+  show(0);
+      
     }
     setupPanelCarousel("thisWeek");
+
+  // ★★ V16.2 滑鼠滾輪切換團隊（桌機用）★★
+  (function enableWheelSwitchOnThisWeek() {
+  if (!thisWeekPanel) return;
+  let lastSwitch = 0;
+  const COOL_DOWN = 400; // 兩次切換間隔（毫秒），避免一滾跳很多團
+  thisWeekPanel.addEventListener("wheel", function (e) {
+    if (!window.thisWeekCarousel) return;
+    // 判斷主要是上下還是左右的滾動
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(delta) < 10) return; // 太小的變化就忽略
+    const now = Date.now();
+    if (now - lastSwitch < COOL_DOWN) return; // 節流，避免一次滾好幾團
+    // 在本週名單上滾輪時，就不要讓整頁一起滾動
+    e.preventDefault();
+    if (delta > 0) {
+      // 往下或往右滾 → 下一團
+      window.thisWeekCarousel.next && window.thisWeekCarousel.next();
+    } else {
+      // 往上或往左滾 → 上一團
+      window.thisWeekCarousel.prev && window.thisWeekCarousel.prev();
+    }
+    lastSwitch = now;
+  }, { passive: false });
+})();
+
+
+
+/*V16.2新增監聽，只要在拖曳時滑進團隊區域邊緣，就呼叫切換頁面*/
+    let lastTeamAutoSwitchTime = 0;
+  function handleThisWeekDragOver(e) {
+  if (!window.thisWeekCarousel || !window.thisWeekCarousel._show) return;
+  const panel = thisWeekPanel;
+  if (!panel) return;
+  // 讓這個區域可以當 drop 目標
+  e.preventDefault();
+  const rect = panel.getBoundingClientRect();
+  const x = e.clientX;
+  const edge = 48; // 距離邊緣 48px 內就算靠邊
+  let dir = null;
+  if (x - rect.left < edge) {
+    dir = "prev";
+  } else if (rect.right - x < edge) {
+    dir = "next";
+  }
+  if (!dir) return;
+  const now = Date.now();
+  // 節流：0.6 秒內最多切一次，避免狂跳
+  if (now - lastTeamAutoSwitchTime < 600) return;
+  if (dir === "prev") {
+    window.thisWeekCarousel.prev();
+  } else {
+    window.thisWeekCarousel.next();
+  }
+  lastTeamAutoSwitchTime = now;
+}
+// 本週名單面板：在拖曳期間監聽 dragover，就能根據游標位置自動翻頁
+thisWeekPanel.addEventListener("dragover", handleThisWeekDragOver);
+
+
 
     function renumberSquads(block){
       const sqs = block.querySelectorAll(".squad");
@@ -1388,9 +1584,9 @@ function clearPanelCell(e) {
   // 套顏色（原本就有的邏輯）
   applyColorByName(nameInput);
   // ⭐ 新增：一建立就先算一次字體大小
-  fitNameFont(nameInput);
+  /*fitNameFont(nameInput);*/
       subsList.appendChild(row);
-    }
+    } 
 
   /*V15.1新增 替補也鎖點擊*/
 function onSubNameClick(e, input) {
@@ -3077,7 +3273,7 @@ function openMemberPicker(input){
       } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
 
       startVersionWatcher();
-      refreshAllNameFonts();
+      // ★ 待刪，關閉自動字體調整refreshAllNameFonts();
       // ★ 一開頁面就自動比對＋補幫眾空位
   updateGuildBattleAndWeekComparison();
   maintainGuildBattlePlaceholders();
@@ -3111,12 +3307,13 @@ function refreshAllNameFonts() {
     // 拖曳開始也視為編輯（即使尚未放下）
     document.addEventListener("dragstart", suppressOutlinesOnEdit, true);
     // 使用者在「本週名單 / 替補」輸入名字時，立即重新算字體大小
+    /*★ 待刪，關閉自動字體調整
     document.addEventListener("input", function (e) {
     const t = e.target;
     if (t.matches('#thisWeek input[data-role="name"], #subsList .sub-name')) {
     fitNameFont(t);
     }
-    });
+    });*/
     
     attachIOSZoomFix();
 
@@ -3164,4 +3361,3 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
-

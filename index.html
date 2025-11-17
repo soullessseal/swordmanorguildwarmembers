@@ -391,7 +391,7 @@
 #thisWeek .member-row.status-unsure::after {
   content: "?";
   background: #ca8a04;
-  color: #fef9c3;
+  color: #ffffff;
   border: 2px solid #ca8a04;
 }
 
@@ -417,15 +417,15 @@
 }
 /* ★ 學徒標籤：會晚到（late） */
 .position-tag.guild-from-week-late .tag-status-icon {
-  background: #dbeafe;    /* 淺藍底 */
-  color: #1d4ed8;         /* 深藍字 */
-  border: 2px solid #60a5fa;
+  background: #1d4ed8;    /* 深藍底 */
+  color: #ffffff;        
+  border: 2px solid #1d4ed8;
 }
 /* ★ 學徒標籤：不確定（unsure） */
 .position-tag.guild-from-week-unsure .tag-status-icon {
-  background: #fef9c3;    /* 淺黃底 */
-  color: #854d0e;         /* 深黃字 */
-  border: 2px solid #facc15;}
+  background: #ca8a04;    /* 深黃底 */
+  color: #ffffff;       
+  border: 2px solid #ca8a04;}
 
 
 
@@ -1520,6 +1520,7 @@ function onNameCellContextMenu(e, input) {
 
 /*V17修改*/
 function createMemberInputs(side) {
+  const isThisWeek = side === "this";
   let html = "";
   for (let i = 1; i <= 6; i++) {
     html += `
@@ -1527,12 +1528,13 @@ function createMemberInputs(side) {
         <input
           data-role="name"
           data-side="${side}"
-          ${side === "this" ? 'data-status="absent"' : ""}
           draggable="true"
           ondragstart="dragFromPanel(event)"
           ondragover="allowDrop(event)"
           ondrop="dropMember(event)"
-          oncontextmenu="onNameCellContextMenu(event, this)"
+          ${isThisWeek
+            ? 'oncontextmenu="onNameCellContextMenu(event, this)"'
+            : 'oncontextmenu="clearPanelCell(event)"'}
           oninput="handlePanelInputChange(this)"
           onclick="onNameCellClick(event, this)"
           placeholder="成員${i}"
@@ -1550,6 +1552,7 @@ function createMemberInputs(side) {
   }
   return html;
 }
+
 
 
 
@@ -2223,7 +2226,7 @@ function applyWeekStatusIconToTag(tag, status) {
   if (status === "absent") {
     span.textContent = "!";
   } else if (status === "late") {
-    span.textContent = "△";
+    span.textContent = "▲";
   } else if (status === "unsure") {
     span.textContent = "?";
   }
@@ -2710,66 +2713,73 @@ function collectRecentMarks() {
     }
 
 function setPanelData(panelEl, data, side) {
+  if (!panelEl || !data) return;
   data.forEach(teamData => {
     const block = panelEl.querySelector(`.team-block[data-team="${teamData.team}"]`);
     if (!block) return;
-    // 目前只會有 "this" 面板：用下拉選單設定團別標籤
+    // 團別下拉選單（進攻 / 拆塔 / 防守 ...）
     const tagSelect = block.querySelector(".team-tag-select");
     if (tagSelect && teamData.tag) {
       tagSelect.value = teamData.tag;
     }
     const squadsContainer = block.querySelector(".squads");
-    let currentCount = squadsContainer.children.length;
     const neededCount = teamData.squads.length;
-    // 小隊數量補到需要的數量
+    let currentCount = squadsContainer.children.length;
+    // 小隊數量不足就補
     while (currentCount < neededCount) {
-      squadsContainer.appendChild(createSquad(currentCount + 1, side, teamData.team));
+      squadsContainer.appendChild(
+        createSquad(currentCount + 1, side, teamData.team)
+      );
       currentCount++;
     }
-    // 多的就砍掉
+    // 小隊太多就砍掉尾巴
     while (squadsContainer.children.length > neededCount) {
       squadsContainer.removeChild(squadsContainer.lastElementChild);
     }
-    // 套入每個小隊與成員資料
+    // 套入每一隊、每一格成員資料
     teamData.squads.forEach((sqData, idx) => {
-      const sqEl = squadsContainer.children[idx];
+      const sqEl = squadsContainer.children[idx];   // ★ 一定要在這裡宣告 sqEl
       if (!sqEl) return;
-      const nameInputs = sqEl.querySelectorAll("input[data-role='name']");
+      const nameInputs = sqEl.querySelectorAll('input[data-role="name"]');
       nameInputs.forEach((inp, mIdx) => {
         const member = sqData.members[mIdx];
-        if (member) {
+        if (member && (member.name || "").trim() !== "") {
+          // 名字
           inp.value = member.name || "";
-          // 套職業顏色
-          if (member.job) {
-            applyJobColor(inp, member.job);
+
+          // 職業顏色
+          const job = member.job || getJobByName(member.name) || "";
+          if (job) {
+            applyJobColor(inp, job);
           } else {
             applyColorByName(inp);
           }
-          // 技能欄位
+          // 技能欄
           const skillRow = inp.parentElement.nextElementSibling;
           if (skillRow) {
-            const skillInput = skillRow.querySelector("input[data-role='skill']");
+            const skillInput = skillRow.querySelector('input[data-role="skill"]');
             if (skillInput) {
               setSkillInputValue(skillInput, member.skill ? member.skill : "");
             }
           }
-         // V17修改：舊資料沒有 status 就當作「未出現」
-const st = member.status || "absent";
-setCellStatus(inp, st);
+          // ★ V17：還原出席狀態
+          // 舊資料沒有 status 的話，預設視為「未出現」或「已出席」都可以，你自己選：
+          const st = member.status || "absent";   // 改成 "present" = 舊資料視為有出席
+          setCellStatus(inp, st);
         } else {
-         // 該格沒人 → 清空名字與技能
-clearInputAndSkill(inp);
-// 空格：完全不套狀態
-clearCellStatus(inp);
+          // 該格沒人 → 清空名字與技能 + 清掉狀態
+          clearInputAndSkill(inp);
+          resetCellStatus(inp);   // 空格＝完全無狀態
         }
       });
     });
-    // 重新編號小隊、調整寬度
+    // 重新編號小隊＋調整寬度
     renumberSquads(block);
     block.dataset.lastSquadCount = String(neededCount || 3);
     adjustSquadWidths(block);
   });
 }
+
 
 //V16新增
 // 只記錄「幫眾欄」的狀態，學徒欄不入庫

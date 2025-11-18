@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v17.4</title>
+  <title>幫戰名單比對工具 v18</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -834,12 +834,79 @@
   }
 }
 
+/* V18手機版：把幫會職位改成底部抽屜 */
+@media (max-width: 900px) {
+  /* 抽屜本體 */
+  #guildSection {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 80vh;
+    transform: translateY(100%);
+    transition: transform .25s ease-out;
+    z-index: 30;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    background: #ffffff;
+    overflow: hidden;
+    border: none !important;        /* ⭐ 把原本卡片邊框關掉 */
+    box-shadow: 0 -8px 24px rgba(15,23,42,.45);
+    padding-bottom: 2rem !important;   /* ⭐ 可自行調整 2rem～4rem */
+  }
+  #guildSection.is-open {
+    transform: translateY(0);
+  }
+  /* 上方 handle 區 */
+  #guildSection .guild-drawer-header {
+    position: sticky;
+    top: 0;
+    padding: 1.2rem 0 .4rem;
+    display: flex;
+    justify-content: center;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  #guildSection .guild-drawer-grip {
+    width: 44px;
+    height: 4px;
+    border-radius: 999px;
+    background: #9aa0a3;
+    box-shadow: 0 1px 0 rgba(0,0,0,.08);
+    cursor: pointer;
+  }
+  /* 抽屜內部容器：把底色、圓角、邊框、陰影全部清掉 */
+  #guildSection .card-body,
+  #guildSection > .inner,
+  #guildSection > div {
+    padding: .75rem 1rem 1rem;
+    background: transparent !important;
+    border-radius: 0 !important;
+    border: none !important;        /* ⭐ 避免還有 border-top 之類的線 */
+    box-shadow: none !important;
+  }
+  /* 標題往上靠近拉條一點 */
+  #guildSection h3 {
+    margin-top: .1rem !important;
+  }
+  /* 背景遮罩 */
+  .guild-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.35);
+    z-index: 20;
+  }
+}
+
+
 
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v17.4</h1>
+    <h1>幫戰名單比對工具 v18</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -878,6 +945,11 @@
       </div>
     </div>
 
+<section id="guildSection" class="card">
+  <!-- V18🔽 新增：抽屜上方拉條區塊 -->
+  <div class="guild-drawer-header">
+  <div class="guild-drawer-grip"></div>
+  </div>
  <!-- V16★ 新增：幫會職位欄位 -->
   <div class="panel" id="guildPositions">
     <h3>幫會職位</h3>
@@ -921,14 +993,14 @@
   </div>
 </div>
 
-
     <div class="guild-box" id="guildPendingBox"
          ondragover="allowDrop(event)"
          ondrop="dropMember(event)"></div>
   </div>
 </div>
-
   </div>
+  
+  </section>
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
@@ -946,9 +1018,10 @@
 
     </div>
 
-    <!-- 右側 -->
+    <!-- 手機儲存按鈕 -->
     <div class="right-sticky-wrap">
       <div class="right-actions-bar">
+        <button id="guildToggleBtn" type="button" class="float-btn">幫會職位</button>
         <button class="float-btn danger" onclick="requestSave()">儲存</button>
       </div>
 
@@ -3966,6 +4039,70 @@ function attachIOSZoomFix() {
     }
   });
 }
+
+// V18手機版：幫會職位抽屜開關
+(function () {
+  const guildSection = document.getElementById("guildSection");
+  const guildToggleBtn = document.getElementById("guildToggleBtn");
+  let guildBackdrop = null;
+  if (!guildSection || !guildToggleBtn) return;
+
+    // 🔽 V18新增抽屜上方拉條：點一下或往下滑即可關閉
+  const guildDrawerHeader = guildSection.querySelector(".guild-drawer-header");
+  if (guildDrawerHeader) {
+    // 點一下 bar 直接收起
+    guildDrawerHeader.addEventListener("click", () => {
+      closeGuildPanel();
+    });
+    // 手機往下滑關閉效果
+    let startY = null;
+    guildDrawerHeader.addEventListener(
+      "touchstart",
+      (e) => {
+        if (e.touches && e.touches.length > 0) {
+          startY = e.touches[0].clientY;
+        }
+      },
+      { passive: true }
+    );
+    guildDrawerHeader.addEventListener(
+      "touchend",
+      (e) => {
+        if (startY == null) return;
+        const endY = e.changedTouches[0].clientY;
+        const deltaY = endY - startY;
+        // 手指往下滑超過 40px 就關閉
+        if (deltaY > 40) {
+          closeGuildPanel();
+        }
+        startY = null;
+      },
+      { passive: true }
+    );
+  }
+
+
+  function closeGuildPanel() {
+    guildSection.classList.remove("is-open");
+    if (guildBackdrop) {
+      guildBackdrop.remove();
+      guildBackdrop = null;
+    }
+  }
+  guildToggleBtn.addEventListener("click", () => {
+    const willOpen = !guildSection.classList.contains("is-open");
+    if (willOpen) {
+      guildSection.classList.add("is-open");
+      // 建立半透明背景，點背景也能關閉
+      guildBackdrop = document.createElement("div");
+      guildBackdrop.className = "guild-backdrop";
+      guildBackdrop.addEventListener("click", closeGuildPanel);
+      document.body.appendChild(guildBackdrop);
+    } else {
+      closeGuildPanel();
+    }
+  });
+})();
 
   </script>
 </body>

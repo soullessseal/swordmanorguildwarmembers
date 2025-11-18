@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v17.1</title>
+  <title>幫戰名單比對工具 v17.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -247,8 +247,10 @@
 
 /* 幫會職位比對：本週有上場，但沒掛幫眾 → 綠色膠囊（出現在學徒欄位） */
 .position-tag.guild-from-week-only {
-  background: #bbf7d0 !important;   /* 淺綠底 */
-  color: #166534 !important;        /* 深綠字 */
+  background: #3A9267 !important;   /* 淺綠底 */
+  border-color: #14532d; /* 再深一點的邊框 */
+  color: #ffffff !important;        /* 深綠字 */
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 /* V17新增學徒標籤狀態 icon */
@@ -256,15 +258,14 @@
   margin-left: .25rem;
   font-size: 0.78rem;
 }
-/* 本週狀態＝未出現 → 學徒欄用白色標籤，不能點選交換 */
+/* 學徒欄：不確定狀態的標籤也要顯示成可點選 */
+.position-tag.guild-from-week-unsure {
+  cursor: pointer;
+}
+/* 本週狀態＝未上線 → 學徒欄用白色標籤，不能點選交換 */
 .position-tag.guild-from-week-absent {
   background: #ffffff !important;
-  border-color: #0f172a !important;
-  color: #0f172a !important;
-  cursor: default;   /* 滑鼠指標變成一般 */
-}
-.position-tag.guild-from-week-absent .tag-status-icon {
-  color: #b91c1c;    /* 驚嘆號略帶紅色，提醒是未出現 */
+  cursor: pointer;   /* V17.2改成可點選 */ 
 }
 
 
@@ -317,6 +318,70 @@
 #thisWeek .team-block.active {
   display: block;     /* 只有 .active 那團顯示 */
 }
+
+/* V17.2新增，本週名單上方：狀態說明列 */
+.week-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: .78rem;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+}
+/* 小示意框，長得像縮小版的本週欄位 */
+.week-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.45rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+/* 已入組：沿用 status-present 的深綠 */
+.week-pill.week-present {
+  background: #3A9267;
+  border: 1px solid #14532d;
+  color: #ffffff;
+}
+/* 不確定：沿用 status-unsure 的淺綠 + 自帶 ? 圓圈 */
+.week-pill.week-unsure {
+  position: relative;
+  background: #6CC499;
+  border: 1px solid #46a769;
+  color: #ffffff;
+  padding-right: 1.6rem; /* 右邊留空給 ? 圓圈 */
+}
+.week-pill.week-unsure::after {
+  content: "？";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #bbf7d0;
+  color: #3A9267;
+  border: 2px solid #3A9267;
+}
+/* 未上線：沿用 status-absent 的灰色樣式 */
+.week-pill.week-absent {
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+}
+.week-legend-tip {
+  margin-left: 4px;
+}
+
+
 
     #subsList { display:flex; flex-direction:column; gap:.25rem; }
     .substitute-row { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-rows: auto auto; gap: 0.25rem; align-items: center; border: 1px solid #e2e8f0; border-radius: 0.35rem; padding: 0.25rem; background: #f8fafc; }
@@ -371,26 +436,22 @@
   line-height: 1;
 }
 
-/* ★ 學徒標籤：未出現（absent） */
+/* ★ 學徒標籤：未上線（absent） */
 .position-tag.guild-from-week-absent .tag-status-icon {
-  background: #111827;    /* 深色底 */
+  background: #6b7280;    /* 深色底 */
   color: #ffffff;         /* 白字 */
-  border: 2px solid #111827;
-}
-/* ★ 學徒標籤：會晚到（late） */
-.position-tag.guild-from-week-late .tag-status-icon {
-  background: #1d4ed8;    /* 深藍底 */
-  color: #ffffff;        
-  border: 2px solid #1d4ed8;
+  border-color: #6b7280;
+  border: 2px solid #6b7280;
 }
 /* ★ 學徒標籤：不確定（unsure） */
 .position-tag.guild-from-week-unsure .tag-status-icon {
-  background: #ca8a04;    /* 深黃底 */
+  background: #3A9267;    
   color: #ffffff;       
-  border: 2px solid #ca8a04;}
+  border: 2px solid #3A9267;}
+
+
 
 /* V17.1 本週名單：確認參戰／不確定／未上線 */
-
 /* 未上線（absent）＝灰色、像 disabled */
 #thisWeek .member-row.status-absent input[data-role="name"],
 #thisWeek .member-row.status-absent + .member-row input[data-role="skill"] {
@@ -398,22 +459,23 @@
   border-color: #d1d5db; /* border-gray-300 */
   color: #6b7280; /* text-gray-500 */
 }
-/* 確認參戰（present）＝實心綠色、有點浮起來的按鈕感 */
+/* V17.2修改確認參戰（present）＝較深的實心綠色、有點浮起來的按鈕感 */
 #thisWeek .member-row.status-present input[data-role="name"],
 #thisWeek .member-row.status-present + .member-row input[data-role="skill"],
 #thisWeek .member-row.status-late input[data-role="name"],
 #thisWeek .member-row.status-late + .member-row input[data-role="skill"] {
-  background: #22c55e;  /* bg-emerald-500 */
-  border-color: #16a34a; /* border-emerald-600 */
+  background: #3A9267;   /* 比原本更深一階的綠 */
+  border-color: #14532d; /* 再深一點的邊框 */
   color: #ffffff;
-  box-shadow: 0 2px 0 #15803d; /* 底下小小陰影，像按鈕 */
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
-/* 不確定（unsure）＝淺綠底＋綠框，還沒「按下去」的感覺 */
+/* V17.2不確定（unsure）＝比確認參戰更淺一階的綠底＋白字 */
 #thisWeek .member-row.status-unsure input[data-role="name"],
 #thisWeek .member-row.status-unsure + .member-row input[data-role="skill"] {
-  background: #ecfdf5;   /* bg-emerald-50 */
-  border-color: #22c55e; /* border-emerald-500 */
-  color: #166534;        /* text-emerald-800 */
+  background: #6CC499;   /* 淺一階的實心綠 */
+  border-color: #46a769; /* 邊框略深，保留層次感 */
+  color: #ffffff;        /* 白字，跟「保安」那顆一樣視覺重量 */
+  text-shadow: 0 0 5px rgba(6, 78, 11, 0.7);
 }
 
 
@@ -423,13 +485,12 @@
    保留「圓圈包符號」的風格
    =============================== */
 /* 只有 late / unsure 顯示圖示（absent / present 不顯示） */
-#thisWeek .member-row.status-late,
 #thisWeek .member-row.status-unsure {
   position: relative;
 }
 /* 圓圈基底（統一樣式） */
 #thisWeek .member-row.status-unsure::after {
-  content: "?";
+  content: "？";
   position: absolute;
   right: 6px;
   top: 50%;
@@ -443,30 +504,8 @@
   font-size: 0.7rem;
   font-weight: 700;
   background: #bbf7d0;    /* 淺綠底 */
-  color: #166534;         /* 深綠字 */
-  border: 2px solid #22c55e;
-}
-/* --- 會晚到：藍色圓圈 + 三角形 --- */
-#thisWeek .member-row.status-late {
-  color: #3b82f6 !important;      /* 藍色 */
-}
-#thisWeek .member-row.status-late::after {
-  content: "▲"; 
-}
-/* --- 不確定：黃色圓圈 + 問號 --- */
-#thisWeek .member-row.status-unsure {
-  color: #ca8a04 !important;      /* 黃色 */
-}
-#thisWeek .member-row.status-unsure::after {
-  content: "?";
-}
-/* --- 白底、灰虛線、灰字（late / unsure 格子底色） --- */
-#thisWeek .member-row.status-late input[data-role="name"],
-#thisWeek .member-row.status-late + .member-row input[data-role="skill"],
-#thisWeek .member-row.status-unsure input[data-role="name"],
-#thisWeek .member-row.status-unsure + .member-row input[data-role="skill"] {
-  background: #ffffff;
-  color: #6b7280 !important;   /* 灰字 */
+  color: #3A9267;         /* 深綠字 */
+  border: 2px solid #3A9267;
 }
 
 
@@ -547,26 +586,22 @@
     top: auto;
   }
 }
-
 .guild-pos-note {
   font-size: .78rem;
   color: #64748b;
   margin: 0;
 }
-
 .guild-pos-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;  /* 左幫眾 / 中間按鈕 / 右學徒 */
   gap: .75rem;
   align-items: stretch;
 }
-
 .guild-swap-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .guild-swap-btn {
   width: 2.4rem;
   height: 2.4rem;
@@ -579,13 +614,11 @@
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(15,23,42,.25);
 }
-
 .guild-swap-btn:disabled {
   opacity: .35;
   cursor: not-allowed;
   box-shadow: none;
 }
-
 .guild-col {
   display: flex;
   flex-direction: column;
@@ -683,13 +716,64 @@
   font-weight: 500;
 }
 
+/*V17.2學徒旁註解*/
+/* 學徒標題 + 狀態說明列 */
+.guild-apprentice-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.guild-apprentice-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+/* 學徒旁邊的小圖示說明，用跟標籤一樣的 ! / ？ 圓圈 */
+.appr-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #475569;
+}
+.appr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 讓 legend 內的 icon 跟標籤上那顆一樣大小 */
+.appr-legend .tag-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid currentColor;
+  line-height: 1;
+}
+/* 未出席（同 guild-from-week-absent 樣式） */
+.appr-legend .tag-status-icon.appr-absent {
+  background: #6b7280;
+  color: #ffffff;
+  border-color: #6b7280;
+}
+/* 不確定（同 guild-from-week-unsure 樣式） */
+.appr-legend .tag-status-icon.appr-unsure {
+  background: #3A9267;
+  color: #ffffff;
+  border-color: #3A9267;
+}
 
 
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v17.1</h1>
+    <h1>幫戰名單比對工具 v17.2</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -735,8 +819,8 @@
     <div class="guild-pos-grid">
   <!-- 可參戰幫眾 -->
   <div class="guild-col" data-type="battle">
-  <div class="guild-col-title">
-    幫眾
+    <div class="guild-apprentice-title-row">
+    <div class="guild-col-title">幫眾</div>
     <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
     <span id="guildCountLabel" class="guild-count">0/60</span>
   </div>
@@ -755,7 +839,22 @@
   </div>
   <!-- 待上架學徒 -->
   <div class="guild-col" data-type="pending">
-    <div class="guild-col-title">學徒</div>
+    
+    <div class="guild-apprentice-title-row">
+  <div class="guild-col-title">學徒</div>
+  <div class="appr-legend">
+    <span class="appr-status">
+    <span class="tag-status-icon appr-unsure">？</span>
+      不確定
+    </span>
+    <span class="appr-status">
+    <span class="tag-status-icon appr-absent">！</span>
+      未上線
+    </span>
+  </div>
+</div>
+
+
     <div class="guild-box" id="guildPendingBox"
          ondragover="allowDrop(event)"
          ondrop="dropMember(event)"></div>
@@ -770,7 +869,14 @@
         <h3>本週名單</h3>
         <button id="downloadBtn" class="float-btn secondary" onclick="downloadThisWeekImage()">下載圖片</button>
       </div>
-      <small style="font-size:.78rem;color:#64748b;">點擊欄位可切換狀態：⚪已出席 🔵會晚到 🟡不確定 ⚫未出現</small>
+      
+      <div class="week-legend">
+      <span class="week-pill week-present">已入組</span>
+      <span class="week-pill week-unsure">不確定</span>
+      <span class="week-pill week-absent">未上線</span>
+      <span class="week-legend-tip">（點擊成員欄位可切換狀態）</span>
+      </div>
+
     </div>
 
     <!-- 右側 -->
@@ -911,7 +1017,7 @@ function sortGuildBoxByJob(box) {
     if (tag.dataset.placeholder === "1") return 0; // 空位最前
     if (tag.classList.contains("guild-missing-in-week")) return 1; // 紅
     if (tag.classList.contains("guild-from-week-only")) return 2; // 綠
-    if (tag.classList.contains("guild-from-week-absent")) return 3; // 白（未出現）
+    if (tag.classList.contains("guild-from-week-absent")) return 3; // 白（未上線）
     // 其他一般學徒
     return 4;
   }
@@ -1052,7 +1158,9 @@ function addGuildTag(box, member, options) {
     // 只有紅／綠標籤才能被選取
     if (
       !tag.classList.contains("guild-missing-in-week") &&
-      !tag.classList.contains("guild-from-week-only")
+      !tag.classList.contains("guild-from-week-only") &&
+      !tag.classList.contains("guild-from-week-absent") &&
+      !tag.classList.contains("guild-from-week-unsure")
     ) {
       return;
     }
@@ -1161,7 +1269,7 @@ function updateGuildBattleAndWeekComparison() {
     if (!prev) {
       weekStatusMap[n] = st;
     } else {
-      // 同名多格時，用「優先級」最高的那一個（未出現 > 不確定 > 會晚到 > 已出席）
+      // 同名多格時，用「優先級」最高的那一個（未上線 > 不確定 > 會晚到 > 已出席）
       const curP = MEMBER_STATUS_PRIORITY[st] || 0;
       const prevP = MEMBER_STATUS_PRIORITY[prev] || 0;
       if (curP > prevP) weekStatusMap[n] = st;
@@ -1277,11 +1385,14 @@ function swapSelectedGuildMembers() {
       ".position-tag.guild-missing-in-week.guild-selected"
     )
   );
-  const greenSelected = Array.from(
+    const greenSelected = Array.from(
     guildPendingBox.querySelectorAll(
-      ".position-tag.guild-from-week-only.guild-selected"
+      ".position-tag.guild-from-week-only.guild-selected, " +
+      ".position-tag.guild-from-week-absent.guild-selected, " +
+      ".position-tag.guild-from-week-unsure.guild-selected"
     )
   );
+
   const redCount = redSelected.length;
   const greenCount = greenSelected.length;
   if (redCount === 0 && greenCount === 0) {
@@ -1403,13 +1514,13 @@ requestSave({
     function handlePanelInputChange(input){ 
   input.dataset.dirty = "1"; 
   clearHighlightOnEdit(input); 
-  // ★ 本週名字格：如果有名字但沒有 status，就給預設「未出現」
+  // ★ 本週名字格：如果有名字但沒有 status，就給預設「未上線」
   if (input.dataset.side === "this" && input.dataset.role === "name") {
     const hasName = (input.value || "").trim() !== "";
     if (!hasName) {
       resetCellStatus(input);
     } else if (!input.dataset.status) {
-      resetCellStatus(input);  // 新輸入的人，預設當作未出現
+      resetCellStatus(input);  // 新輸入的人，預設當作未上線
     } else {
       setCellStatus(input, input.dataset.status);
     }
@@ -1431,17 +1542,15 @@ const MEMBER_STATUS_PRIORITY = {
   absent: 3,
   unsure: 2,
   present: 1,
-  late: 1  // 待刪，舊資料相容用：以前的 late 一律當成「確認參戰」
 };
 const WEEK_STATUS_LABELS = {
   present: "確認參戰", // 已進組、或確定會晚到但會來
   unsure: "不確定",   // 狀況不明、掛機、說會來但時間到了還沒進組
   absent: "未上線",   // 根本沒上線
-  late: "確認參戰"    // 待刪，舊資料，如果有就當成確認參戰
 };
 
 
-// V17.1 給本週欄位設定狀態（會影響視覺）
+// V17.2 給本週欄位設定狀態（會影響視覺）
 function setCellStatus(input, status) {
   if (!input) return;
   const nameRow = input.closest(".member-row");
@@ -1455,10 +1564,10 @@ function setCellStatus(input, status) {
   });
   // 記錄新狀態
   input.dataset.status = status;
-  // 所有狀態都貼上對應 class，由 CSS 決定樣式
+  // 標記新狀態
   const cls = "status-" + status;
   pairRows.forEach(row => row.classList.add(cls));
-  // 清掉 inline style，避免舊版本留下的顏色干擾
+  // 清掉舊 inline style（但保留 border-left）
   pairRows.forEach(row => {
     row.querySelectorAll("input").forEach(el => {
       el.style.background = "";
@@ -1466,7 +1575,27 @@ function setCellStatus(input, status) {
       el.style.color = "";
     });
   });
-  // 同步到 weekStatusMap，讓「學徒標籤小圖示」和比對邏輯知道狀態
+  // ★ 調整職業條邏輯
+  if (input.dataset.side === "this" && input.dataset.role === "name") {
+    const memberName = (input.value || "").trim();
+    const job = input.dataset.job || getJobByName(memberName) || "";
+
+      //V17.2 ★ 調整職業條邏輯：所有狀態都用職業色
+  if (input.dataset.side === "this" && input.dataset.role === "name") {
+    const memberName = (input.value || "").trim();
+    const job = input.dataset.job || getJobByName(memberName) || "";
+
+    if (job && roleColors[job]) {
+      const dark = darkenHex(roleColors[job], 0.25);
+      // 不論 present / late / unsure / absent，都用職業色條
+      input.style.borderLeft = "6px solid " + dark;
+    } else {
+      // 沒職業資料就清空
+      input.style.borderLeft = "";
+    }
+  }
+  }
+  // 更新資料
   const name = (input.value || "").trim();
   if (name) {
     weekStatusMap[name] = status;
@@ -1477,7 +1606,9 @@ function setCellStatus(input, status) {
 }
 
 
-/*V17修改空格＝完全沒狀態，有名字＝未出現*/
+
+
+/*V17修改空格＝完全沒狀態，有名字＝未上線*/
 function resetCellStatus(input) {
   if (!input) return;
   const hasName = (input.value || "").trim() !== "";
@@ -1486,7 +1617,7 @@ function resetCellStatus(input) {
     clearCellStatus(input);
     return;
   }
-  // 有名字但沒特別指定 → 預設為「未出現」
+  // 有名字但沒特別指定 → 預設為「未上線」
   setCellStatus(input, "absent");
 }
 
@@ -1634,7 +1765,7 @@ function createTeamBlock(side, teamName, tag = "一團") {
 
 teams.forEach(t => {
   thisWeekPanel.appendChild(createTeamBlock("this", t));
-  // V17★ 建好本週名單後，初始化狀態為「未出現」
+  // V17★ 建好本週名單後，初始化狀態為「未上線」
   thisWeekPanel
   .querySelectorAll("input[data-role='name'][data-side='this']")
   .forEach(inp => resetCellStatus(inp));
@@ -1798,9 +1929,13 @@ const teamDotColors = {
 
 
 
-/*V16.2新增監聽，只要在拖曳時滑進團隊區域邊緣，就呼叫切換頁面*/
+/*V117.2修改新增監聽，只要在拖曳時滑進團隊區域邊緣，就呼叫切換頁面*/
     let lastTeamAutoSwitchTime = 0;
   function handleThisWeekDragOver(e) {
+  // ★ 桌機版：如果拖曳來源不是「本週名單」，就不要自動切換團
+  if (window.innerWidth > 1300 && dragSourceSide !== "this") {
+    return;
+  }
   if (!window.thisWeekCarousel || !window.thisWeekCarousel._show) return;
   const panel = thisWeekPanel;
   if (!panel) return;
@@ -1826,9 +1961,9 @@ const teamDotColors = {
   }
   lastTeamAutoSwitchTime = now;
 }
-if (window.innerWidth <= 1300) {  //V17.1新增，電腦板不給全部成員名單和替補名單拖曳切換頁面
-  thisWeekPanel.addEventListener("dragover", handleThisWeekDragOver);
-}
+// ★ 不再判斷寬度，永遠綁定，判斷交給 handler 本身
+thisWeekPanel.addEventListener("dragover", handleThisWeekDragOver);
+
 
 
 
@@ -1886,7 +2021,7 @@ function clearPanelCell(e) {
       input.style.borderLeft = "";
       input.style.color = "";
       input.dataset.job = "";
-      resetCellStatus(input);   // V17新增★ 清空時同步把狀態改回未出現
+      resetCellStatus(input);   // V17新增★ 清空時同步把狀態改回未上線
       const skillRow = input.parentElement.nextElementSibling;
       if (skillRow && skillRow.querySelector("input[data-role='skill']")) {
         const skillInput = skillRow.querySelector("input[data-role='skill']");
@@ -2245,11 +2380,9 @@ function applyWeekStatusIconToTag(tag, status) {
   const span = document.createElement("span");
   span.className = "tag-status-icon";
   if (status === "absent") {
-    span.textContent = "!";
-  } else if (status === "late") {
-    span.textContent = "▲";
+    span.textContent = "！";
   } else if (status === "unsure") {
-    span.textContent = "?";
+    span.textContent = "？";
   }
   // 插到標籤的最後（或你有 remove 按鈕可以插在前面）
   tag.appendChild(span);
@@ -2786,7 +2919,7 @@ function setPanelData(panelEl, data, side) {
             }
           }
           // ★ V17：還原出席狀態
-          // 舊資料沒有 status 的話，預設視為「未出現」或「已出席」都可以，你自己選：
+          // 舊資料沒有 status 的話，預設視為「未上線」或「已出席」都可以，你自己選：
           const st = member.status || "absent";   // 改成 "present" = 舊資料視為有出席
           setCellStatus(inp, st);
         } else {

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v17.2</title>
+  <title>幫戰名單比對工具 v17.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -438,16 +438,15 @@
 
 /* ★ 學徒標籤：未上線（absent） */
 .position-tag.guild-from-week-absent .tag-status-icon {
-  background: #6b7280;    /* 深色底 */
+  background: #959eaf;    /* 深色底 */
   color: #ffffff;         /* 白字 */
-  border-color: #6b7280;
-  border: 2px solid #6b7280;
+  border: 2px solid #959eaf;
 }
 /* ★ 學徒標籤：不確定（unsure） */
 .position-tag.guild-from-week-unsure .tag-status-icon {
-  background: #3A9267;    
+  background: #6CC499;    
   color: #ffffff;       
-  border: 2px solid #3A9267;}
+  border: 2px solid #6CC499;}
 
 
 
@@ -458,6 +457,7 @@
   background: #e5e7eb; /* bg-gray-200 */
   border-color: #d1d5db; /* border-gray-300 */
   color: #6b7280; /* text-gray-500 */
+  opacity: 0.7;
 }
 /* V17.2修改確認參戰（present）＝較深的實心綠色、有點浮起來的按鈕感 */
 #thisWeek .member-row.status-present input[data-role="name"],
@@ -733,14 +733,16 @@
 .appr-legend {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px; /*學徒:不確定與為上線之間的距離*/
   font-size: 13px;
   color: #475569;
+  flex-wrap: nowrap;   /* ❗ 強制不換行 */
+  white-space: nowrap; /* ❗ 保證文字不會斷行 */
 }
 .appr-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 1px; /*不確定與未上線狀態與圖示之間的距離*/
 }
 /* 讓 legend 內的 icon 跟標籤上那顆一樣大小 */
 .appr-legend .tag-status-icon {
@@ -757,23 +759,22 @@
 }
 /* 未出席（同 guild-from-week-absent 樣式） */
 .appr-legend .tag-status-icon.appr-absent {
-  background: #6b7280;
+  background: #959eaf;
   color: #ffffff;
-  border-color: #6b7280;
+  border-color: #959eaf;
 }
 /* 不確定（同 guild-from-week-unsure 樣式） */
 .appr-legend .tag-status-icon.appr-unsure {
-  background: #3A9267;
+  background: #6CC499;
   color: #ffffff;
-  border-color: #3A9267;
+  border-color: #6CC499;
 }
-
 
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v17.2</h1>
+    <h1>幫戰名單比對工具 v17.3</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -1650,7 +1651,7 @@ function cycleCellStatus(input) {
   }
 }
 
-// ★ v17本週名單：右鍵名字欄 → 切換狀態
+/*V17.3待刪，移除右鍵切換功能 // ★ v17本週名單：右鍵名字欄 → 切換狀態
 function onNameCellContextMenu(e, input) {
   e.preventDefault();
   e.stopPropagation();
@@ -1668,7 +1669,7 @@ function onNameCellContextMenu(e, input) {
   // 切換完要更新學徒欄標籤 + 存檔
   updateGuildBattleAndWeekComparison();
   saveState();
-}
+} */
 
 
 /*V17修改*/
@@ -1685,9 +1686,7 @@ function createMemberInputs(side) {
           ondragstart="dragFromPanel(event)"
           ondragover="allowDrop(event)"
           ondrop="dropMember(event)"
-          ${isThisWeek
-            ? 'oncontextmenu="onNameCellContextMenu(event, this)"'
-            : 'oncontextmenu="clearPanelCell(event)"'}
+          oncontextmenu="return false"
           oninput="handlePanelInputChange(this)"
           onclick="onNameCellClick(event, this)"
           placeholder="成員${i}"
@@ -1705,9 +1704,6 @@ function createMemberInputs(side) {
   }
   return html;
 }
-
-
-
 
 
     function createGroupTagSelect(selected="一團") {
@@ -3616,23 +3612,22 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
 }
 // 以上這段 V14.7 完整下載圖片功能（名稱/技能兩張獨立卡）
 
-/*V17新增更換狀態*/
+/*V17.2 改成左鍵切換狀態 */
 function onNameCellClick(e, input) {
-  // Alt + 點擊：切換出席狀態
-  if (input.dataset.side === "this" &&
-      input.dataset.role === "name" &&
-      e && e.altKey) {
-    e.preventDefault();
-    e.stopPropagation();
-    cycleCellStatus(input);
+  if (!input) return;
+  const isThisWeekName =
+    input.dataset.side === "this" && input.dataset.role === "name";
+  const hasValue = (input.value || "").trim() !== "";
+  // 本週名單 + 有名字：左鍵直接切換出席狀態
+  if (isThisWeekName && hasValue) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    cycleCellStatus(input);  // present / late / unsure / absent 輪流
     return;
   }
-  // 其它情況照舊：空白格才開成員搜尋
-  maybeOpenMemberPicker(e, input);
-}
-
-function onNameCellClick(e, input) {
-  // 只負責「點空格開搜尋」
+  // 其他情況（或是空白格）維持原本：點空格才開搜尋
   maybeOpenMemberPicker(e, input);
 }
 

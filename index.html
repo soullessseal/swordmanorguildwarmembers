@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v17.3</title>
+  <title>幫戰名單比對工具 v17.4</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -239,6 +239,27 @@
   caret-color: transparent; /* 不顯示輸入游標 */
 }
 
+/* V17.4跑馬燈：只會套在被 JS 加上 .marquee 的欄位 */
+#thisWeek .member-row input.marquee {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  animation: tw-marquee 3s linear infinite;
+}
+/* V17.4利用 text-indent 做左右滑動 */
+@keyframes tw-marquee {
+  0%   { text-indent: 0; }
+  100% { text-indent: -100%; }
+}
+@keyframes tw-marquee {
+  0%   { text-indent: 0; }
+  10%  { text-indent: 0; }        /* 停一下 */
+  100% { text-indent: -100%; }
+}
+#thisWeek .member-row input.marquee {
+  animation: tw-marquee 5s linear infinite;
+}
+
 /* 幫會職位比對：幫眾在職位裡，但沒出現在本週 → 紅色膠囊 */
 .position-tag.guild-missing-in-week {
   background: #fee2e2 !important;   /* 淺紅底 */
@@ -457,7 +478,7 @@
   background: #e5e7eb; /* bg-gray-200 */
   border-color: #d1d5db; /* border-gray-300 */
   color: #6b7280; /* text-gray-500 */
-  opacity: 0.7;
+  opacity: 0.6;
 }
 /* V17.2修改確認參戰（present）＝較深的實心綠色、有點浮起來的按鈕感 */
 #thisWeek .member-row.status-present input[data-role="name"],
@@ -508,7 +529,11 @@
   border: 2px solid #3A9267;
 }
 
-
+/* V17.4馬上把「下一列」的 ::after 關掉 → 技能列不顯示問號 */
+#thisWeek .member-row.status-unsure + .member-row::after {
+  content: none;
+  display: none;
+}
 
     
     /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
@@ -541,8 +566,6 @@
   }
 
 }
-
-
 
     /* 手機板底部按鈕 */
     @media (max-width: 900px) {
@@ -614,6 +637,14 @@
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(15,23,42,.25);
 }
+/*V17.4新增修改交換按鈕大小*/
+@media (max-width: 900px) {
+  .guild-swap-btn {
+    width: 1.7rem;
+    height: 1.7rem;
+    font-size: 1rem;   /* 裡面的 ⇄ 不會太大 */
+  }
+}
 .guild-swap-btn:disabled {
   opacity: .35;
   cursor: not-allowed;
@@ -629,6 +660,7 @@
   font-weight: 700;
   color: #0f172a;
 }
+
 /* ★ 一個大框，裡面自動排標籤 */
 .guild-box {
   min-height: 96px;
@@ -705,6 +737,15 @@
     width: auto;          /* 不要撐滿整列，改成膠囊 */
     flex: 0 1 auto;
   }
+  /*V17.4修改手機標籤字大小*/
+  .position-tag,
+  .position-tag .tag-name {
+    font-size: 0.7rem;  /* 你可以改成 0.7rem、0.65rem 等 */
+  }
+  /* 如果覺得 X 按鈕也太大，可以一起縮 */
+  .position-tag .tag-close {
+    font-size: 0.7rem;
+  }
 }
 
 /* ★ 讓全部成員名單的技能前面出現｜ */
@@ -717,13 +758,19 @@
 }
 
 /*V17.2學徒旁註解*/
-/* 學徒標題 + 狀態說明列 */
+/* V17.4讓幫眾 / 學徒 標題＋說明分成兩行 */
 .guild-apprentice-title-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  flex-direction: column; /* ← 重點：上下排列，而不是左右 */
+  gap: 0.3rem;
 }
+.guild-title-subrow {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: nowrap;
+}
+
 .guild-apprentice-title {
   font-size: 18px;
   font-weight: 600;
@@ -770,11 +817,29 @@
   border-color: #6CC499;
 }
 
+/* V17.4手機版調整「不確定」問號大小與位置 */
+@media (max-width: 900px) {
+  /* 手機：不確定的問號貼在右上角、縮小一點 */
+  #thisWeek .member-row.status-unsure::after {
+    width: 8px;
+    height: 8px;
+    font-size: 0.5rem;
+    top: 1px;          /* 貼近欄位上緣，不會撞到上面分隔線 */
+    right: 1px;        /* 稍微往內縮一點 */
+    transform: none;   /* 取消 50% 位移，改用固定 top */
+  }
+  /* 讓文字不要被右上角問號蓋到，右側多留一點 padding */
+  #thisWeek .member-row.status-unsure input[data-role="name"] {
+    padding-right: 0.3rem;
+  }
+}
+
+
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v17.3</h1>
+    <h1>幫戰名單比對工具 v17.4</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -818,13 +883,15 @@
     <h3>幫會職位</h3>
     <p class="guild-pos-note">比對尚未更換職位的成員。</p>
     <div class="guild-pos-grid">
-  <!-- 可參戰幫眾 -->
+  <!-- V17.4可參戰幫眾 -->
   <div class="guild-col" data-type="battle">
     <div class="guild-apprentice-title-row">
-    <div class="guild-col-title">幫眾</div>
+  <div class="guild-col-title">幫眾</div>
+  <div class="guild-title-subrow">
     <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
     <span id="guildCountLabel" class="guild-count">0/60</span>
   </div>
+</div>
   <div class="guild-box" id="guildBattleBox"
        ondragover="allowDrop(event)"
        ondrop="dropMember(event)"></div>
@@ -843,14 +910,13 @@
     
     <div class="guild-apprentice-title-row">
   <div class="guild-col-title">學徒</div>
-  <div class="appr-legend">
+
+  <div class="guild-title-subrow appr-legend">
     <span class="appr-status">
-    <span class="tag-status-icon appr-unsure">？</span>
-      不確定
+      <span class="tag-status-icon appr-unsure">？</span> 不確定
     </span>
     <span class="appr-status">
-    <span class="tag-status-icon appr-absent">！</span>
-      未上線
+      <span class="tag-status-icon appr-absent">！</span> 未上線
     </span>
   </div>
 </div>
@@ -3000,6 +3066,33 @@ function getGuildPositionsData() {
   setPanelData(thisWeekPanel, state.thisWeek, "this");
   thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
 }
+
+// V17.4檢查單一 input 是否需要跑馬燈
+function updateMarqueeForInput(input) {
+  // 先暫時清掉，避免舊的 text-indent 影響測量
+  input.classList.remove("marquee");
+  // 使用 scrollWidth vs clientWidth 判斷是否有溢出
+  const need = input.scrollWidth > input.clientWidth + 1;
+  if (need) {
+    input.classList.add("marquee");
+  }
+}
+// 檢查本週名單所有欄位
+function updateAllThisWeekMarquee() {
+  document.querySelectorAll("#thisWeek .member-row input").forEach(updateMarqueeForInput);
+}
+// 一開始載入頁面時檢查一次
+window.addEventListener("load", updateAllThisWeekMarquee);
+// 視窗大小改變時也檢查一次
+window.addEventListener("resize", updateAllThisWeekMarquee);
+// 當使用者輸入內容時，立刻檢查該欄位
+document.addEventListener("input", (e) => {
+  if (e.target.matches("#thisWeek .member-row input")) {
+    updateMarqueeForInput(e.target);
+  }
+});
+
+
 
 /* V16★ 還原幫會職位欄位（只還原幫眾） */
 if (guildBattleBox) {

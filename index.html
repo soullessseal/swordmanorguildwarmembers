@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v18</title>
+  <title>幫戰名單比對工具 v18.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -872,6 +872,15 @@ body.guild-drawer-open {
     border: none;
     box-shadow: none;
   }
+  /* V18.1拖曳灰條 */
+.guild-drawer-grip {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: #a0a4a8;
+  margin: 0.4rem auto 0.6rem;
+  touch-action: none; /* ⭐ 允許拖曳不被瀏覽器攔截 */
+}
   #guildSection .guild-drawer-grip {
     width: 44px;
     height: 4px;
@@ -890,10 +899,6 @@ body.guild-drawer-open {
     border: none !important;        /* ⭐ 避免還有 border-top 之類的線 */
     box-shadow: none !important;
   }
-  /* 標題往上靠近拉條一點 */
-  #guildSection h3 {
-    margin-top: .1rem !important;
-  }
   /* 背景遮罩 */
   .guild-backdrop {
     position: fixed;
@@ -901,15 +906,65 @@ body.guild-drawer-open {
     background: rgba(15,23,42,.35);
     z-index: 20;
   }
+   /* 標題列左右排版 */
+  #guildSection .guild-title-row {
+    display: flex;
+    align-items: center; /* ⭐ 垂直置中標題與 X */
+    justify-content: space-between;
+    gap: .5rem;
+    padding: 0 1rem .4rem;        /* 可依視覺調整 */
+  }
+  /* 手機版的標題，拿掉多餘外距 */
+  #guildSection .guild-title-row h3 {
+    margin: 0;
+    line-height: 1.25;
+  }
+  /* X 關閉鍵樣式 */
+  #guildSection .guild-drawer-close {
+    display: flex;                /* ⭐ 覆蓋全域的 display:none */
+    border: none;
+    background: transparent;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+  }
+  #guildSection .guild-drawer-close:active {
+    background: rgba(148,163,184,.25);
+  }
 }
 
+
+/* V18.1 手機版：幫眾 / 學徒欄位高度再縮短 */
+@media (max-width: 900px) {
+  /* 幫眾＋學徒的清單盒子，上限高度調低 */
+  #guildBattleBox,
+  #guildPendingBox {
+    max-height: 18rem;   /* 想更矮可以改成 16rem、15rem 都可以 */
+  }
+  /* 外框不用那麼高，最低高度一起壓低一點 */
+  .guild-box {
+    min-height: 7rem;
+  }
+}
+
+/* 預設：所有裝置都先隱藏 X */
+.guild-drawer-close {
+  display: none;
+}
 
 
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v18</h1>
+    <h1>幫戰名單比對工具 v18.1</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -955,7 +1010,10 @@ body.guild-drawer-open {
   </div>
  <!-- V16★ 新增：幫會職位欄位 -->
   <div class="panel" id="guildPositions">
+  <div class="panel-title-row">
     <h3>幫會職位</h3>
+    <button type="button" class="guild-drawer-close" aria-label="關閉幫會職位" onclick="closeGuildDrawerByButton()" >✕</button>
+  </div>
     <p class="guild-pos-note">比對尚未更換職位的成員。</p>
     <div class="guild-pos-grid">
   <!-- V17.4可參戰幫眾 -->
@@ -4168,7 +4226,70 @@ function attachIOSZoomFix() {
       { passive: true }
     );
   }
+
+   const drawer = document.getElementById("guildSection");
+  const grip = drawer.querySelector(".guild-drawer-grip");
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+
+  const threshold = 80; // ⭐ 往下拖超過 80px 才關閉
+
+  function touchStart(e) {
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    drawer.style.transition = "none"; 
+  }
+
+  function touchMove(e) {
+    if (!isDragging) return;
+
+    currentY = e.touches[0].clientY;
+    const diff = currentY - startY;
+
+    if (diff > 0) {
+      drawer.style.transform = `translateY(${diff}px)`;  // 跟著拖動
+    }
+  }
+
+  function touchEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const diff = currentY - startY;
+    drawer.style.transition = "transform .25s ease";
+
+    if (diff > threshold) {
+      // ⭐ 拖超過門檻 → 關閉
+      drawer.classList.remove("is-open");
+    } else {
+      // ⭐ 不到門檻 → 回彈
+      drawer.style.transform = "translateY(0)";
+    }
+  }
+
+  // 只有 grip 觸發拖曳（避免內容往下拉時誤觸）
+  grip.addEventListener("touchstart", touchStart, { passive: true });
+  grip.addEventListener("touchmove", touchMove, { passive: true });
+  grip.addEventListener("touchend", touchEnd);
 })();
+
+// V18.1：給「幫會職位」標題旁的 X 用的關閉函式
+function closeGuildDrawerByButton() {
+  // 如果你原本就有 closeGuildDrawer，就優先用原本的
+  if (typeof closeGuildDrawer === "function") {
+    closeGuildDrawer();
+    return;
+  }
+  // 沒有的話，用最簡單的保險關閉邏輯
+  const drawer = document.getElementById("guildSection");
+  if (drawer) drawer.classList.remove("is-open");
+  const backdrop = document.querySelector(".guild-backdrop");
+  if (backdrop && backdrop.parentNode) {
+    backdrop.parentNode.removeChild(backdrop);
+  }
+  document.body.classList.remove("no-scroll");
+}
 
   </script>
 </body>

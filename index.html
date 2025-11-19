@@ -836,6 +836,9 @@
 
 /* V18手機版：把幫會職位改成底部抽屜 */
 @media (max-width: 900px) {
+body.guild-drawer-open {
+    overflow: hidden;
+  }
   /* 抽屜本體 */
   #guildSection {
     position: fixed;
@@ -4040,22 +4043,72 @@ function attachIOSZoomFix() {
   });
 }
 
-// V18手機版：幫會職位抽屜開關
+// V18手機版：幫會職位抽屜開關＋鎖住背景捲動
 (function () {
   const guildSection = document.getElementById("guildSection");
   const guildToggleBtn = document.getElementById("guildToggleBtn");
-  let guildBackdrop = null;
   if (!guildSection || !guildToggleBtn) return;
+  let guildBackdrop = null;
+  let savedScrollY = 0;
+  // 🔒 鎖住 body 捲動（抽屜打開時）
+  function lockBodyScroll() {
+    savedScrollY =
+      window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.classList.add("guild-drawer-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${savedScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+  // 🔓 解鎖 body 捲動（抽屜關閉時）
+  function unlockBodyScroll() {
+    document.body.classList.remove("guild-drawer-open");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, savedScrollY || 0);
+  }
+  function closeGuildPanel() {
+    guildSection.classList.remove("is-open");
+    if (guildBackdrop) {
+      guildBackdrop.remove();
+      guildBackdrop = null;
+    }
+    unlockBodyScroll();
+  }
+  function openGuildPanel() {
+    guildSection.classList.add("is-open");
 
-   // 手機：在抽屜上緣往下滑即可關閉
+    guildBackdrop = document.createElement("div");
+    guildBackdrop.className = "guild-backdrop";
+    guildBackdrop.addEventListener("click", closeGuildPanel);
+    document.body.appendChild(guildBackdrop);
+
+    lockBodyScroll();
+  }
+  // 📌 按鈕：開 / 關 抽屜
+  guildToggleBtn.addEventListener("click", () => {
+    const willOpen = !guildSection.classList.contains("is-open");
+    if (willOpen) {
+      openGuildPanel();
+    } else {
+      closeGuildPanel();
+    }
+  });
+  // 📌 手機：在抽屜上緣 60px 內往下滑即可關閉（避免內部捲動誤觸）
   let swipeStartY = null;
   guildSection.addEventListener(
     "touchstart",
     (e) => {
+      if (!guildSection.classList.contains("is-open")) return;
       if (!e.touches || e.touches.length !== 1) return;
+
       const rect = guildSection.getBoundingClientRect();
       const y = e.touches[0].clientY;
-      // 只在「抽屜上緣 60px 高度內」啟動手勢，避免內部捲動時誤觸
+
       if (y - rect.top <= 60) {
         swipeStartY = y;
       } else {
@@ -4071,7 +4124,6 @@ function attachIOSZoomFix() {
       const y = e.touches[0].clientY;
       const deltaY = y - swipeStartY;
 
-      // 往下滑超過 60px 就關閉抽屜
       if (deltaY > 60) {
         closeGuildPanel();
         swipeStartY = null;
@@ -4081,21 +4133,21 @@ function attachIOSZoomFix() {
   );
   guildSection.addEventListener(
     "touchend",
-    () => {swipeStartY = null;},
+    () => {
+      swipeStartY = null;
+    },
     { passive: true }
   );
-    // 🔽 V18新增抽屜上方拉條：點一下或往下滑即可關閉
+  // 📌 上方拉條：點一下或在拉條上往下滑也能關閉
   const guildDrawerHeader = guildSection.querySelector(".guild-drawer-header");
   if (guildDrawerHeader) {
     // 點一下 bar 直接收起
-    guildDrawerHeader.addEventListener("click", () => {
-      closeGuildPanel();
-    });
-    // 手機往下滑關閉效果
+    guildDrawerHeader.addEventListener("click", closeGuildPanel);
     let startY = null;
     guildDrawerHeader.addEventListener(
       "touchstart",
       (e) => {
+        if (!guildSection.classList.contains("is-open")) return;
         if (e.touches && e.touches.length > 0) {
           startY = e.touches[0].clientY;
         }
@@ -4108,7 +4160,6 @@ function attachIOSZoomFix() {
         if (startY == null) return;
         const endY = e.changedTouches[0].clientY;
         const deltaY = endY - startY;
-        // 手指往下滑超過 40px 就關閉
         if (deltaY > 40) {
           closeGuildPanel();
         }
@@ -4117,31 +4168,8 @@ function attachIOSZoomFix() {
       { passive: true }
     );
   }
-
-
-  function closeGuildPanel() {
-    guildSection.classList.remove("is-open");
-    if (guildBackdrop) {
-      guildBackdrop.remove();
-      guildBackdrop = null;
-    }
-  }
-  guildToggleBtn.addEventListener("click", () => {
-    const willOpen = !guildSection.classList.contains("is-open");
-    if (willOpen) {
-      guildSection.classList.add("is-open");
-      // 建立半透明背景，點背景也能關閉
-      guildBackdrop = document.createElement("div");
-      guildBackdrop.className = "guild-backdrop";
-      guildBackdrop.addEventListener("click", closeGuildPanel);
-      document.body.appendChild(guildBackdrop);
-    } else {
-      closeGuildPanel();
-    }
-  });
 })();
 
   </script>
 </body>
 </html>
-

@@ -4047,6 +4047,43 @@ function attachIOSZoomFix() {
   let guildBackdrop = null;
   if (!guildSection || !guildToggleBtn) return;
 
+   // 手機：在抽屜上緣往下滑即可關閉
+  let swipeStartY = null;
+  guildSection.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const rect = guildSection.getBoundingClientRect();
+      const y = e.touches[0].clientY;
+      // 只在「抽屜上緣 60px 高度內」啟動手勢，避免內部捲動時誤觸
+      if (y - rect.top <= 60) {
+        swipeStartY = y;
+      } else {
+        swipeStartY = null;
+      }
+    },
+    { passive: true }
+  );
+  guildSection.addEventListener(
+    "touchmove",
+    (e) => {
+      if (swipeStartY == null) return;
+      const y = e.touches[0].clientY;
+      const deltaY = y - swipeStartY;
+
+      // 往下滑超過 60px 就關閉抽屜
+      if (deltaY > 60) {
+        closeGuildPanel();
+        swipeStartY = null;
+      }
+    },
+    { passive: true }
+  );
+  guildSection.addEventListener(
+    "touchend",
+    () => {swipeStartY = null;},
+    { passive: true }
+  );
     // 🔽 V18新增抽屜上方拉條：點一下或往下滑即可關閉
   const guildDrawerHeader = guildSection.querySelector(".guild-drawer-header");
   if (guildDrawerHeader) {
@@ -4107,3 +4144,4 @@ function attachIOSZoomFix() {
   </script>
 </body>
 </html>
+

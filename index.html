@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v17.4</title>
+  <title>幫戰名單比對工具 v18</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -27,8 +27,8 @@
     #allMembersPanel { position: sticky; top: 1rem; z-index: 5; }
     .right-sticky-wrap { position: sticky; top: 1rem; z-index: 6; display: flex; flex-direction: column; gap: .6rem; }
     .right-actions-bar { display: flex; gap: .4rem; justify-content: flex-end; }
-    .float-btn { background: #0ea5e9; border: none; color: #fff; padding: 0.35rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
-    .float-btn.secondary { background: #1f2937; }
+    .float-btn { background: #475569; border: none; color: #fff; padding: 0.35rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+    .float-btn.secondary { background: #475569; }
     .float-btn.danger { background: #ef4444; }
     .member-search { width: 100%; padding: 0.4rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; margin-bottom: 0.5rem; font-size: 0.85rem; box-sizing: border-box; }
     .role-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
@@ -637,6 +637,85 @@
   cursor: pointer;
   box-shadow: 0 10px 20px rgba(15,23,42,.25);
 }
+
+
+/* ─────────── V18桌機版：X 不顯示，維持原本 panel ─────────── */
+.guild-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .3rem;
+}
+.guild-close-btn {
+  display: none;              /* 桌機不顯示 */
+}
+/* ─────────── V18手機版：幫會職位變 bottom sheet ─────────── */
+@media (max-width: 900px) {
+
+  /* 手機版 X 按鈕：縮小一點再微微往上提 */
+  #guildPositions .guild-close-btn {
+    display: inline-flex;
+    width: 24px;          /* 原本是 28px，可再微調 */
+    height: 24px;
+    border-radius: 999px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 1.8rem;
+    line-height: 0;
+    color: #6b7280;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    top: -2px;            /* ⭐ 如果還覺得低，可以改成 -2px 試試 */
+  }
+  /* 整個幫會職位 panel 做成 bottom sheet */
+  #guildPositions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 80vh;
+    transform: translateY(100%);      /* 預設收起來 */
+    transition: transform .25s ease-out;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgba(15,23,42,.45);
+    z-index: 9998;
+  }
+  #guildPositions.is-open {
+    transform: translateY(0);         /* 展開 */
+  }
+  /* 上方灰色拉條（只在手機版顯示） */
+  .guild-drawer-header {
+    padding: .6rem 0 .3rem;
+    display: flex;
+    justify-content: center;
+  }
+  .guild-drawer-grip {
+    width: 44px;
+    height: 4px;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+  /* 手機版幫眾／學徒欄位高度再矮一點，改用內部滾動 */
+  #guildBattleBox,
+  #guildPendingBox {
+    max-height: 13rem;
+    overflow-y: auto;
+  }
+}
+/* 手機版時：底部半透明背景（在 JS 裡動態插入 .guild-backdrop） */
+.guild-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.35);
+  z-index: 9990;
+}
+
+
 /*V17.4新增修改交換按鈕大小*/
 @media (max-width: 900px) {
   .guild-swap-btn {
@@ -839,7 +918,7 @@
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v17.4</h1>
+    <h1>幫戰名單比對工具 v18</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -878,57 +957,66 @@
       </div>
     </div>
 
- <!-- V16★ 新增：幫會職位欄位 -->
-  <div class="panel" id="guildPositions">
+ <!-- V18修改幫會職位欄位 -->
+<div class="panel" id="guildPositions">
+  <!-- ⬆︎ 手機版 bottom sheet 的灰色拉條 -->
+  <div class="guild-drawer-header">
+    <div class="guild-drawer-grip"></div>
+  </div>
+
+  <!-- 標題 + 手機版關閉鈕 -->
+  <div class="guild-header-row">
     <h3>幫會職位</h3>
-    <p class="guild-pos-note">比對尚未更換職位的成員。</p>
-    <div class="guild-pos-grid">
-  <!-- V17.4可參戰幫眾 -->
-  <div class="guild-col" data-type="battle">
-    <div class="guild-apprentice-title-row">
-  <div class="guild-col-title">幫眾</div>
-  <div class="guild-title-subrow">
-    <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
-    <span id="guildCountLabel" class="guild-count">0/60</span>
+    <button type="button" class="guild-close-btn" onclick="closeGuildDrawer()">⨯
+    </button>
+  </div>
+
+  <p class="guild-pos-note">比對尚未更換職位的成員。</p>
+
+  <div class="guild-pos-grid">
+    <!-- V17.4可參戰幫眾 -->
+    <div class="guild-col" data-type="battle">
+      <div class="guild-apprentice-title-row">
+        <div class="guild-col-title">幫眾</div>
+        <div class="guild-title-subrow">
+          <button class="guild-add-btn" onclick="openGuildAddPicker(this)">＋</button>
+          <span id="guildCountLabel" class="guild-count">0/60</span>
+        </div>
+      </div>
+      <div class="guild-box" id="guildBattleBox"
+           ondragover="allowDrop(event)"
+           ondrop="dropMember(event)"></div>
+    </div>
+
+    <!-- 中間交換按鈕 -->
+    <div class="guild-swap-wrap">
+      <button id="guildSwapBtn"
+              type="button"
+              class="guild-swap-btn"
+              onclick="swapSelectedGuildMembers()"
+              disabled>⇄</button>
+    </div>
+
+    <!-- 待上架學徒 -->
+    <div class="guild-col" data-type="pending">
+      <div class="guild-apprentice-title-row">
+        <div class="guild-col-title">學徒</div>
+        <div class="guild-title-subrow appr-legend">
+          <span class="appr-status">
+            <span class="tag-status-icon appr-unsure">？</span> 不確定
+          </span>
+          <span class="appr-status">
+            <span class="tag-status-icon appr-absent">！</span> 未上線
+          </span>
+        </div>
+      </div>
+      <div class="guild-box" id="guildPendingBox"
+           ondragover="allowDrop(event)"
+           ondrop="dropMember(event)"></div>
+    </div>
   </div>
 </div>
-  <div class="guild-box" id="guildBattleBox"
-       ondragover="allowDrop(event)"
-       ondrop="dropMember(event)"></div>
-</div>
 
-  <!-- 中間交換按鈕 -->
-  <div class="guild-swap-wrap">
-    <button id="guildSwapBtn"
-            type="button"
-            class="guild-swap-btn"
-            onclick="swapSelectedGuildMembers()"
-            disabled>⇄</button>
-  </div>
-  <!-- 待上架學徒 -->
-  <div class="guild-col" data-type="pending">
-    
-    <div class="guild-apprentice-title-row">
-  <div class="guild-col-title">學徒</div>
-
-  <div class="guild-title-subrow appr-legend">
-    <span class="appr-status">
-      <span class="tag-status-icon appr-unsure">？</span> 不確定
-    </span>
-    <span class="appr-status">
-      <span class="tag-status-icon appr-absent">！</span> 未上線
-    </span>
-  </div>
-</div>
-
-
-    <div class="guild-box" id="guildPendingBox"
-         ondragover="allowDrop(event)"
-         ondrop="dropMember(event)"></div>
-  </div>
-</div>
-
-  </div>
 
     <!-- 本週 -->
     <div class="panel" id="thisWeek">
@@ -948,9 +1036,10 @@
 
     <!-- 右側 -->
     <div class="right-sticky-wrap">
-      <div class="right-actions-bar">
-        <button class="float-btn danger" onclick="requestSave()">儲存</button>
-      </div>
+    <div class="right-actions-bar">
+    <button class="float-btn"  type="button" onclick="openGuildDrawer()">幫會職位</button>
+    <button class="float-btn danger" type="button" onclick="requestSave()">儲存</button>
+    </div>
 
       <div class="panel" id="subs">
         <h3>替補名單</h3>
@@ -3966,6 +4055,86 @@ function attachIOSZoomFix() {
     }
   });
 }
+
+
+// ─────────────────────
+// V18 手機版幫會職位 bottom sheet
+// ─────────────────────
+let guildDrawerOpen = false;
+function openGuildDrawer() {
+  const panel = document.getElementById('guildPositions');
+  if (!panel) return;
+  panel.classList.add('is-open');
+  guildDrawerOpen = true;
+  // 建立半透明背景
+  let backdrop = document.querySelector('.guild-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.className = 'guild-backdrop';
+    backdrop.addEventListener('click', closeGuildDrawer);
+    document.body.appendChild(backdrop);
+  }
+}
+function closeGuildDrawer() {
+  const panel = document.getElementById('guildPositions');
+  if (!panel) return;
+  panel.classList.remove('is-open');
+  guildDrawerOpen = false;
+  const backdrop = document.querySelector('.guild-backdrop');
+  if (backdrop) backdrop.remove();
+  // 把暫時加上的位移清回去
+  panel.style.transform = '';
+}
+/* 讓上方灰條可以「往下拖曳」收合（tap 不關，只辨識拖曳） */
+function setupGuildDrawerDrag() {
+  const panel  = document.getElementById('guildPositions');
+  if (!panel) return;
+
+  const handle = panel.querySelector('.guild-drawer-header');
+  if (!handle) return;
+  let startY = 0;
+  let currentY = 0;
+  let dragging = false;
+  function startDrag(e) {
+    // 只在手機寬度啟用
+    if (window.innerWidth > 900) return;
+    dragging = true;
+    startY = (e.touches ? e.touches[0].clientY : e.clientY);
+    currentY = 0;
+    panel.style.transition = 'none';
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('touchmove', moveDrag, { passive: false });
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+  }
+  function moveDrag(e) {
+    if (!dragging) return;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    currentY = y - startY;
+    if (currentY < 0) currentY = 0;
+    panel.style.transform = `translateY(${currentY}px)`;
+    if (e.cancelable) e.preventDefault();
+  }
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    window.removeEventListener('mousemove', moveDrag);
+    window.removeEventListener('touchmove', moveDrag);
+    window.removeEventListener('mouseup', endDrag);
+    window.removeEventListener('touchend', endDrag);
+    panel.style.transition = 'transform .25s ease-out';
+    // 往下拉超過 80px 就關閉；否則彈回去
+    if (currentY > 80) {
+      closeGuildDrawer();
+    } else {
+      panel.style.transform = 'translateY(0)';
+    }
+  }
+  handle.addEventListener('mousedown', startDrag);
+  handle.addEventListener('touchstart', startDrag);
+}
+// DOM 載入完就把拖曳關閉初始化
+document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
 
   </script>
 </body>

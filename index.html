@@ -706,6 +706,10 @@
     max-height: 13rem;
     overflow-y: auto;
   }
+  /* 外框不用那麼高，最低高度一起壓低一點 */
+  .guild-box {
+    min-height: 7rem;
+  }
 }
 /* 手機版時：底部半透明背景（在 JS 裡動態插入 .guild-backdrop） */
 .guild-backdrop {
@@ -4139,3 +4143,4 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
+

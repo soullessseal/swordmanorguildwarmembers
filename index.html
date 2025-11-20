@@ -2502,22 +2502,27 @@ function deleteMember(id) {
   // 1) 從 allMembers 中移除
   allMembers = allMembers.filter(x => x.id !== id);
   // 2) 把本週名單與替補名單裡同名成員清空
-  const nameInputs = document.querySelectorAll(
-    '#thisWeek input[data-role="name"], #subsList .sub-name'
-  );
-  nameInputs.forEach(input => {
-    if ((input.value || "").trim() === name) {
-      // 清名稱
-      input.value = "";
-      // 找到對應技能欄一起清空
-      const row = input.closest(".member-row") || input.closest(".substitute-row");
-      if (row) {
-        const skillInput = row.querySelector('input[data-role="skill"]') ||
-                           row.querySelector(".sub-skill");
-        if (skillInput) skillInput.value = "";
-      }
+const nameInputs = document.querySelectorAll(
+  '#thisWeek input[data-role="name"], #subsList .sub-name'
+);
+nameInputs.forEach(input => {
+  if ((input.value || "").trim() !== name) return;
+  // ----- 本週名單：名字在上一列、技能在下一列 -----
+  if (input.dataset.side === "this" && input.dataset.role === "name") {
+    // 直接用現成的清除工具，會一起清名字、技能、狀態、skill-has
+    clearInputAndSkill(input);
+  // ----- 替補名單：名字和技能在同一列 -----
+  } else if (input.classList.contains("sub-name")) {
+    const row = input.closest(".substitute-row");
+    input.value = "";
+    if (row) {
+      const subSkill = row.querySelector(".sub-skill");
+      if (subSkill) subSkill.value = "";
     }
-  });
+  }
+});
+
+
   // 3) 從幫會職位欄位移除該成員標籤
   const guildTags = document.querySelectorAll(".guild-box .position-tag");
   guildTags.forEach(tag => {
@@ -3685,7 +3690,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
 
   // 高度配置（可自適應）
   let TITLE_H  = 28; // 小隊標題（四角圓獨立卡）
-  let NAME_H   = 28; // 名稱卡高度（上半圓角）
+  let NAME_H   = 22; // 名稱卡高度（上半圓角）
   let SKILL_H  = 22; // 技能卡高度（下半圓角）
   let SP_TITLE = 4;       // 標題與第一位之間的距離
   let SPACER   = 4;       // 成員與成員之間距
@@ -3694,7 +3699,7 @@ function drawTeamBlockImage(ctx, team, x, y, w, h, startIndex) {
   if (totalNeed > availH) {
     const s = availH / totalNeed;
     TITLE_H  = Math.max(22, Math.floor(TITLE_H * s));
-    NAME_H   = 28;
+    NAME_H   = 22;
     SKILL_H  = 22;
   }
 
@@ -3755,7 +3760,7 @@ if (mem && mem.name) {
 
  // 名稱文字（自動縮放 + 柔厚平衡版）
 ctx.fillStyle = jobColor;
-let fontSize = 15;
+let fontSize = 13;
 ctx.font = `bold ${fontSize}px system-ui`;
 let textWidth = ctx.measureText(mem.name).width;
 
@@ -3772,16 +3777,16 @@ ctx.shadowColor = jobColor;
 ctx.shadowBlur = 0;
 ctx.shadowOffsetX = 0.6;  // ← 水平陰影略增
 ctx.shadowOffsetY = 0.6;  // ← 垂直陰影略增
-ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+ctx.fillText(mem.name, nameBoxX + 9.5, nameBoxY + Math.round(NAME_H * 0.72));
 
 // 反向再疊一次，讓筆畫厚度更均勻
 ctx.shadowOffsetX = -0.4;
 ctx.shadowOffsetY = -0.4;
-ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+ctx.fillText(mem.name, nameBoxX + 9.5, nameBoxY + Math.round(NAME_H * 0.72));
 
 // 最上層主字：銳利乾淨收邊
 ctx.shadowColor = "transparent";
-ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
+ctx.fillText(mem.name, nameBoxX + 9.5, nameBoxY + Math.round(NAME_H * 0.72));
 
 
 
@@ -3803,7 +3808,7 @@ ctx.fillText(mem.name, nameBoxX + 7, nameBoxY + Math.round(NAME_H * 0.75));
       if (hasSkill) {
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 12px system-ui";
-        ctx.fillText(mem.skill, skillBoxX + 8, skillBoxY + Math.round(SKILL_H * 0.75));
+        ctx.fillText(mem.skill, skillBoxX + 5, skillBoxY + Math.round(SKILL_H * 0.71));
       }
       rowY += SKILL_H;
       // 成員之間的間距

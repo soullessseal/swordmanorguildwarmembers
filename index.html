@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v18.1</title>
+  <title>幫戰名單比對工具 v18.2</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -529,12 +529,6 @@
   border: 2px solid #3A9267;
 }
 
-/* V17.4馬上把「下一列」的 ::after 關掉 → 技能列不顯示問號 */
-#thisWeek .member-row.status-unsure + .member-row::after {
-  content: none;
-  display: none;
-}
-
     
     /* V14.9 手機版：欄位字體縮一點，讓最長 7 個字不被吃掉 */
 @media (max-width: 900px) {
@@ -925,7 +919,7 @@
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v18.1</h1>
+    <h1>幫戰名單比對工具 v18.2</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -1738,7 +1732,8 @@ function setCellStatus(input, status) {
   input.dataset.status = status;
   // 標記新狀態
   const cls = "status-" + status;
-  pairRows.forEach(row => row.classList.add(cls));
+  // ⭐V18.1修改 只在「名稱那一列」加上狀態 class
+  nameRow.classList.add(cls);
   // 清掉舊 inline style（但保留 border-left）
   pairRows.forEach(row => {
     row.querySelectorAll("input").forEach(el => {
@@ -1919,6 +1914,31 @@ teams.forEach(t => {
 });
 
 
+// V17.4檢查單一 input 是否需要跑馬燈
+function updateMarqueeForInput(input) {
+  // 先暫時清掉，避免舊的 text-indent 影響測量
+  input.classList.remove("marquee");
+  // 使用 scrollWidth vs clientWidth 判斷是否有溢出
+  const need = input.scrollWidth > input.clientWidth + 1;
+  if (need) {
+    input.classList.add("marquee");
+  }
+}
+// 檢查本週名單所有欄位
+function updateAllThisWeekMarquee() {
+  document.querySelectorAll("#thisWeek .member-row input").forEach(updateMarqueeForInput);
+}
+// 一開始載入頁面時檢查一次
+window.addEventListener("load", updateAllThisWeekMarquee);
+// 視窗大小改變時也檢查一次
+window.addEventListener("resize", updateAllThisWeekMarquee);
+// 當使用者輸入內容時，立刻檢查該欄位
+document.addEventListener("input", (e) => {
+  if (e.target.matches("#thisWeek .member-row input")) {
+    updateMarqueeForInput(e.target);
+  }
+});
+
     function setupPanelCarousel(panelId) {
       const panel = document.getElementById(panelId);
       if (!panel) return;
@@ -1967,6 +1987,8 @@ teams.forEach(t => {
     window.thisWeekCarousel._show = show;
     window.thisWeekCarousel.index = index;
     window.thisWeekCarousel.count = blocks.length;
+    // ★ V18.2切換團隊後，重算一次本週名單的跑馬燈
+    setTimeout(updateAllThisWeekMarquee, 0);
   }
 }
 
@@ -2825,16 +2847,13 @@ function collectRecentMarks() {
   if (target.classList.contains("sub-name")) {
     const subRow = target.parentElement;
     const subSkillInput = subRow.querySelector(".sub-skill");
-
     const prevName  = target.value.trim();
     const prevSkill = subSkillInput ? subSkillInput.value.trim() : "";
-
     // 面板 → 替補（互換）
     if (member.fromPanel && draggingPanelInput) {
       const oldName  = prevName;
       const oldSkill = prevSkill;
       const oldJob   = getJobByName(oldName) || target.dataset.job || "";
-
       // 把拖來的放到替補
       target.value = member.name;
       applyJobColor(target, member.job);
@@ -2843,7 +2862,6 @@ function collectRecentMarks() {
       }
       markDirty(target);
       fitNameFont(target);
-
       // 原本替補上的人（如果有）換回到原 panel 格子
       draggingPanelInput.value = oldName;
       applyJobColor(draggingPanelInput, oldJob);
@@ -2855,14 +2873,12 @@ function collectRecentMarks() {
         }
       }
       markDirty(draggingPanelInput);
-
       // 清掉本週面板中的重複名字（保留剛剛互換的那一格）
       clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
       saveState();
       updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
       return;
     }
-
     // 其他來源 → 替補（覆蓋）
     target.value = member.name;
     applyJobColor(target, member.job);
@@ -2870,7 +2886,6 @@ function collectRecentMarks() {
       subSkillInput.value = member.skill ? member.skill : "";
     }
     markDirty(target);
-
     // 若原本該替補格有名字，從本週名單中清掉舊名字
     if (prevName) {
       clearDuplicateInPanel(thisWeekPanel, prevName, null);
@@ -2912,7 +2927,6 @@ function collectRecentMarks() {
 // ⭐ 把兩格目前的狀態也記起來（可能為空字串 = 沒狀態）
 const srcStatus = src.dataset.status || "";
 const tgtStatus = target.dataset.status || "";
-
     // 互換名字 & 顏色
     src.value = tgtName;
     applyJobColor(src, tgtJob);
@@ -2958,6 +2972,10 @@ const tgtStatus = target.dataset.status || "";
     target.classList.remove("highlight-new", "highlight-missing");
     markDirty(src);
     markDirty(target);
+
+    // ★ V18.2本週名單內互換欄位後，重算一次跑馬燈
+    setTimeout(updateAllThisWeekMarquee, 0);
+
     saveState();
     updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
     return;
@@ -3000,6 +3018,9 @@ const tgtStatus = target.dataset.status || "";
       }
     }
  
+// ★ 本週名單內互換欄位後，重算一次跑馬燈
+    setTimeout(updateAllThisWeekMarquee, 0);
+
    // V18.1★★★★★ 進來本週名單 → 自動變成「未上線」狀態
 target.dataset.status = "absent";
 // 名字欄位所在列（member-row）
@@ -3184,33 +3205,6 @@ function getGuildPositionsData() {
   setPanelData(thisWeekPanel, state.thisWeek, "this");
   thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
 }
-
-// V17.4檢查單一 input 是否需要跑馬燈
-function updateMarqueeForInput(input) {
-  // 先暫時清掉，避免舊的 text-indent 影響測量
-  input.classList.remove("marquee");
-  // 使用 scrollWidth vs clientWidth 判斷是否有溢出
-  const need = input.scrollWidth > input.clientWidth + 1;
-  if (need) {
-    input.classList.add("marquee");
-  }
-}
-// 檢查本週名單所有欄位
-function updateAllThisWeekMarquee() {
-  document.querySelectorAll("#thisWeek .member-row input").forEach(updateMarqueeForInput);
-}
-// 一開始載入頁面時檢查一次
-window.addEventListener("load", updateAllThisWeekMarquee);
-// 視窗大小改變時也檢查一次
-window.addEventListener("resize", updateAllThisWeekMarquee);
-// 當使用者輸入內容時，立刻檢查該欄位
-document.addEventListener("input", (e) => {
-  if (e.target.matches("#thisWeek .member-row input")) {
-    updateMarqueeForInput(e.target);
-  }
-});
-
-
 
 /* V16★ 還原幫會職位欄位（只還原幫眾） */
 if (guildBattleBox) {

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v18</title>
+  <title>幫戰名單比對工具 v18.1</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -662,7 +662,7 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    font-size: 1.8rem;
+    font-size: 2rem;
     line-height: 0;
     color: #6b7280;
     border: none;
@@ -699,12 +699,6 @@
     height: 4px;
     border-radius: 999px;
     background: #cbd5e1;
-  }
-  /* 手機版幫眾／學徒欄位高度再矮一點，改用內部滾動 */
-  #guildBattleBox,
-  #guildPendingBox {
-    max-height: 13rem;
-    overflow-y: auto;
   }
   /* 外框不用那麼高，最低高度一起壓低一點 */
   .guild-box {
@@ -758,11 +752,6 @@
   flex-wrap: nowrap;
   align-items: stretch;
   gap: .25rem;
-}
-/* 幫眾欄：最多顯示約 15 個高度，其餘用滾輪 */
-#guildBattleBox {
-  max-height: 28rem;   /* 可自行微調，約 15 個標籤高度 */
-  overflow-y: auto;
 }
 
 /* 空的大框顯示淡淡提示文字（可選） */
@@ -823,13 +812,27 @@
   /*V17.4修改手機標籤字大小*/
   .position-tag,
   .position-tag .tag-name {
-    font-size: 0.7rem;  /* 你可以改成 0.7rem、0.65rem 等 */
+    font-size: 0.85rem;  /* 你可以改成 0.7rem、0.65rem 等 */
   }
   /* 如果覺得 X 按鈕也太大，可以一起縮 */
   .position-tag .tag-close {
     font-size: 0.7rem;
   }
+    /* 手機版幫眾／學徒欄位高度再矮一點，改用內部滾動 */
+  #guildBattleBox,
+  #guildPendingBox {
+    max-height: 17rem !important;
+    overflow-y: auto;
+  }
 }
+
+
+  /* 電腦幫眾欄：最多顯示約 15 個高度，其餘用滾輪 */
+#guildBattleBox {
+  max-height: 26rem;   /* 可自行微調，約 15 個標籤高度 */
+  overflow-y: auto;
+}
+
 
 /* ★ 讓全部成員名單的技能前面出現｜ */
 #allMembersPanelOuter .member-row .skill-hint::before,
@@ -922,7 +925,7 @@
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v18</h1>
+    <h1>幫戰名單比對工具 v18.1</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -1289,18 +1292,27 @@ function addGuildTag(box, member, options) {
    if (!isPendingBox) {
   btn.onclick = function (e) {
     e.stopPropagation();
+    // 取成員名字（先看有沒有寫在 data-member-name，沒有就用文字再把「×」去掉）
+    const rawText = (tag.dataset.memberName || tag.textContent || "").trim();
+    const name = rawText.replace("×", "").trim() || "這位成員";
+    // ✅ 新增確認視窗
+    const ok = confirm(`確定要從「幫眾」名單中移除「${name}」嗎？`);
+    if (!ok) return;   // 使用者按「取消」就什麼都不做
+    // 原本的刪除流程維持不變
     tag.remove();
     if (!box.querySelector(".position-tag")) {
       box.classList.add("empty");
     }
-    // ★ 刪成員後要重新補空位
+    // ★ 刪成員後要重新補空位（只對幫眾欄位）
     if (box === guildBattleBox) {
       maintainGuildBattlePlaceholders();
       updateGuildBattleAndWeekComparison();
     }
     saveState();
   };
-  tag.appendChild(btn);}
+  tag.appendChild(btn);
+}
+
 
   box.appendChild(tag);
   // ★ 新增成員後也要維持 60 格
@@ -1809,27 +1821,6 @@ function cycleCellStatus(input) {
     saveState();
   }
 }
-
-/*V17.3待刪，移除右鍵切換功能 // ★ v17本週名單：右鍵名字欄 → 切換狀態
-function onNameCellContextMenu(e, input) {
-  e.preventDefault();
-  e.stopPropagation();
-  // 只讓「本週名單」的名字欄支援右鍵切換狀態
-  if (!input || input.dataset.side !== "this" || input.dataset.role !== "name") {
-    return;
-  }
-  const hasName = (input.value || "").trim() !== "";
-  if (!hasName) {
-    // 空格：維持原本清空邏輯也可以，但通常右鍵空格就不做事
-    return;
-  }
-  // 用你已經寫好的 cycleCellStatus 來輪流切換 present / late / unsure / absent
-  cycleCellStatus(input);
-  // 切換完要更新學徒欄標籤 + 存檔
-  updateGuildBattleAndWeekComparison();
-  saveState();
-} */
-
 
 /*V17修改*/
 function createMemberInputs(side) {
@@ -2563,6 +2554,7 @@ function applyWeekStatusIconToTag(tag, status) {
     }
 
     function dragFromMemberList(e, m){
+      dragSourceSide = "thisWeek";   // ★ V18.1記錄從本週名單拖曳
       e.dataTransfer.setData("text/plain", JSON.stringify(m));
       const color = m.job && roleColors[m.job] ? darkenHex(roleColors[m.job],0.25) : "#0f172a";
       showDragPreview(`${m.name} (${m.job||""})`, color);
@@ -2570,6 +2562,7 @@ function applyWeekStatusIconToTag(tag, status) {
     }
     
     function dragFromSub(e){
+      dragSourceSide = "thisWeek";   // ★ V18.1記錄從本週名單拖曳
       const row = e.currentTarget;
       const name = row.querySelector(".sub-name").value.trim();
       const skill = row.querySelector(".sub-skill").value.trim();
@@ -2584,6 +2577,7 @@ function applyWeekStatusIconToTag(tag, status) {
 
 function dragFromPanel(e) {
   closeMemberPicker(); // ★開始拖曳時先關掉搜尋框
+  dragSourceSide = "thisWeek";   // ★ V18.1記錄從本週名單拖曳
   const input = e.target;
   // ★ 記錄拖曳來源是哪一個區塊
   dragSourceSide = input.dataset.side || "";
@@ -2636,10 +2630,10 @@ function dragFromPanel(e) {
 
 
     
-    /*下方v15擋掉點擊避免zoom in*/
-    // ✅ 方案 A：阻止「點擊」，不阻止拖曳
-    // 拖曳開始時把這個 flag 打開，下一次 click 先被我們攔截掉，才不會誤觸搜尋框 / 聚焦
-    let blockNextClick = false;
+   /*下方v15擋掉點擊避免zoom in*/
+// ✅ 方案 A：阻止「點擊」，不阻止拖曳
+// 拖曳開始時把這個 flag 打開，下一次 click 先被我們攔截掉，才不會誤觸搜尋框 / 聚焦
+let blockNextClick = false;
 document.addEventListener(
   "click",
   function (e) {
@@ -2647,24 +2641,25 @@ document.addEventListener(
     const t = e.target;
     // 用掉這次機會，下一次 click 恢復正常
     blockNextClick = false;
-    // 只處理「本週名單 / 替補」的名字欄位
-    if (
-      t.matches('#thisWeek input[data-role="name"]') ||
-      t.matches('#subsList .sub-name')
-    ) {
+    // 👉 本週名單名字欄位：不要攔截，讓 onclick 正常觸發 onNameCellClick → cycleCellStatus
+    if (t.matches('#thisWeek input[data-role="name"]')) {
+      return; // 直接放行，不 preventDefault / stopPropagation
+    }
+    // 👉 只保留「替補欄位」的防誤觸行為
+    if (t.matches('#subsList .sub-name')) {
       const val = (t.value || "").trim();
-      // ✅ 只有「已經有名字」的欄位才擋掉這次 click
+      // 已經有名字時，吃掉這次 click，避免拖曳後誤觸聚焦 / 放大
       if (val) {
         e.preventDefault();
         e.stopPropagation();
       }
-      // ✅ 如果是空欄位，就讓這次 click 正常通過
-      //（這樣空格點一下就能打字或開浮層）
+      // 空欄位則放行（可以點進去輸入）
     }
   },
   true
 );
 /*上方v15擋掉點擊避免zoom in*/
+
     
     function allowDrop(ev){ ev.preventDefault(); }
 
@@ -2672,21 +2667,24 @@ document.addEventListener(
       const m = allMembers.find(x=>x.name===name);
       return m ? m.job : "";
     }
+
+    /*V18修改，交換不改名字職業色*/
     function applyJobColor(input, job){
-      if(!input) return;
-      if(job && roleColors[job]){
-        const dark = darkenHex(roleColors[job],0.25);
-        input.style.borderLeft = "6px solid " + dark;
-        input.style.color = dark;
-        input.style.fontWeight = "700";
-        input.dataset.job = job;
-      } else {
-        input.style.borderLeft = "";
-        input.style.color = "";
-        input.dataset.job = "";
-        input.style.fontWeight = "700";
-      }
-    }
+  if (!input) return;
+  if (job && roleColors[job]) {
+    const dark = darkenHex(roleColors[job], 0.25);
+    // 只設定左邊職業條顏色
+    input.style.borderLeft = "6px solid " + dark;
+    input.dataset.job = job;
+  } else {
+    // 沒職業就清掉職業條
+    input.style.borderLeft = "";
+    input.dataset.job = "";
+  }
+  // 如果你希望名字維持粗體，可以留著這行：
+  input.style.fontWeight = "700";
+}
+
     function applyColorByName(input){
       const name = input.value.trim();
       const job = getJobByName(name);
@@ -2882,67 +2880,88 @@ function collectRecentMarks() {
     return;
   }
 
-  // ③ 面板格：本週名單（name 欄位）
+    // ③ 面板格：本週名單（name 欄位）
   if (target.dataset && target.dataset.role === "name") {
     const targetSide = target.dataset.side;   // 現在實際只會是 "this"
-
-    // 同面板互換（本週內部互換）
-    if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
-      const src = draggingPanelInput;
-      if (src === target) return;
-
-      const srcName = src.value.trim();
-      const srcJob  = src.dataset.job || getJobByName(srcName) || "";
-      let srcSkill  = "";
-      const srcSkillRow = src.parentElement.nextElementSibling;
-      if (srcSkillRow) {
-        const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
-        if (srcSkillInput) {
-          srcSkill = srcSkillInput.value;
-        }
+  // 同面板互換（本週內部互換）
+  if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
+    const src = draggingPanelInput;
+    if (src === target) return;
+    // 原本來源格資料
+    const srcName = src.value.trim();
+    const srcJob  = src.dataset.job || getJobByName(srcName) || "";
+    let srcSkill  = "";
+    const srcSkillRow = src.parentElement.nextElementSibling;
+    if (srcSkillRow) {
+      const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
+      if (srcSkillInput) {
+        srcSkill = srcSkillInput.value;
       }
-
-      const tgtName = target.value.trim();
-      const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
-      let tgtSkill  = "";
-      const tgtSkillRow = target.parentElement.nextElementSibling;
-      if (tgtSkillRow) {
-        const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
-        if (tgtSkillInput) {
-          tgtSkill = tgtSkillInput.value;
-        }
-      }
-
-      // 互換名字 & 顏色
-      src.value = tgtName;
-      applyJobColor(src, tgtJob);
-      target.value = srcName;
-      applyJobColor(target, srcJob);
-
-      // 互換技能
-      if (srcSkillRow) {
-        const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
-        if (srcSkillInput) {
-          setSkillInputValue(srcSkillInput, tgtSkill || "");
-        }
-      }
-      if (tgtSkillRow) {
-        const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
-        if (tgtSkillInput) {
-          setSkillInputValue(tgtSkillInput, srcSkill || "");
-        }
-      }
-
-      // 清掉比對用標示
-      src.classList.remove("highlight-new", "highlight-missing");
-      target.classList.remove("highlight-new", "highlight-missing");
-
-      markDirty(src);
-      markDirty(target);
-      saveState();
-      updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
-      return;
     }
+    // 目標格資料
+    const tgtName = target.value.trim();
+    const tgtJob  = target.dataset.job || getJobByName(tgtName) || "";
+    let tgtSkill  = "";
+    const tgtSkillRow = target.parentElement.nextElementSibling;
+    if (tgtSkillRow) {
+      const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
+      if (tgtSkillInput) {
+        tgtSkill = tgtSkillInput.value;
+      }
+    }
+// ⭐ 把兩格目前的狀態也記起來（可能為空字串 = 沒狀態）
+const srcStatus = src.dataset.status || "";
+const tgtStatus = target.dataset.status || "";
+
+    // 互換名字 & 顏色
+    src.value = tgtName;
+    applyJobColor(src, tgtJob);
+    target.value = srcName;
+    applyJobColor(target, srcJob);
+    // 互換技能
+    if (srcSkillRow) {
+      const srcSkillInput = srcSkillRow.querySelector("input[data-role='skill']");
+      if (srcSkillInput) {
+        setSkillInputValue(srcSkillInput, tgtSkill || "");
+      }
+    }
+    if (tgtSkillRow) {
+      const tgtSkillInput = tgtSkillRow.querySelector("input[data-role='skill']");
+      if (tgtSkillInput) {
+        setSkillInputValue(tgtSkillInput, srcSkill || "");
+      }
+    }
+    // ⭐ 互換 / 清理狀態
+    // 1）原本目標格若是空白，互換後「來源格」應該變成真正的空格：直接 reset
+    if (!tgtName) {
+      resetCellStatus(src);
+    } else {
+      // 有名字的格子才套狀態；若原本沒狀態就清掉
+      if (tgtStatus) {
+        setCellStatus(src, tgtStatus);
+      } else {
+        resetCellStatus(src);
+      }
+    }
+    // 2）原本來源格若有名字，互換到「目標格」，狀態跟著人走；沒有狀態就清空
+    if (!srcName) {
+      resetCellStatus(target);
+    } else {
+      if (srcStatus) {
+        setCellStatus(target, srcStatus);
+      } else {
+        resetCellStatus(target);
+      }
+    }
+    // 清掉比對用標示
+    src.classList.remove("highlight-new", "highlight-missing");
+    target.classList.remove("highlight-new", "highlight-missing");
+    markDirty(src);
+    markDirty(target);
+    saveState();
+    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    return;
+  }
 
     // 替補 → 面板且目標格原本有值：把舊值放回替補
     if (member.fromSub !== undefined && target.value.trim() !== "") {
@@ -2956,7 +2975,6 @@ function collectRecentMarks() {
           oldSkill = skillInput.value;
         }
       }
-
       const subRow = subsList.querySelector(`[data-sub-index="${member.fromSub}"]`);
       if (subRow) {
         const subNameInput  = subRow.querySelector(".sub-name");
@@ -2971,11 +2989,9 @@ function collectRecentMarks() {
         }
       }
     }
-
-    // 真正放進面板
+    // ⭐ 真正放進面板
     target.value = member.name;
     applyJobColor(target, member.job);
-
     const srow = target.parentElement.nextElementSibling;
     if (srow) {
       const skillInput = srow.querySelector("input[data-role='skill']");
@@ -2983,10 +2999,19 @@ function collectRecentMarks() {
         setSkillInputValue(skillInput, member.skill ? member.skill : "");
       }
     }
+ 
+   // V18.1★★★★★ 進來本週名單 → 自動變成「未上線」狀態
+target.dataset.status = "absent";
+// 名字欄位所在列（member-row）
+const row = target.closest(".member-row");
+// 先把舊狀態 class 清掉
+row.classList.remove("status-present","status-late","status-unsure","status-absent");
+// 套上未上線狀態（灰色）
+row.classList.add("status-absent");
+
 
     // 清掉本週面板裡重複的名字（保留這個 target）
     clearDuplicateInPanel(thisWeekPanel, member.name, target);
-
     // 清掉比對標示
     target.classList.remove("highlight-new", "highlight-missing");
 
@@ -3922,6 +3947,8 @@ function openMemberPicker(input){
         m.skill || ""
       );
     }
+    // 🔹 V18.x：搜尋選進「本週名單」時，一律預設為「未上線」
+    setCellStatus(pickerTargetInput, "absent");
   } else if (pickerTargetInput.matches('#subsList .sub-name')) {
     // 替補：在同一列找 .sub-skill
     const row = pickerTargetInput.closest('.substitute-row');
@@ -4143,4 +4170,3 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
-

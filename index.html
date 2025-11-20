@@ -2164,6 +2164,8 @@ thisWeekPanel.addEventListener("dragover", handleThisWeekDragOver);
         adjustSquadWidths(block);
         markDirty(block);
         block.dataset.lastSquadCount = String(parent.children.length);
+         // ★V18.2 新增：刪除小隊後，重新比對幫眾與本週名單
+        updateGuildBattleAndWeekComparison();
         saveState();
       }
     }

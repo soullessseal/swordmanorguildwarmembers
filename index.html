@@ -2880,6 +2880,14 @@ function collectRecentMarks() {
         }
       }
       markDirty(draggingPanelInput);
+      // V18.2★ 新增：替補 → 本週的補位，一律改成「未上線」狀態
+      // （避免沿用原來那格的狀態）
+    if (
+      draggingPanelInput.dataset.side === "this" &&
+      draggingPanelInput.dataset.role === "name"
+    ) {
+      setCellStatus(draggingPanelInput, "absent");
+    }
       // 清掉本週面板中的重複名字（保留剛剛互換的那一格）
       clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
       saveState();

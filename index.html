@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v18.3</title>
+  <title>名劍山莊-幫戰比對工具</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -967,7 +967,7 @@
 </head>
 <body>
   <div class="header-row">
-    <h1>名劍山莊幫戰比對工具</h1>
+    <h1>名劍山莊-幫戰比對工具</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -3415,7 +3415,7 @@ function getGuildPositionsData() {
 
 
 
-    function fetchWithTimeout(url, ms=1500){
+    function fetchWithTimeout(url, ms=3000){
       const ctrl = new AbortController();
       const id = setTimeout(()=>ctrl.abort(), ms);
       return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
@@ -4260,7 +4260,7 @@ async function loadState() {
   showLoadingMask();
   let cloudSuccess = false;
   try {
-    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 1500);
+    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
     const data = await res.json();
 
     if (data && data.success && data.payload) {
@@ -4447,4 +4447,3 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
-

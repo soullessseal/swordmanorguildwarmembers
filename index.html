@@ -953,6 +953,7 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  transition: opacity .12s;
 }
 .loading-mask img {
   width: 64px;
@@ -1124,7 +1125,10 @@
     </div>
   </div>
 
-
+  <!-- Loading 遮罩（放在 script 前面，讓 JS 找得到） -->
+  <div id="loadingMask" class="loading-mask">
+    <img src="loading.gif" alt="載入中">
+  </div>
 
   <script>
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -3411,7 +3415,7 @@ function getGuildPositionsData() {
 
 
 
-    function fetchWithTimeout(url, ms=3000){
+    function fetchWithTimeout(url, ms=1500){
       const ctrl = new AbortController();
       const id = setTimeout(()=>ctrl.abort(), ms);
       return fetch(url, {signal: ctrl.signal}).finally(()=>clearTimeout(id));
@@ -4230,23 +4234,38 @@ closeMemberPicker();
       else skill.style.background = "transparent";
     }
 
-    async function loadState(){
-      renderRoleTabs();
-      renderMemberList();
-      const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
-      if (loginStr) {
-        try { const obj = JSON.parse(loginStr); currentUser = obj.user || null; lastLoginTime = obj.time || 0; } catch(e){}
-      }
-      const s = localStorage.getItem(STORAGE_KEY);
-      if (s) {
-        try { const localState = JSON.parse(s); applyStateToPage(localState, true); } catch(e){}
-      }
-       // ⭐ 從這裡開始進入「雲端讀取」→ 顯示 loading
+async function loadState() {
+  renderRoleTabs();
+  renderMemberList();
+  // ---- 還原登入資料 ----
+  const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
+  if (loginStr) {
+    try {
+      const obj = JSON.parse(loginStr);
+      currentUser = obj.user || null;
+      lastLoginTime = obj.time || 0;
+    } catch(e){}
+  }
+  // ---- 還原 localState ----
+  const s = localStorage.getItem(STORAGE_KEY);
+  if (s) {
+    try {
+      const localState = JSON.parse(s);
+      applyStateToPage(localState, true);
+    } catch(e){}
+  }
+  // ---------------------------
+  // ⭐ 開始雲端讀取 → 顯示 loading
+  // ---------------------------
   showLoadingMask();
+  let cloudSuccess = false;
   try {
-    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 1500);
     const data = await res.json();
+
     if (data && data.success && data.payload) {
+      cloudSuccess = true;
+
       const currentLocal = localStorage.getItem(STORAGE_KEY);
       if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
         applyStateToPage(data.payload, false);
@@ -4254,17 +4273,25 @@ closeMemberPicker();
       }
       if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
     }
-  } catch(err){
-    console.warn("雲端讀取逾時或失敗", err);
-  } finally {
-    // ⭐ 無論成功或失敗，雲端讀取結束就關掉 loading
-    hideLoadingMask();
+  } catch (err) {
+    console.warn("雲端讀取失敗或逾時", err);
   }
+  // ---------------------------
+  // ⭐ 雲端成功 → 立刻關閉 loading
+  // ⭐ 雲端失敗 → 同樣關閉，但提示
+  // ---------------------------
+  hideLoadingMask();
+
+  if (!cloudSuccess) {
+    showWeekToast("⚠️ 無法取得雲端資料，已使用上次離線版本");
+  }
+  // ---- 啟動偵測版本變動 ----
   startVersionWatcher();
-  // ★ 一開頁面就自動比對＋補幫眾空位
+  // ---- 一開頁面 → 重新比對 ----
   updateGuildBattleAndWeekComparison();
   maintainGuildBattlePlaceholders();
-    }
+}
+
 
     // V14.9根據名字長度自動縮放字體大小（只管本週名單 + 替補名字）
 function fitNameFont(input) {
@@ -4417,18 +4444,6 @@ function setupGuildDrawerDrag() {
 }
 // DOM 載入完就把拖曳關閉初始化
 document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
-
-/*loading圖*/
-function showLoading() {
-  document.getElementById("loading-overlay").style.display = "flex";
-}
-function hideLoading() {
-  document.getElementById("loading-overlay").style.display = "none";
-}
   </script>
-
-  <div id="loadingMask" class="loading-mask">
-  <img src="loading.gif" alt="載入中">
-  </div>
 </body>
 </html>

@@ -138,6 +138,50 @@
   animation: teamSlideFromLeft .25s ease-out;
 }
 
+/* V18.4編輯中提示（桌機版，顯示在標題右側） */
+.editing-hint {
+  font-size: 0.78rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+/* 手機版浮動提示（頂部） */
+.editing-hint-mobile {
+  position: fixed;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.96);
+  color: #ffffff;
+  font-size: 0.78rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+/* 顯示用共用 class */
+.editing-hint.show,
+.editing-hint-mobile.show {
+  display: inline-flex;
+}
+/* RWD：桌機只顯示 desktop 版，手機只顯示 mobile 版 */
+@media (max-width: 900px) {
+  .editing-hint-desktop {
+    display: none !important;
+  }
+}
+@media (min-width: 901px) {
+  .editing-hint-mobile {
+    display: none !important;
+  }
+}
 
 
     /* V16讓標題與儲存按鈕排在同一行 */
@@ -969,9 +1013,12 @@
   <div class="header-row">
     <h1>名劍山莊-幫戰比對工具</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
+    <span id="editingHintDesktop" class="editing-hint editing-hint-desktop">當前有人正在編輯中</span>
   </div>
 
-  <div class="layout">
+<div id="editingHintMobile" class="editing-hint-mobile">當前有人正在編輯中</div>
+  
+<div class="layout">
     <!-- 左側：全部成員 -->
     <div class="panel" id="allMembersPanel">
       <h3>全部成員名單</h3>
@@ -1148,10 +1195,16 @@
     
     let currentUser = null;
     let lastLoginTime = 0;
+    // V19: 遠端「正在編輯」狀態
+    let remoteEditingInfo = null;      // { user: "名稱" or null, hasEditor: true/false, updatedAt: number }
+    let lastEditingPingTime = 0;       // 上一次送「我在編輯」的時間（避免狂打伺服器）
+
 
     const OUTLINE_CLASS = { dabai: "outline-dabai", baoan: "outline-baoan", stitch: "outline-stitch", unknown: "outline-dabai" };
 
     let lastKnownUpdatedAt = null;
+    // V18.4最新一次「雲端狀態」的 JSON 字串，用來跟目前畫面比對
+    let lastSyncedStateJSON = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -3411,6 +3464,8 @@ function getGuildPositionsData() {
     try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
+  // V18.4★ 每次存本地狀態後，都檢查一次「是否跟雲端版本不同」
+  checkEditingHint();
 }
 
 
@@ -3475,6 +3530,24 @@ if (state.subs && state.subs.length) {
 }
 refreshSubsView();
 updateSubStatusByThisWeek();   // ⭐ 在這裡加入（渲染完替補後執行）
+  
+// V18.4---- 套完畫面後，更新「雲端快照」＆編輯提示 ----
+  if (!fromLocal) {
+    // 只有真正來自雲端的 state 才當成「雲端基準」
+    try {
+      lastSyncedStateJSON = JSON.stringify({
+        allMembers: state.allMembers || allMembers,
+        thisWeek: state.thisWeek || getPanelData(thisWeekPanel),
+        subs: state.subs || getSubsData(),
+        guildPositions: state.guildPositions || getGuildPositionsData(),
+        recentMarks: state.recentMarks || collectRecentMarks()
+      });
+    } catch (e) {
+      lastSyncedStateJSON = null;
+    }
+  }
+  checkEditingHint();
+  
     }
 
 
@@ -3559,6 +3632,22 @@ function doSaveToBackend() {
         const silent = !!requestSave._silentOnce; //V16.1新增
         const cb = requestSave._onSuccess; //V16.1新增
         lastKnownUpdatedAt = data.updatedAt || null;
+       
+        // ★ V18.4儲存成功後，把這一版 state 當成新的雲端基準
+        try {
+        const newState = {
+        allMembers,
+        thisWeek: getPanelData(thisWeekPanel),
+        subs: getSubsData(),
+        guildPositions: getGuildPositionsData(),
+        recentMarks: collectRecentMarks()
+        };
+        lastSyncedStateJSON = JSON.stringify(newState);
+        } catch (e) {
+        lastSyncedStateJSON = null;
+        }
+        checkEditingHint();
+
         if (!silent) {alert("已儲存到後台");}
         // 如果你要順便把最近修改框線畫回來，也可以在這裡做
         // renderRecentMarks(state.recentMarks);
@@ -3579,27 +3668,135 @@ function doSaveToBackend() {
 }
 
 
+// V18.4目前畫面狀態（用來和 lastSyncedStateJSON 比對）
+function getCurrentStateForCompare() {
+  return {
+    allMembers,
+    thisWeek: getPanelData(thisWeekPanel),
+    subs: getSubsData(),
+    guildPositions: getGuildPositionsData(),
+    recentMarks: collectRecentMarks()
+  };
+}
+function checkEditingHint() {
+  const desktopHint = document.getElementById("editingHintDesktop");
+  const mobileHint  = document.getElementById("editingHintMobile");
+  if (!desktopHint && !mobileHint) return;
+  // 1) 如果還沒有任何雲端基準，代表頁面還在初始化，不顯示也不廣播
+  if (!lastSyncedStateJSON) {
+    if (desktopHint) desktopHint.classList.remove("show");
+    if (mobileHint)  mobileHint.classList.remove("show");
+    return;
+  }
+  // 2) 判斷目前畫面是否跟雲端不同（本機 dirty 判斷）
+  let currentJSON = "";
+  try {
+    currentJSON = JSON.stringify(getCurrentStateForCompare());
+  } catch (e) {
+    return;
+  }
+  const dirty = currentJSON !== lastSyncedStateJSON;
+  // 2-1) 如果「我這邊是 dirty」，就定期 ping 一下「我正在編輯」
+  if (dirty) {
+    sendEditingPing();
+  } else {
+    // 你也可以選擇在完全乾淨時，送一個「我不編輯了」的訊號
+    // 這裡先交給後端用 timeout 自動失效即可
+  }
+  // 3) 顯示誰在編輯 → 完全依賴 remoteEditingInfo
+  renderEditingHintByRemote();
+}
+
+/*V19， 只要 dirty變數「偶爾」跟伺服器說一聲*/
+function sendEditingPing() {
+  const now = Date.now();
+  // 例如 10 秒 ping 一次就好，避免太頻繁
+  if (now - lastEditingPingTime < 10000) return;
+  lastEditingPingTime = now;
+  // 沒登入就當作匿名編輯者
+  const userName = currentUser || null;
+  try {
+    fetch(REMOTE_API, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "editing",
+        user: userName,
+        at: now
+      })
+    }).catch(err => {
+      console.warn("editing ping error", err);
+    });
+  } catch (e) {
+    console.warn("editing ping exception", e);
+  }
+}
+
+
+/*V19根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser*/
+function renderEditingHintByRemote() {
+  const desktopHint = document.getElementById("editingHintDesktop");
+  const mobileHint  = document.getElementById("editingHintMobile");
+  if (!desktopHint && !mobileHint) return;
+  // 預設先全部隱藏
+  if (!remoteEditingInfo || !remoteEditingInfo.hasEditor) {
+    if (desktopHint) desktopHint.classList.remove("show");
+    if (mobileHint)  mobileHint.classList.remove("show");
+    return;
+  }
+  const editorName = remoteEditingInfo.user || null;
+  // 4-1) 如果是自己在編輯，就不要顯示給自己看
+  if (editorName && currentUser && editorName === currentUser) {
+    if (desktopHint) desktopHint.classList.remove("show");
+    if (mobileHint)  mobileHint.classList.remove("show");
+    return;
+  }
+  // 4-2) 組合顯示文字
+  let text = "當前有人正在編輯中";
+  if (editorName && editorName !== "unknown") {
+    text = editorName + " 正在編輯";
+  }
+  if (desktopHint) {
+    desktopHint.textContent = text;
+    desktopHint.classList.add("show");
+  }
+  if (mobileHint) {
+    mobileHint.textContent = text;
+    mobileHint.classList.add("show");
+  }
+}
+
+
+
     function startVersionWatcher(){
       const INTERVAL = 4000;
       setInterval(async ()=>{
         try {
-          const res = await fetch(REMOTE_API + "?action=version");
-          const data = await res.json();
-          if (data && data.success) {
-            const serverUpdatedAt = data.updatedAt || null;
-            if (!lastKnownUpdatedAt) { lastKnownUpdatedAt = serverUpdatedAt; return; }
-            if (serverUpdatedAt && serverUpdatedAt !== lastKnownUpdatedAt) {
-              const fullRes = await fetch(REMOTE_API + "?action=get");
-              const fullData = await fullRes.json();
-              if (fullData && fullData.success && fullData.payload) {
-                applyStateToPage(fullData.payload, false);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData.payload));
-                lastKnownUpdatedAt = serverUpdatedAt;
-              }
-            }
-          }
-        } catch(err){ console.warn("檢查版本失敗", err); }
-      }, INTERVAL);
+          // 1) 版本檢查（原本就有）
+      const res = await fetch(REMOTE_API + "?action=version");
+      const data = await res.json(); // ...原本版本比對 & 需要時拉 ?action=get 的邏輯...
+      // 2) 順便抓「誰在編輯」
+      try {
+        const eRes = await fetch(REMOTE_API + "?action=editing");
+        const eData = await eRes.json();
+        if (eData && eData.success) {
+          remoteEditingInfo = {
+            user: eData.user || null,
+            hasEditor: !!eData.hasEditor,
+            updatedAt: eData.updatedAt || null
+          };
+        } else {
+          remoteEditingInfo = null;
+        }
+      } catch(e){
+        console.warn("編輯狀態讀取失敗", e);
+        remoteEditingInfo = null;
+      }
+      // 根據最新 remoteEditingInfo 更新提示
+      renderEditingHintByRemote();
+    } catch(err){
+      console.warn("檢查版本失敗", err);
+    }
+  }, INTERVAL);
     }
 
     function fillRoundRect(ctx, x, y, w, h, r) {

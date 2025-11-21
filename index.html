@@ -419,6 +419,28 @@
     #loginModal h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
     #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
 
+    /* V18.2 本週名單移動成員的小提示泡泡 */
+.week-toast {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.95);
+  color: #f1f5f9;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.week-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -12px); /* 往上浮一點 */
+}
+
+
+
     .outline-dabai { outline: 2px solid #a855f7; outline-offset: 2px; }
     .outline-baoan { outline: 2px solid #ef4444; outline-offset: 2px; }
     .outline-stitch { outline: 2px solid #38bdf8; outline-offset: 2px; }
@@ -1207,6 +1229,11 @@ function sortGuildBoxByJob(box) {
     let subCounter = 0;
 
     const thisWeekPanel = document.getElementById("thisWeek");
+    // V18.3 自動替本週名單的名字欄位補上 data-side="this"
+thisWeekPanel.querySelectorAll('input[data-role="name"]').forEach(inp => {
+  inp.dataset.side = "this";
+});
+
     const subsList = document.getElementById("subsList");
     const memberList = document.getElementById("memberList");
     const searchInput = document.getElementById("memberSearch");
@@ -1417,6 +1444,30 @@ function maintainGuildBattlePlaceholders() {
 
 }
 
+// V18.2 提示氣泡用，取得成員原本所在的「團名 + 第幾小隊」
+function getGroupAndSquad(nameInput) {
+  if (!nameInput) return "";
+  // 從 HTML 結構往上找 team-block（含團名）
+  const teamBlock = nameInput.closest(".team-block");
+  const squad = nameInput.closest(".squad");
+  let groupText = "";
+  let squadText = "";
+  // 團名 (例：進攻 / 拆塔 / 機動 / 防守)
+  if (teamBlock) {
+    groupText = teamBlock.dataset.team || "";
+  }
+  // 第幾小隊 (例：第1小隊、第2小隊)
+  if (squad) {
+    if (squad.dataset.squad) {
+      squadText = `第${squad.dataset.squad}小隊`;
+    }
+  }
+  // 合併輸出
+  if (groupText && squadText) return `${groupText} ${squadText}`;
+  if (groupText) return groupText;
+  if (squadText) return squadText;
+  return "";
+}
 
 
 
@@ -2184,6 +2235,31 @@ function clearPanelCell(e) {
   }
 }
 
+// V18.2 本週名單移動成員用的小提示泡泡
+let weekToastTimer = null;
+function showWeekToast(message, anchorInput) {
+  if (!anchorInput) return;
+  // 建立或取得現有的 toast
+  let toast = document.getElementById("weekToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "weekToast";
+    toast.className = "week-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  // 取得 input 的位置
+  const rect = anchorInput.getBoundingClientRect();
+  // 定位：在 input 正上方水平置中
+  toast.style.top = (window.scrollY + rect.top - 15) + "px";
+  toast.style.left = (window.scrollX + rect.left + rect.width / 2) + "px";
+  toast.classList.add("show");
+  if (weekToastTimer) clearTimeout(weekToastTimer);
+  weekToastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2200);  //顯示2.2秒
+}
+
 
 
     function clearInputAndSkill(input){
@@ -2727,13 +2803,32 @@ document.addEventListener(
       else input.classList.remove("skill-has");
     }
 
-    function clearDuplicateInPanel(panelEl, name, exceptInput){
-      panelEl.querySelectorAll("input[data-role='name']").forEach(inp=>{
-        if(inp !== exceptInput && inp.value.trim() === name){
-          clearInputAndSkill(inp);
-        }
-      });
+    
+
+// V18.2：顯示成員原本所在的「團名 + 小隊」
+function clearDuplicateInPanel(panelEl, name, exceptInput){
+  let cleared = false;
+  let fromText = "";  // 原本在哪一團、哪一小隊
+  panelEl.querySelectorAll("input[data-role='name']").forEach(inp => {
+    if (inp !== exceptInput && inp.value.trim() === name) {
+      // 清掉前先記錄舊位置（例如：進攻 第2小隊）
+      fromText = getGroupAndSquad(inp);
+      clearInputAndSkill(inp);
+      cleared = true;
     }
+  });
+  // 有真的清到舊位置、而且有新位置可以當錨點，才跳提示
+  if (cleared && exceptInput) {
+    const msg = fromText
+      ? `已從「${fromText}」移到新位置`
+      : `已更新「${name}」的位置`;
+
+    // 用新位置那一格當氣泡錨點
+    showWeekToast(msg, exceptInput);
+  }
+}
+
+
 
     function collectDirtyMarks() {
       const marks = [];
@@ -2823,6 +2918,7 @@ function collectRecentMarks() {
       });
     }
 
+    
   function dropMember(ev) {
   ev.preventDefault();
   dragSuccess = true;
@@ -2910,13 +3006,19 @@ function collectRecentMarks() {
     return;
   }
 
-    // ③ 面板格：本週名單（name 欄位）
-  if (target.dataset && target.dataset.role === "name") {
-    const targetSide = target.dataset.side;   // 現在實際只會是 "this"
+   // ③ 面板格：本週名單（name 欄位）
+if (target.dataset && target.dataset.role === "name") {
+  const targetSide = target.dataset.side;   // 現在實際只會是 "this"
   // 同面板互換（本週內部互換）
   if (member.fromPanel && member.side === targetSide && draggingPanelInput) {
     const src = draggingPanelInput;
     if (src === target) return;
+
+    // ★ 新增：如果來源是在「本週名單」，先記住他原本是在哪一團第幾小隊
+    let fromText = "";
+    if (src.dataset.side === "this" && src.dataset.role === "name") {
+      fromText = getGroupAndSquad(src);   // 例：進攻 第1小隊
+    }
     // 原本來源格資料
     const srcName = src.value.trim();
     const srcJob  = src.dataset.job || getJobByName(srcName) || "";
@@ -2939,9 +3041,9 @@ function collectRecentMarks() {
         tgtSkill = tgtSkillInput.value;
       }
     }
-// ⭐ 把兩格目前的狀態也記起來（可能為空字串 = 沒狀態）
-const srcStatus = src.dataset.status || "";
-const tgtStatus = target.dataset.status || "";
+    // ⭐ 把兩格目前的狀態也記起來（可能為空字串 = 沒狀態）
+    const srcStatus = src.dataset.status || "";
+    const tgtStatus = target.dataset.status || "";
     // 互換名字 & 顏色
     src.value = tgtName;
     applyJobColor(src, tgtJob);
@@ -2987,10 +3089,16 @@ const tgtStatus = target.dataset.status || "";
     target.classList.remove("highlight-new", "highlight-missing");
     markDirty(src);
     markDirty(target);
-
     // ★ V18.2本週名單內互換欄位後，重算一次跑馬燈
     setTimeout(updateAllThisWeekMarquee, 0);
-
+    // ★ 新增：如果是「本週 → 本週」，在目標格上方顯示「從哪一團第幾小隊移過來」
+    if (
+      fromText &&                         // 有成功抓到團名＋小隊
+      target.dataset.side === "this" &&   // 目標在本週名單
+      target.dataset.role === "name"
+    ) {
+      showWeekToast(`已從「${fromText}」移到新位置`, target);
+    }
     saveState();
     updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
     return;
@@ -3832,6 +3940,9 @@ ctx.fillText(mem.name, nameBoxX + 9.5, nameBoxY + Math.round(NAME_H * 0.72));
 }
 // 以上這段 V14.7 完整下載圖片功能（名稱/技能兩張獨立卡）
 
+
+
+
 /*V17.2 改成左鍵切換狀態 */
 function onNameCellClick(e, input) {
   if (!input) return;
@@ -3900,7 +4011,6 @@ function openMemberPicker(input){
 }
 
 
-
     function renderPickerList(list){
       pickerList.innerHTML = "";
       list.forEach(m=>{
@@ -3937,11 +4047,19 @@ function openMemberPicker(input){
   // ★ 2. 一般情況：原本的流程（本週名單 or 替補）維持不動
   if (!pickerTargetInput) return;
   // 先清掉「本週」裡同名的重複成員（維持你原本邏輯）
-  thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
-    if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
-      clearInputAndSkill(inp);
-    }
-  });
+    // 先清掉「本週」裡同名的重複成員
+  if (pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
+    // ✔ 本週名單：用 clearDuplicateInPanel，順便顯示「從哪一團第幾小隊移過來」
+    clearDuplicateInPanel(thisWeekPanel, m.name, pickerTargetInput);
+  } else {
+    // 替補、其他情況：只清掉本週的重複名字，不需要跳提示
+    thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
+      if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+        clearInputAndSkill(inp);
+      }
+    });
+  }
+
   pickerTargetInput.value = m.name;
   applyJobColor(pickerTargetInput, m.job);
   pickerTargetInput.dataset.dirty = "1";
@@ -3956,7 +4074,7 @@ function openMemberPicker(input){
         m.skill || ""
       );
     }
-    // 🔹 V18.x：搜尋選進「本週名單」時，一律預設為「未上線」
+    // 🔹 V18.1：搜尋選進「本週名單」時，一律預設為「未上線」
     setCellStatus(pickerTargetInput, "absent");
   } else if (pickerTargetInput.matches('#subsList .sub-name')) {
     // 替補：在同一列找 .sub-skill

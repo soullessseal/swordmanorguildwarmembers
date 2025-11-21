@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>幫戰名單比對工具 v18.2</title>
+  <title>幫戰名單比對工具 v18.3</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -458,6 +458,14 @@
     }
     
     input.skill-has { background: #FFFFDB; color: #0f172a; font-weight: 600; }
+    /* 只把替補列的 skill-has 顏色還原成一般輸入框 */
+  #subsList .substitute-row .sub-skill.skill-has {
+  background: #ffffff;    /* 或 transparent，看你喜歡 */
+  color: #0f172a;
+  font-weight: 600;
+  }
+
+
 /* ✅ V14.9鎖定本週名單的技能欄位：不能點、不能選字、沒有游標 */
 #thisWeek .member-row input[data-role="skill"] {
   pointer-events: none;
@@ -936,12 +944,29 @@
   }
 }
 
+/*V18.3新增，讀取樣式*/
+.loading-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45); /* 深色半透明 */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.loading-mask img {
+  width: 64px;
+  height: 64px;
+}
+.loading-mask.show {
+  display: flex;
+}
 
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>幫戰名單比對工具 v18.2</h1>
+    <h1>幫戰名單比對工具 v18.3</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
   </div>
 
@@ -1155,6 +1180,16 @@ const guildJobOrderMap = {
   "碎夢": 6,
   "血河": 7
 };
+
+/*V18.3顯示/隱藏讀取圖示*/
+function showLoadingMask() {
+  const el = document.getElementById("loadingMask");
+  if (el) el.classList.add("show");
+}
+function hideLoadingMask() {
+  const el = document.getElementById("loadingMask");
+  if (el) el.classList.remove("show");
+}
 
 
 // V16幫眾＋號：開啟成員搜尋浮層
@@ -2260,7 +2295,24 @@ function showWeekToast(message, anchorInput) {
   }, 2200);  //顯示2.2秒
 }
 
-
+/*V18.3替補名單顯示「已排入本週名單」*/
+    function updateSubStatusByThisWeek() {
+  if (!subsList) return;
+  const weekNames = getThisWeekNameSet();
+  subsList.querySelectorAll(".substitute-row").forEach(row => {
+    const nameInput = row.querySelector(".sub-name");
+    const statusSpan = row.querySelector(".sub-status");
+    if (!nameInput || !statusSpan) return;
+    const name = (nameInput.value || "").trim();
+    if (name && weekNames.has(name)) {
+      statusSpan.textContent = "已排入本週名單";
+      statusSpan.style.color = "#dc2626";  // 紅字
+    } else {
+      statusSpan.textContent = "";
+      statusSpan.style.color = "";
+    }
+  });
+}
 
     function clearInputAndSkill(input){
       input.value = "";
@@ -2292,7 +2344,7 @@ function showWeekToast(message, anchorInput) {
   <input class="sub-name" placeholder="替補成員" value="${name}"
     onclick="maybeOpenMemberPicker(event, this)"
     ondragover="allowDrop(event)" ondrop="dropMember(event)"
-    onblur="applyColorByName(this); markDirty(this); saveState();">
+    onblur="applyColorByName(this); markDirty(this); saveState(); updateSubStatusByThisWeek();">
   <input class="sub-skill" placeholder="技能" value="${skill}" oninput="markDirty(this); saveState()">
   <button class="del-btn" onclick="deleteSub(this)">刪</button>
   <span class="sub-status"></span>
@@ -2943,68 +2995,125 @@ function collectRecentMarks() {
     });
     saveState();
     updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    updateSubStatusByThisWeek();
     return;
   }
 
-    // ② 替補區：sub-name
+  // ② 替補區：sub-name
   if (target.classList.contains("sub-name")) {
     const subRow = target.parentElement;
     const subSkillInput = subRow.querySelector(".sub-skill");
-    const prevName  = target.value.trim();
-    const prevSkill = subSkillInput ? subSkillInput.value.trim() : "";
-    // 面板 → 替補（互換）
+    const prevName  = (target.value || "").trim();              // 替補格原本的名字（例如 A）
+    const prevSkill = subSkillInput ? (subSkillInput.value || "").trim() : "";
+    // ───────── 面板（本週） → 替補 ─────────
     if (member.fromPanel && draggingPanelInput) {
-      const oldName  = prevName;
-      const oldSkill = prevSkill;
-      const oldJob   = getJobByName(oldName) || target.dataset.job || "";
-      // 把拖來的放到替補
+      const fromThisWeek =
+        draggingPanelInput.dataset.side === "this" &&
+        draggingPanelInput.dataset.role === "name";
+      const isTargetEmpty = !prevName;
+      // 1）先把「拖來的人」（可能是 A 或 B）放到替補格
       target.value = member.name;
       applyJobColor(target, member.job);
       if (subSkillInput) {
-        subSkillInput.value = member.skill || "";
+        setSkillInputValue(subSkillInput, member.skill || "");
       }
       markDirty(target);
       fitNameFont(target);
-      // 原本替補上的人（如果有）換回到原 panel 格子
-      draggingPanelInput.value = oldName;
-      applyJobColor(draggingPanelInput, oldJob);
-      const panelSkillRow = draggingPanelInput.parentElement.nextElementSibling;
-      if (panelSkillRow) {
-        const panelSkillInput = panelSkillRow.querySelector("input[data-role='skill']");
-        if (panelSkillInput) {
-          setSkillInputValue(panelSkillInput, oldSkill || "");
+      // 2）如果來源是「本週名單」
+      if (fromThisWeek) {
+        // 2-1）本週 → 空白替補：只「複製」，不動本週（A 本週還在）
+        if (isTargetEmpty) {
+          // 不做任何處理，本週來源欄位維持原狀
+        } else {
+          // 2-2）本週 → 替補（替補原本有人）：執行「交換」邏輯
+          const newAName  = prevName;      // 要放回本週的 A 名字
+          const newASkill = prevSkill;     // 從替補格帶回 A 的技能
+          const newAJob   =
+            getJobByName(newAName) ||
+            draggingPanelInput.dataset.job ||
+            "";
+          // 把來源格（原本 B）改成 A
+          draggingPanelInput.value = newAName;
+          applyJobColor(draggingPanelInput, newAJob);
+          const srcSkillRow = draggingPanelInput.parentElement.nextElementSibling;
+          if (srcSkillRow) {
+            const srcSkillInput = srcSkillRow.querySelector(
+              "input[data-role='skill']"
+            );
+            if (srcSkillInput) {
+              setSkillInputValue(srcSkillInput, newASkill || "");
+            }
+          }
+          markDirty(draggingPanelInput);
+          // 清掉本週裡其他同名 A，只保留「新 A」（也就是原本 B 的那格）
+          if (newAName) {
+            clearDuplicateInPanel(thisWeekPanel, newAName, draggingPanelInput);
+          }
         }
       }
-      markDirty(draggingPanelInput);
-      // V18.2★ 新增：替補 → 本週的補位，一律改成「未上線」狀態
-      // （避免沿用原來那格的狀態）
-    if (
-      draggingPanelInput.dataset.side === "this" &&
-      draggingPanelInput.dataset.role === "name"
-    ) {
-      setCellStatus(draggingPanelInput, "absent");
-    }
-      // 清掉本週面板中的重複名字（保留剛剛互換的那一格）
-      clearDuplicateInPanel(thisWeekPanel, oldName, draggingPanelInput);
+      //（如果之後有 other side panel，要不要特別處理，可以在這裡加 else 分支）
       saveState();
-      updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+      updateGuildBattleAndWeekComparison();
+      updateSubStatusByThisWeek();   // 更新「已排入本週名單」紅字
       return;
     }
-    // 其他來源 → 替補（覆蓋）
+    // ───────── 替補 → 替補：進行交換 ─────────
+    if (member.fromSub !== undefined) {
+      const srcRow = subsList.querySelector(
+        `[data-sub-index="${member.fromSub}"]`
+      );
+      // 保護一下：來源存在且不是同一列，才做交換
+      if (srcRow && srcRow !== subRow) {
+        const srcNameInput  = srcRow.querySelector(".sub-name");
+        const srcSkillInput = srcRow.querySelector(".sub-skill");
+        const srcName  = srcNameInput  ? (srcNameInput.value  || "").trim() : "";
+        const srcSkill = srcSkillInput ? (srcSkillInput.value || "").trim() : "";
+        const srcJob   =
+          (srcNameInput && (srcNameInput.dataset.job || getJobByName(srcName))) ||
+          "";
+        const tgtName  = prevName;
+        const tgtSkill = prevSkill;
+        const tgtJob   = target.dataset.job || getJobByName(tgtName) || "";
+        // 1）把「目標原本的值」放回來源列（srcRow）
+        if (srcNameInput) {
+          srcNameInput.value = tgtName;
+          applyJobColor(srcNameInput, tgtJob);
+          markDirty(srcNameInput);
+        }
+        if (srcSkillInput) {
+          setSkillInputValue(srcSkillInput, tgtSkill || "");
+        }
+        // 2）把「來源的人（member）」放進目前目標替補格
+        target.value = srcName;              // member.name 也應該等於 srcName，這裡用 srcName 比較穩
+        applyJobColor(target, srcJob);
+        if (subSkillInput) {
+          setSkillInputValue(subSkillInput, srcSkill || "");
+        }
+        markDirty(target);
+        saveState();
+        updateSubStatusByThisWeek();   // 重新判斷紅字
+        return;
+      }
+      // 如果拖到自己那列，就當沒事發生，繼續往下走（但通常已經 return 不會到這裡）
+    }
+    // ───────── 其他來源（全部成員名單 等） → 替補 ─────────
+    // ✅ 一律「複製」，不動本週名單
     target.value = member.name;
     applyJobColor(target, member.job);
     if (subSkillInput) {
-      subSkillInput.value = member.skill ? member.skill : "";
+      setSkillInputValue(subSkillInput, member.skill || "");
     }
     markDirty(target);
-    // 若原本該替補格有名字，從本週名單中清掉舊名字
-    if (prevName) {
-      clearDuplicateInPanel(thisWeekPanel, prevName, null);
-    }
+    // ⚠️ 這裡不要再清除本週的 prevName，避免覆蓋 A 時把本週 A 刪掉
+    // if (prevName) {
+    //   clearDuplicateInPanel(thisWeekPanel, prevName, null);
+    // }
     saveState();
-    updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    updateGuildBattleAndWeekComparison();
+    updateSubStatusByThisWeek();   // 更新替補紅字狀態
     return;
-  }
+}
+
 
    // ③ 面板格：本週名單（name 欄位）
 if (target.dataset && target.dataset.role === "name") {
@@ -3162,6 +3271,7 @@ row.classList.add("status-absent");
     markDirty(target);
     saveState();
     updateGuildBattleAndWeekComparison();   // ★ 編輯完，重比對
+    updateSubStatusByThisWeek();
   }
 }
 
@@ -3360,6 +3470,7 @@ if (state.subs && state.subs.length) {
   state.subs.forEach(su => createSubRow(su.name, su.skill, false));
 }
 refreshSubsView();
+updateSubStatusByThisWeek();   // ⭐ 在這裡加入（渲染完替補後執行）
     }
 
 
@@ -4041,24 +4152,31 @@ function openMemberPicker(input){
     closeMemberPicker();
     saveState();
     updateGuildBattleAndWeekComparison();
+    updateSubStatusByThisWeek();
     return;
   }
 
-  // ★ 2. 一般情況：原本的流程（本週名單 or 替補）維持不動
+  // V18.3★ 2. 一般情況：原本的流程（本週名單 or 替補）維持不動
   if (!pickerTargetInput) return;
-  // 先清掉「本週」裡同名的重複成員（維持你原本邏輯）
-    // 先清掉「本週」裡同名的重複成員
+  // ① 本週名單欄位：維持原本「移位」邏輯 → 清掉其他同名
   if (pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
     // ✔ 本週名單：用 clearDuplicateInPanel，順便顯示「從哪一團第幾小隊移過來」
     clearDuplicateInPanel(thisWeekPanel, m.name, pickerTargetInput);
+  // ② 替補欄位：視為「複製」，不要動到本週既有位置
+  } else if (pickerTargetInput.matches('#subsList .sub-name')) {
+    // ⭐ 這裡刻意什麼都不做
+    // 不呼叫 clearDuplicateInPanel、不清除 thisWeekPanel 裡的任何格子
+    // 讓同一個人可以同時出現在「本週」和「替補」
+  // ③ 其他地方（如果未來有新增別的輸入欄位）
   } else {
-    // 替補、其他情況：只清掉本週的重複名字，不需要跳提示
+    // 維持原本：只清掉本週名單裡的重複名字
     thisWeekPanel.querySelectorAll("input[data-role='name']").forEach(inp => {
-      if (inp !== pickerTargetInput && inp.value.trim() === m.name) {
+      if (inp.value.trim() === m.name) {
         clearInputAndSkill(inp);
       }
     });
   }
+
 
   pickerTargetInput.value = m.name;
   applyJobColor(pickerTargetInput, m.job);
@@ -4087,12 +4205,16 @@ function openMemberPicker(input){
     }
   }
   saveState();
-  // ★ 若這次選的是「本週名單」的成員欄位 → 重新比對
-  if (pickerTargetInput &&
-      pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
-    updateGuildBattleAndWeekComparison();
-  }
-  closeMemberPicker();
+// ★ 若這次選的是「本週名單」的成員欄位 → 重新比對
+if (pickerTargetInput &&
+    pickerTargetInput.matches('#thisWeek input[data-role="name"]')) {
+  updateGuildBattleAndWeekComparison();
+}
+// V18.3 新增：無論選的是哪裡，只要關掉 picker 前都重新更新替補狀態
+updateSubStatusByThisWeek();
+
+closeMemberPicker();
+
 }
 
   
@@ -4111,33 +4233,35 @@ function openMemberPicker(input){
     async function loadState(){
       renderRoleTabs();
       renderMemberList();
-
-
       const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
       if (loginStr) {
         try { const obj = JSON.parse(loginStr); currentUser = obj.user || null; lastLoginTime = obj.time || 0; } catch(e){}
       }
-
       const s = localStorage.getItem(STORAGE_KEY);
       if (s) {
         try { const localState = JSON.parse(s); applyStateToPage(localState, true); } catch(e){}
       }
-
-      try {
-        const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-        const data = await res.json();
-        if (data && data.success && data.payload) {
-          const currentLocal = localStorage.getItem(STORAGE_KEY);
-          if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-            applyStateToPage(data.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
-          }
-          if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
-        }
-      } catch(err){ console.warn("雲端讀取逾時或失敗", err); }
-
-      startVersionWatcher();
-      // ★ 一開頁面就自動比對＋補幫眾空位
+       // ⭐ 從這裡開始進入「雲端讀取」→ 顯示 loading
+  showLoadingMask();
+  try {
+    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
+    const data = await res.json();
+    if (data && data.success && data.payload) {
+      const currentLocal = localStorage.getItem(STORAGE_KEY);
+      if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
+        applyStateToPage(data.payload, false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+      }
+      if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
+    }
+  } catch(err){
+    console.warn("雲端讀取逾時或失敗", err);
+  } finally {
+    // ⭐ 無論成功或失敗，雲端讀取結束就關掉 loading
+    hideLoadingMask();
+  }
+  startVersionWatcher();
+  // ★ 一開頁面就自動比對＋補幫眾空位
   updateGuildBattleAndWeekComparison();
   maintainGuildBattlePlaceholders();
     }
@@ -4294,6 +4418,17 @@ function setupGuildDrawerDrag() {
 // DOM 載入完就把拖曳關閉初始化
 document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
 
+/*loading圖*/
+function showLoading() {
+  document.getElementById("loading-overlay").style.display = "flex";
+}
+function hideLoading() {
+  document.getElementById("loading-overlay").style.display = "none";
+}
   </script>
+
+  <div id="loadingMask" class="loading-mask">
+  <img src="loading.gif" alt="載入中">
+  </div>
 </body>
 </html>

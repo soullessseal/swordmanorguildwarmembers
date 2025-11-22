@@ -1182,9 +1182,15 @@
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
     const REMOTE_API = "https://script.google.com/macros/s/AKfycbwer3aI7K6gC-iOCjFFLqbNpi_wK0Q4pEv8BWhg_BD6UiWwyPycn6Lzf1WbJ_HyQBo2/exec";
-    const LOGIN_TTL = 60 * 60 * 1000;
+    const LOGIN_TTL = 60 * 60 * 1000; // 1小時
     // 讓「最近修改框線」在編輯期間暫時隱藏
     let outlinesSuppressed = false;
+
+    // V19 判斷 currentUser / lastLoginTime 是否還在有效登入時間內
+  function isLoginStillValid() {
+  if (!currentUser || !lastLoginTime) return false;
+  return (Date.now() - lastLoginTime) < LOGIN_TTL;
+  }
     
     function suppressOutlinesOnEdit(){
     if (!outlinesSuppressed) {
@@ -3551,19 +3557,20 @@ updateSubStatusByThisWeek();   // ⭐ 在這裡加入（渲染完替補後執行
     }
 
 
-    /*V16.1修改可以收options，儲存可以不跳窗*/
+   /*V16.1修改可以收options，儲存可以不跳窗*/
 function requestSave(options = {}){
   const { silent = false, onSuccess = null } = options;
   // 把設定暫存到函式屬性上，給 doSaveToBackend 用
   requestSave._silentOnce = silent;
   requestSave._onSuccess = onSuccess;
-  const now = Date.now();
-  if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
+  // V19改用共用的登入檢查
+  if (isLoginValid()) {
     doSaveToBackend();
   } else {
     showLogin();
   }
 }
+
 
 
     function showLogin(){
@@ -3707,14 +3714,19 @@ function checkEditingHint() {
   renderEditingHintByRemote();
 }
 
-/*V19， 只要 dirty變數「偶爾」跟伺服器說一聲*/
+/* V19， 只要 dirty 變數「偶爾」跟伺服器說一聲 */
 function sendEditingPing() {
   const now = Date.now();
   // 例如 10 秒 ping 一次就好，避免太頻繁
   if (now - lastEditingPingTime < 10000) return;
   lastEditingPingTime = now;
-  // 沒登入就當作匿名編輯者
-  const userName = currentUser || null;
+  // ★ 判斷登入是否仍在有效期內（跟 requestSave / loadState 一樣邏輯）
+  let userName = null;
+  if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
+    userName = currentUser;   // 例如 "dabai"
+  } else {
+    userName = null;          // 視為未登入 → 只顯示「有人在編輯」
+  }
   try {
     fetch(REMOTE_API, {
       method: "POST",
@@ -3732,6 +3744,7 @@ function sendEditingPing() {
 }
 
 
+
 /*V19根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser*/
 function renderEditingHintByRemote() {
   const desktopHint = document.getElementById("editingHintDesktop");
@@ -3744,8 +3757,9 @@ function renderEditingHintByRemote() {
     return;
   }
   const editorName = remoteEditingInfo.user || null;
-  // 4-1) 如果是自己在編輯，就不要顯示給自己看
-  if (editorName && currentUser && editorName === currentUser) {
+  // 4-1) 如果是自己在編輯，就不要顯示給自己看（登入仍在有效期內才算）
+  const selfName = isLoginStillValid() ? currentUser : null;
+  if (editorName && selfName && editorName === selfName) {
     if (desktopHint) desktopHint.classList.remove("show");
     if (mobileHint)  mobileHint.classList.remove("show");
     return;
@@ -4443,6 +4457,21 @@ async function loadState() {
       lastLoginTime = obj.time || 0;
     } catch(e){}
   }
+  
+  // V19【新增】檢查登入是否已過期（超過 LOGIN_TTL 就當作未登入）
+  (function cleanupExpiredLogin() {
+    if (!currentUser || !lastLoginTime) return;
+    const now = Date.now();
+    if (now - lastLoginTime >= LOGIN_TTL) {
+      // 超過 1 小時 → 視為未登入，清掉本機登入記錄
+      currentUser = null;
+      lastLoginTime = 0;
+      try {
+        localStorage.removeItem(LOGIN_STORAGE_KEY);
+      } catch (e) {}
+    }
+  })();
+
   // ---- 還原 localState ----
   const s = localStorage.getItem(STORAGE_KEY);
   if (s) {
@@ -4644,4 +4673,3 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
-

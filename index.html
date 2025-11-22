@@ -3556,7 +3556,14 @@ updateSubStatusByThisWeek();   // ⭐ 在這裡加入（渲染完替補後執行
   
     }
 
-
+// V19：共用登入有效性判斷
+function isLoginValid() {
+  const now = Date.now();
+  // currentUser = 登入帳號
+  // lastLoginTime = 儲存登入時間
+  // LOGIN_TTL = 有效時間（1 小時 = 3600000）
+  return currentUser && (now - lastLoginTime) < LOGIN_TTL;
+}
    /*V16.1修改可以收options，儲存可以不跳窗*/
 function requestSave(options = {}){
   const { silent = false, onSuccess = null } = options;
@@ -4680,3 +4687,4 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
+

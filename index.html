@@ -3686,16 +3686,8 @@ function getCurrentStateForCompare() {
   };
 }
 function checkEditingHint() {
-  const desktopHint = document.getElementById("editingHintDesktop");
-  const mobileHint  = document.getElementById("editingHintMobile");
-  if (!desktopHint && !mobileHint) return;
-  // 1) 如果還沒有任何雲端基準，代表頁面還在初始化，不顯示也不廣播
-  if (!lastSyncedStateJSON) {
-    if (desktopHint) desktopHint.classList.remove("show");
-    if (mobileHint)  mobileHint.classList.remove("show");
-    return;
-  }
-  // 2) 判斷目前畫面是否跟雲端不同（本機 dirty 判斷）
+  // 還沒有任何雲端基準 → 不判斷 dirty，也不用送 ping
+  if (!lastSyncedStateJSON) return;
   let currentJSON = "";
   try {
     currentJSON = JSON.stringify(getCurrentStateForCompare());
@@ -3703,16 +3695,13 @@ function checkEditingHint() {
     return;
   }
   const dirty = currentJSON !== lastSyncedStateJSON;
-  // 2-1) 如果「我這邊是 dirty」，就定期 ping 一下「我正在編輯」
+  // 只有在「確定跟雲端不一樣」的時候，才 ping 一次「我正在編輯」
   if (dirty) {
     sendEditingPing();
-  } else {
-    // 你也可以選擇在完全乾淨時，送一個「我不編輯了」的訊號
-    // 這裡先交給後端用 timeout 自動失效即可
   }
-  // 3) 顯示誰在編輯 → 完全依賴 remoteEditingInfo
-  renderEditingHintByRemote();
+  // 這裡 **不要** 再去加 / 移除 editingHint 的 show class
 }
+
 
 /* V19， 只要 dirty 變數「偶爾」跟伺服器說一聲 */
 function sendEditingPing() {
@@ -3746,7 +3735,38 @@ function sendEditingPing() {
 
 
 /*V19根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser*/
-function renderEditingHintByRemote() {
+function renderEditingHintByRemote(remoteInfo) {
+  const desktopHint = document.getElementById("editingHintDesktop");
+  const mobileHint  = document.getElementById("editingHintMobile");
+  if (!desktopHint && !mobileHint) return;
+  const hasEditor  = !!(remoteInfo && remoteInfo.hasEditor);
+  const editorUser = remoteInfo && remoteInfo.user ? remoteInfo.user : null;
+  // ✅ 自己在編輯 → 不顯示
+  const isSelf =
+    hasEditor &&
+    editorUser &&
+    currentUser &&
+    editorUser === currentUser;
+  if (!hasEditor || isSelf) {
+    if (desktopHint) desktopHint.classList.remove("show");
+    if (mobileHint)  mobileHint.classList.remove("show");
+    return;
+  }
+  // ✅ 顯示文字：「dabai 正在編輯」或「當前有人正在編輯中」
+  const text = editorUser
+    ? `${editorUser} 正在編輯`
+    : "當前有人正在編輯中";
+  if (desktopHint) {
+    desktopHint.textContent = text;
+    desktopHint.classList.add("show");
+  }
+  if (mobileHint) {
+    mobileHint.textContent = text;
+    mobileHint.classList.add("show");
+  }
+}
+
+/*待刪function renderEditingHintByRemote() {
   const desktopHint = document.getElementById("editingHintDesktop");
   const mobileHint  = document.getElementById("editingHintMobile");
   if (!desktopHint && !mobileHint) return;
@@ -3777,18 +3797,35 @@ function renderEditingHintByRemote() {
     mobileHint.textContent = text;
     mobileHint.classList.add("show");
   }
-}
+}*/
 
 
-
-    function startVersionWatcher(){
-      const INTERVAL = 4000;
-      setInterval(async ()=>{
-        try {
-          // 1) 版本檢查（原本就有）
-      const res = await fetch(REMOTE_API + "?action=version");
-      const data = await res.json(); // ...原本版本比對 & 需要時拉 ?action=get 的邏輯...
-      // 2) 順便抓「誰在編輯」
+/*V19*/
+  const INTERVAL = 4000;
+    function startVersionWatcher() {
+  if (!REMOTE_API) return;
+  let isChecking = false;   // 防止重複執行（避免 version & editing 打架）
+  setInterval(async () => {
+    if (isChecking) return; 
+    isChecking = true;
+    try {
+      // ----- ① 檢查 version -----
+      const vRes = await fetch(REMOTE_API + "?action=version");
+      const vData = await vRes.json();
+      if (vData && vData.success) {
+        if (lastKnownUpdatedAt !== vData.updatedAt) {
+          // 版本變了 → 拉新資料
+          lastKnownUpdatedAt = vData.updatedAt;
+          const dataRes = await fetch(REMOTE_API + "?action=get");
+          const d = await dataRes.json();
+          if (d && d.success && d.payload) {
+            applyStateToPage(d.payload, false);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(d.payload));
+            checkEditingHint(); // 重新比對雲端基準
+          }
+        }
+      }
+      // ----- ② 檢查有人在編輯 -----
       try {
         const eRes = await fetch(REMOTE_API + "?action=editing");
         const eData = await eRes.json();
@@ -3801,17 +3838,18 @@ function renderEditingHintByRemote() {
         } else {
           remoteEditingInfo = null;
         }
-      } catch(e){
+        renderEditingHintByRemote();
+      } catch (e) {
         console.warn("編輯狀態讀取失敗", e);
         remoteEditingInfo = null;
       }
-      // 根據最新 remoteEditingInfo 更新提示
-      renderEditingHintByRemote();
-    } catch(err){
+    } catch (err) {
       console.warn("檢查版本失敗", err);
     }
+    isChecking = false;
   }, INTERVAL);
-    }
+}
+
 
     function fillRoundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();

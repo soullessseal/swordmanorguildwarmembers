@@ -3735,7 +3735,7 @@ function sendEditingPing() {
 
 
 /*V19根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser*/
-function renderEditingHintByRemote(remoteInfo) {
+function renderEditingHintByRemote(remoteEditingInfo) {
   const desktopHint = document.getElementById("editingHintDesktop");
   const mobileHint  = document.getElementById("editingHintMobile");
   if (!desktopHint && !mobileHint) return;
@@ -3765,39 +3765,6 @@ function renderEditingHintByRemote(remoteInfo) {
     mobileHint.classList.add("show");
   }
 }
-
-/*待刪function renderEditingHintByRemote() {
-  const desktopHint = document.getElementById("editingHintDesktop");
-  const mobileHint  = document.getElementById("editingHintMobile");
-  if (!desktopHint && !mobileHint) return;
-  // 預設先全部隱藏
-  if (!remoteEditingInfo || !remoteEditingInfo.hasEditor) {
-    if (desktopHint) desktopHint.classList.remove("show");
-    if (mobileHint)  mobileHint.classList.remove("show");
-    return;
-  }
-  const editorName = remoteEditingInfo.user || null;
-  // 4-1) 如果是自己在編輯，就不要顯示給自己看（登入仍在有效期內才算）
-  const selfName = isLoginStillValid() ? currentUser : null;
-  if (editorName && selfName && editorName === selfName) {
-    if (desktopHint) desktopHint.classList.remove("show");
-    if (mobileHint)  mobileHint.classList.remove("show");
-    return;
-  }
-  // 4-2) 組合顯示文字
-  let text = "當前有人正在編輯中";
-  if (editorName && editorName !== "unknown") {
-    text = editorName + " 正在編輯";
-  }
-  if (desktopHint) {
-    desktopHint.textContent = text;
-    desktopHint.classList.add("show");
-  }
-  if (mobileHint) {
-    mobileHint.textContent = text;
-    mobileHint.classList.add("show");
-  }
-}*/
 
 
 /*V19*/
@@ -4711,4 +4678,3 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
-

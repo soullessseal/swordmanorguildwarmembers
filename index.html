@@ -3838,7 +3838,7 @@ function renderEditingHintByRemote(remoteInfo) {
         } else {
           remoteEditingInfo = null;
         }
-        renderEditingHintByRemote();
+        renderEditingHintByRemote(remoteEditingInfo);
       } catch (e) {
         console.warn("編輯狀態讀取失敗", e);
         remoteEditingInfo = null;
@@ -4711,3 +4711,4 @@ document.addEventListener('DOMContentLoaded', setupGuildDrawerDrag);
   </script>
 </body>
 </html>
+

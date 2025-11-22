@@ -3734,13 +3734,14 @@ function sendEditingPing() {
 
 
 
-/*V19根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser*/
+/* V19 根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser */
 function renderEditingHintByRemote(remoteEditingInfo) {
   const desktopHint = document.getElementById("editingHintDesktop");
   const mobileHint  = document.getElementById("editingHintMobile");
   if (!desktopHint && !mobileHint) return;
-  const hasEditor  = !!(remoteInfo && remoteInfo.hasEditor);
-  const editorUser = remoteInfo && remoteInfo.user ? remoteInfo.user : null;
+  // ✅ 這裡要用「remoteEditingInfo」，不要用 remoteInfo
+  const hasEditor  = !!(remoteEditingInfo && remoteEditingInfo.hasEditor);
+  const editorUser = remoteEditingInfo && remoteEditingInfo.user ? remoteEditingInfo.user : null;
   // ✅ 自己在編輯 → 不顯示
   const isSelf =
     hasEditor &&
@@ -3765,6 +3766,7 @@ function renderEditingHintByRemote(remoteEditingInfo) {
     mobileHint.classList.add("show");
   }
 }
+
 
 
 /*V19*/

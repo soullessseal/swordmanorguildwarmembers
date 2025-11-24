@@ -3845,15 +3845,15 @@ function startTeamWatchers() {
         if (!snap.exists) return;
         const data = snap.data() || {};
         if (!Array.isArray(data.squads)) return;
+        // 這裡保留一個簡單 dbg 就好
         dbg("TeamWatcher fired", {
           team: teamName,
           squads: data.squads.length,
           pending: snap.metadata && snap.metadata.hasPendingWrites
         });
-
-        // 1) 先從畫面抓「目前的 thisWeek」（含其他人的變更、以及自己當前的編輯）
+        // 1) 先從畫面抓「目前的 thisWeek」
         const currentThisWeek = getPanelData(thisWeekPanel) || [];
-        // 2) 轉成以 teamName 為 key 的 map
+        // 2) 轉成 map：teamName -> 團資料
         const byTeam = {};
         currentThisWeek.forEach((t) => {
           if (!t || !t.team) return;
@@ -3879,12 +3879,14 @@ function startTeamWatchers() {
         if (data.tag) {
           byTeam[teamName].tag = data.tag;
         }
-        // 5) 組回 thisWeek 陣列，固定順序
+        // 5) 組回 thisWeek 陣列（固定順序）
         const newThisWeek = allTeamNames.map((name) => byTeam[name]);
         // 6) 只更新「本週名單」畫面，不動全部成員 / 幫會職位
         setPanelData(thisWeekPanel, newThisWeek, "this");
-        thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
-        // 7) 更新 localStorage 裡的 thisWeek（讓重整有最新資料）
+        thisWeekPanel
+          .querySelectorAll(".team-block")
+          .forEach(adjustSquadWidths);
+        // 7) 更新 localStorage 的 thisWeek，讓重整後有最新資料
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
           const saved = raw ? JSON.parse(raw) : {};
@@ -3893,7 +3895,7 @@ function startTeamWatchers() {
         } catch (e) {
           console.warn("更新 localStorage 失敗（team watcher）", e);
         }
-        // 8) 補上你原本有的比對 / placeholder 維護
+        // 8) 補原本就有的比對與 placeholder 維護
         updateGuildBattleAndWeekComparison();
         maintainGuildBattlePlaceholders();
       },

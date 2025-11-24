@@ -417,7 +417,7 @@
     #loginModal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: center; justify-content: center; z-index: 99999; }
     #loginModal .modal-card { background: #fff; border-radius: .75rem; padding: 1.2rem 1.4rem; width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12); }
     #loginModal h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
-    #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
+    #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; box-sizing: border-box; /* ★ 加這行 */}
 
     /* V18.2 本週名單移動成員的小提示泡泡 */
 .week-toast {
@@ -1177,6 +1177,19 @@ const teamDocRefs = {
   </div>
 
   <script>
+    // ===== Debug 工具區 =====
+const DEBUG_LOG = true;
+let debugSeq = 0;
+function dbg(tag, payload) {
+  if (!DEBUG_LOG) return;
+  debugSeq++;
+  const time = new Date().toISOString().split("T")[1]; // 只要時間部分
+  console.log(
+    `[DBG #${debugSeq} ${time}] ${tag}`,
+    JSON.parse(JSON.stringify(payload || {}))
+  );
+}
+
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
@@ -3449,6 +3462,14 @@ function getGuildPositionsData() {
 
     // V19新版：存 localStorage，同時排程自動儲存到 Firebase
 function saveState() {
+  dbg("saveState()", {
+    from: "local-change",
+    // 簡化一下，不要整包 allMembers 印出來
+    thisWeekPreview: getPanelData(thisWeekPanel).map(t => ({
+      team: t.team,
+      squads: t.squads.length
+    }))
+  });
   const state = {
     allMembers,
     thisWeek: getPanelData(thisWeekPanel),
@@ -3518,6 +3539,10 @@ function scheduleAutoSaveToCloud(stateOverride) {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
+    dbg("scheduleAutoSaveToCloud: TIMER FIRE", {
+    // 只看每團小隊數，避免太肥
+    teams: extractThisWeekByTeams()
+  });
     try {
         // 2-1）只有核心資料真的有變化時，才寫回主文件
       if (coreJson !== lastSavedCoreStateJson) {
@@ -3536,6 +3561,7 @@ function scheduleAutoSaveToCloud(stateOverride) {
           lastSavedAllMembersStr = currAllMembersStr;
         }
         await stateDocRef.set(updateDoc, { merge: true });
+        dbg("CloudWrite CORE done", coreState);
       }
       // 2-2）各團各自寫入 teams 子集合，只寫「有變動」的團
       if (!lastSavedTeamsData) lastSavedTeamsData = {};
@@ -3564,6 +3590,7 @@ function scheduleAutoSaveToCloud(stateOverride) {
       }
       if (writePromises.length > 0) {
         await Promise.all(writePromises);
+        dbg("CloudWrite TEAMS done", lastSavedTeamsData);
       }
     } catch (err) {
       console.warn("自動儲存到雲端失敗（分團寫入）", err);
@@ -3594,6 +3621,14 @@ function scheduleAutoSaveToCloud(stateOverride) {
     }
 
     function applyStateToPage(state, fromLocal){
+      dbg("applyStateToPage()", {
+    fromLocal,
+    allMembers: state.allMembers ? state.allMembers.length : 0,
+    thisWeek: (state.thisWeek || []).map(t => ({
+      team: t.team,
+      squads: t.squads ? t.squads.length : 0
+    }))
+  });
       if (state.allMembers && Array.isArray(state.allMembers)) {
         allMembers = state.allMembers;
         const maxId = allMembers.reduce((m,c)=>Math.max(m,c.id||0),12);
@@ -3752,6 +3787,10 @@ function startVersionWatcher() {
     (doc) => {
       if (!doc.exists) return;
       const data = doc.data();
+      dbg("VersionWatcher fired", {
+      hasPayload: !!data.payload,
+      updatedAt: data.updatedAt ? data.updatedAt.toMillis?.() : null
+    });
       if (!data) return;
       // 目前仍以 payload 為主（與既有結構相容）
       const cloudState = data.payload || {};
@@ -3833,6 +3872,11 @@ function startTeamWatchers() {
       (snap) => {
         if (!snap.exists) return;
         const data = snap.data() || {};
+          dbg("TeamWatcher fired", {
+      team: teamName,
+      squads: Array.isArray(data.squads) ? data.squads.length : "no-squads",
+      fromLocal: snap.metadata && snap.metadata.hasPendingWrites
+    });
         if (!Array.isArray(data.squads)) return;
         // 1) 每次都直接從「目前畫面」抓狀態，避免吃到舊的 localStorage
         const baseState = {
@@ -4517,82 +4561,139 @@ closeMemberPicker();
       else skill.style.background = "transparent";
     }
 
-/* V21：真正拆分後的 loadState（不再載入 payload.thisWeek） */
+/* V21：真正拆分後的 loadState（核心資料 + 四團分開） */
 async function loadState() {
   showLoadingMask();
+
   let localState = null;
   let cloudState = null;
   let cloudSuccess = false;
-  /** ① 讀 localStorage */
+  // ① 先讀 localStorage（離線備份）
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) localState = JSON.parse(raw);
-  } catch (e) {}
-  /** ② 讀 cloud（只讀核心資料，不讀 thisWeek） */
+    if (raw) {
+      localState = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn("讀取 localStorage 失敗", e);
+  }
+  // ② 再讀雲端主文件：guildBattleStates/default-room（只拿核心資料）
   try {
-    if (stateDocRef) {
-      const snap = await stateDocRef.get();
-      if (snap.exists) {
-        const data = snap.data() || {};
-        cloudState = data.payload || {};
-        cloudSuccess = true;
-
-        if (data.updatedAt?.toMillis)
-          lastKnownUpdatedAt = data.updatedAt.toMillis();
-        else lastKnownUpdatedAt = Date.now();
+    if (typeof stateDocRef !== "undefined" && stateDocRef) {
+      const docSnap = await stateDocRef.get();
+      if (docSnap.exists) {
+        const data = docSnap.data() || {};
+        if (data.payload) {
+          cloudState = data.payload; // ★ 不再使用 payload.thisWeek
+          cloudSuccess = true;
+        }
+        if (data.updatedAt) {
+          try {
+            lastKnownUpdatedAt = data.updatedAt.toMillis
+              ? data.updatedAt.toMillis()
+              : data.updatedAt;
+          } catch (e) {
+            lastKnownUpdatedAt = Date.now();
+          }
+        }
       }
     }
-  } catch (e) {}
-  /** ③ 用 cloudState（不含 thisWeek）合併 localState 的 thisWeek */
+  } catch (err) {
+    console.warn("雲端讀取失敗或逾時（Firebase）", err);
+  }
+  // ③ 用 cloudState 的「核心資料」搭配 localState 的 thisWeek，先組一份暫時的狀態
+  const baseAllMembers =
+    (cloudState && cloudState.allMembers) ||
+    (localState && localState.allMembers) ||
+    allMembers;
+  const baseSubs =
+    (cloudState && cloudState.subs) ||
+    (localState && localState.subs) ||
+    getSubsData();
+  const baseGuildPositions =
+    (cloudState && cloudState.guildPositions) ||
+    (localState && localState.guildPositions) ||
+    getGuildPositionsData();
+  const baseRecentMarks =
+    (cloudState && cloudState.recentMarks) ||
+    (localState && localState.recentMarks) ||
+    collectRecentMarks();
+  const baseThisWeek =
+    (localState && localState.thisWeek) || getPanelData(thisWeekPanel);
   let finalState = {
-    allMembers: cloudState?.allMembers || localState?.allMembers || [],
-    subs: cloudState?.subs || localState?.subs || [],
-    guildPositions:
-      cloudState?.guildPositions || localState?.guildPositions || {},
-    recentMarks: cloudState?.recentMarks || localState?.recentMarks || [],
-    thisWeek: localState?.thisWeek || [] // ★ 只保留 local 的 thisWeek，等待後面 4 團覆蓋
+    allMembers: baseAllMembers,
+    subs: baseSubs,
+    guildPositions: baseGuildPositions,
+    recentMarks: baseRecentMarks,
+    thisWeek: baseThisWeek // 先放一份，等一下用四團資料完全覆蓋
   };
-  /** ④ 讀取 4 個團（真正 thisWeek 資料來源） */
-  const teamNames = ["進攻", "拆塔", "機動", "防守"];
-  const byTeam = {};
-  // 先建立空殼
-  teamNames.forEach((name) => {
-    byTeam[name] = {
-      team: name,
-      tag: name === "進攻" || name === "拆塔" ? "一團" : "二團",
-      squads: []
-    };
-  });
-  // 讀 cloud 4 個 team/{team}
-  for (const name of teamNames) {
-    const ref = teamDocRefs[name];
-    if (!ref) continue;
-    try {
+  // ④ 從四個 team 文件讀取真正的 thisWeek（offense / tower / mobile / defence）
+  try {
+    const teamNames = ["進攻", "拆塔", "機動", "防守"];
+    const byTeam = {};
+    // 先準備四個空殼（避免沒資料整團消失）
+    teamNames.forEach((name) => {
+      byTeam[name] = {
+        team: name,
+        tag: name === "進攻" || name === "拆塔" ? "一團" : "二團",
+        squads: []
+      };
+    });
+    // 從 Firestore 讀取 /guildBattleStates/default-room/teams/{offense,tower,mobile,defence}
+    for (const name of teamNames) {
+      const ref = teamDocRefs[name];
+      if (!ref) continue;
       const snap = await ref.get();
       if (snap.exists) {
         const data = snap.data() || {};
         if (Array.isArray(data.squads)) {
           byTeam[name].squads = data.squads;
-          if (data.tag) byTeam[name].tag = data.tag;
+        }
+        if (data.tag) {
+          byTeam[name].tag = data.tag;
         }
       }
-    } catch (e) {}
+    }
+    // 用四團資料完全覆蓋 thisWeek（不再理 payload.thisWeek）
+    finalState.thisWeek = teamNames.map((name) => byTeam[name]);
+    // 同時初始化「已同步基準」，給之後 autosave 用
+    try {
+      const teamBaseline = {};
+      (finalState.thisWeek || []).forEach((team) => {
+        if (team && team.team) {
+          teamBaseline[team.team] = Array.isArray(team.squads)
+            ? team.squads
+            : [];
+        }
+      });
+      lastSavedTeamsData = teamBaseline;
+      lastSavedAllMembersStr = JSON.stringify(finalState.allMembers || []);
+    } catch (e) {
+      console.warn("初始化 lastSavedTeamsData 失敗", e);
+    }
+  } catch (e) {
+    console.warn("讀取分團 thisWeek 失敗，暫時使用本機 thisWeek", e);
   }
-  // 套回 thisWeek
-  finalState.thisWeek = teamNames.map((name) => byTeam[name]);
-  /** ⑤ 套用畫面 */
+  // ⑤ 套用到畫面
   applyStateToPage(finalState, !cloudSuccess);
+  // ⑥ 更新 localStorage，讓下次開頁有最新初始狀態
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(finalState));
-  } catch (e) {}
+  } catch (e) {
+    console.warn("寫入 localStorage 失敗", e);
+  }
   hideLoadingMask();
   if (!cloudSuccess) {
-    showWeekToast("⚠️ 使用離線資料");
+    showWeekToast("⚠️ 無法取得雲端資料（Firebase），已使用上次離線版本");
   }
-  /** ⑥ 啟動監聽 */
-  startVersionWatcher();
+  // ⑦ 啟動版本監聽 + 各團即時監聽
+  /*暫時不監聽startVersionWatcher();*/
   startTeamWatchers();
+  // ⑧ 一開頁面補一次比對 & placeholder
+  updateGuildBattleAndWeekComparison();
+  maintainGuildBattlePlaceholders();
 }
+
 
 
 

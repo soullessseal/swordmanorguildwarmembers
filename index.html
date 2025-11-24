@@ -138,50 +138,6 @@
   animation: teamSlideFromLeft .25s ease-out;
 }
 
-/* V18.4編輯中提示（桌機版，顯示在標題右側） */
-.editing-hint {
-  font-size: 0.78rem;
-  color: #b91c1c;
-  background: #fee2e2;
-  padding: 0.18rem 0.5rem;
-  border-radius: 999px;
-  display: none;
-  align-items: center;
-  gap: 0.25rem;
-  white-space: nowrap;
-}
-/* 手機版浮動提示（頂部） */
-.editing-hint-mobile {
-  position: fixed;
-  top: 0.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10000;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  background: rgba(248, 113, 113, 0.96);
-  color: #ffffff;
-  font-size: 0.78rem;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-/* 顯示用共用 class */
-.editing-hint.show,
-.editing-hint-mobile.show {
-  display: inline-flex;
-}
-/* RWD：桌機只顯示 desktop 版，手機只顯示 mobile 版 */
-@media (max-width: 900px) {
-  .editing-hint-desktop {
-    display: none !important;
-  }
-}
-@media (min-width: 901px) {
-  .editing-hint-mobile {
-    display: none !important;
-  }
-}
 
 
     /* V16讓標題與儲存按鈕排在同一行 */
@@ -459,9 +415,9 @@
     #downloadBtn { position: absolute; top: 1rem; right: 1rem; background: #0f766e; }
 
     #loginModal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: center; justify-content: center; z-index: 99999; }
-    #loginModal .modal-card { background: #fff; border-radius: .75rem; padding: 1.4rem 1.4rem; width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12); }
+    #loginModal .modal-card { background: #fff; border-radius: .75rem; padding: 1.2rem 1.4rem; width: 280px; box-shadow: 0 20px 40px rgba(0,0,0,.12); }
     #loginModal h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
-    #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; box-sizing: border-box;}
+    #loginModal input { width: 100%; margin-bottom: .5rem; padding: .35rem .4rem; border: 1px solid #cbd5e1; border-radius: .4rem; }
 
     /* V18.2 本週名單移動成員的小提示泡泡 */
 .week-toast {
@@ -1007,18 +963,61 @@
   display: flex;
 }
 
+
+
+/* 待刪V19：暫時隱藏桌機 / 手機的「儲存」按鈕，保留位置給之後的登入/登出 */
+#saveBtn,
+#mobileSaveBtn,
+.right-actions-bar [data-action="save"] {
+  display: none !important;
+}
+
+
   </style>
+
+
+<!-- Firebase compat 版本（適合一般 HTML 使用） -->
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore-compat.js"></script>
+<script>
+  // 你的 Firebase config（可直接使用）
+  const firebaseConfig = {
+    apiKey: "AIzaSyCpEk7Kx_IaFYIfgGcJtsPjggXS6xk_dKI",
+    authDomain: "swordmanorguildwarmembers.firebaseapp.com",
+    projectId: "swordmanorguildwarmembers",
+    storageBucket: "swordmanorguildwarmembers.firebasestorage.app",
+    messagingSenderId: "78380387762",
+    appId: "1:78380387762:web:ee56abb3fe639f32d728ab",
+    measurementId: "G-8GQC3GZDY9"
+  };
+  // 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+  // Firestore 物件（我們等一下要用這個）
+  const db = firebase.firestore();
+  // 這是資料庫中的「這份幫戰名單的位置」
+  // 你要多人共用就用固定位置，例如 "default-room"
+  const ROOM_ID = "default-room";
+  // 指向 Firestore 文件的引用
+  const stateDocRef = db.collection("guildBattleStates").doc(ROOM_ID);
+  // ★ V20：把本週名單拆成四份獨立文件（掛在同一個 ROOM_ID 底下）
+const teamDocRefs = {
+  "進攻":  stateDocRef.collection("teams").doc("offense"),
+  "拆塔":  stateDocRef.collection("teams").doc("tower"),
+  "機動":  stateDocRef.collection("teams").doc("mobile"),
+  "防守":  stateDocRef.collection("teams").doc("defence")
+};
+
+</script>
+
+
 </head>
 <body>
   <div class="header-row">
     <h1>名劍山莊-幫戰比對工具</h1>
     <button id="saveBtn" class="save-btn-desktop" onclick="requestSave()">儲存</button>
-    <span id="editingHintDesktop" class="editing-hint editing-hint-desktop">當前有人正在編輯中</span>
   </div>
 
-<div id="editingHintMobile" class="editing-hint-mobile">當前有人正在編輯中</div>
-  
-<div class="layout">
+  <div class="layout">
     <!-- 左側：全部成員 -->
     <div class="panel" id="allMembersPanel">
       <h3>全部成員名單</h3>
@@ -1134,7 +1133,7 @@
     <div class="right-sticky-wrap">
     <div class="right-actions-bar">
     <button class="float-btn"  type="button" onclick="openGuildDrawer()">幫會職位</button>
-    <button class="float-btn danger" type="button" onclick="requestSave()">儲存</button>
+    <!--<button class="float-btn danger" type="button" onclick="requestSave()">儲存</button>-->
     </div>
 
       <div class="panel" id="subs">
@@ -1181,16 +1180,10 @@
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const STORAGE_KEY = "guildCompareV12State";
     const LOGIN_STORAGE_KEY = "guildCompareLogin";
-    const REMOTE_API = "https://script.google.com/macros/s/AKfycbwer3aI7K6gC-iOCjFFLqbNpi_wK0Q4pEv8BWhg_BD6UiWwyPycn6Lzf1WbJ_HyQBo2/exec";
-    const LOGIN_TTL = 60 * 60 * 1000; // 1小時
+    const REMOTE_API = "https://script.google.com/macros/s/AKfycbyi96XOIYv7ff_gJO8IG-fGpGWfEE_ZQbKmFYMJQeuP9sbyf4gbrbnZIM-wO83cniYk/exec";
+    const LOGIN_TTL = 60 * 60 * 1000;
     // 讓「最近修改框線」在編輯期間暫時隱藏
     let outlinesSuppressed = false;
-
-    // V19 判斷 currentUser / lastLoginTime 是否還在有效登入時間內
-  function isLoginStillValid() {
-  if (!currentUser || !lastLoginTime) return false;
-  return (Date.now() - lastLoginTime) < LOGIN_TTL;
-  }
     
     function suppressOutlinesOnEdit(){
     if (!outlinesSuppressed) {
@@ -1201,16 +1194,10 @@
     
     let currentUser = null;
     let lastLoginTime = 0;
-    // V19: 遠端「正在編輯」狀態
-    let remoteEditingInfo = null;      // { user: "名稱" or null, hasEditor: true/false, updatedAt: number }
-    let lastEditingPingTime = 0;       // 上一次送「我在編輯」的時間（避免狂打伺服器）
-
 
     const OUTLINE_CLASS = { dabai: "outline-dabai", baoan: "outline-baoan", stitch: "outline-stitch", unknown: "outline-dabai" };
 
     let lastKnownUpdatedAt = null;
-    // V18.4最新一次「雲端狀態」的 JSON 字串，用來跟目前畫面比對
-    let lastSyncedStateJSON = null;
 
     const teams = ["進攻","拆塔","機動","防守"];
     const roleColors = {
@@ -3460,19 +3447,157 @@ function getGuildPositionsData() {
       return arr;
     }
 
-    function saveState() {
-    const state = {
+    // V19新版：存 localStorage，同時排程自動儲存到 Firebase
+function saveState() {
+  const state = {
     allMembers,
     thisWeek: getPanelData(thisWeekPanel),
     subs: getSubsData(),
-    guildPositions: getGuildPositionsData()
+    guildPositions: getGuildPositionsData(),
+    // 把標記一起存進去，結構跟 doSaveToBackend 一致
+    recentMarks: collectRecentMarks()
   };
-    try {
+  try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {}
-  // V18.4★ 每次存本地狀態後，都檢查一次「是否跟雲端版本不同」
-  checkEditingHint();
+  } catch (e) {
+    console.error(e);
+  }
+  // ★ 新增：每次有變動就排程自動同步到雲端
+  scheduleAutoSaveToCloud(state);
 }
+
+// ★ V20：依照 UI 拆出 4 個團的本週名單
+function extractThisWeekByTeams() {
+  const result = {
+    "進攻": [],
+    "拆塔": [],
+    "機動": [],
+    "防守": []
+  };
+  // 找到 thisWeek 區塊下的所有 team-block
+  document.querySelectorAll("#thisWeek .team-block").forEach(teamBlock => {
+    const teamName = teamBlock.dataset.team;
+    if (!teamName) return;
+    const squads = [];
+    // 每一隊（squad）
+    teamBlock.querySelectorAll(".squad").forEach(squad => {
+      const members = [];
+      const rows = squad.querySelectorAll(".member-row");
+      for (let i = 0; i < rows.length; i += 2) {
+        const rowName  = rows[i];
+        const rowSkill = rows[i + 1];
+        const inputName  = rowName.querySelector('input[data-role="name"]');
+        const inputSkill = rowSkill.querySelector('input[data-role="skill"]');
+        members.push({
+          name: inputName?.value.trim() || "",
+          job:  rowName.dataset.job || "",
+          skill: inputSkill?.value.trim() || "",
+          status:
+            rowName.classList.contains("status-present")
+              ? "present"
+              : rowName.classList.contains("status-unsure")
+              ? "unsure"
+              : "absent"
+        });
+      }
+      squads.push({ members });
+    });
+    result[teamName] = squads;
+  });
+  return result;
+}
+
+
+
+// V20：拆成四團分開儲存 + 其他資料仍寫回主 doc（payload）
+let autoSaveTimer = null;
+let lastSavedTeamsData = null;      // 記住上次送出的四團內容
+let lastSavedAllMembersStr = null;  // 記住上次送出的 allMembers 內容（用來判斷有沒有改成員名單）
+function scheduleAutoSaveToCloud(stateOverride) {
+  if (typeof stateDocRef === "undefined" || !stateDocRef) return;
+  const state =
+    stateOverride ||
+    {
+      allMembers,
+      thisWeek: getPanelData(thisWeekPanel),
+      subs: getSubsData(),
+      guildPositions: getGuildPositionsData(),
+      recentMarks: collectRecentMarks()
+    };
+  // debounce：0.8 秒內多次變更合併成一次
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async () => {
+    autoSaveTimer = null;
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    try {
+      // A. 把目前畫面拆成四團
+      const teamsData = extractThisWeekByTeams();
+      // B. 跟「上一次送上去」比對，只挑有變化的團
+      const changedTeamNames = [];
+      const teamNames = ["進攻", "拆塔", "機動", "防守"];
+      teamNames.forEach((teamName) => {
+        const prevStr = lastSavedTeamsData
+          ? JSON.stringify(lastSavedTeamsData[teamName] || [])
+          : null;
+        const currStr = JSON.stringify(teamsData[teamName] || []);
+        // 第一次（prevStr 為 null）或內容不同，才視為有變動
+        if (!prevStr || prevStr !== currStr) {
+          changedTeamNames.push(teamName);
+        }
+      });
+      // C. 只有「有變動」的團才各自寫入自己的 document
+      if (changedTeamNames.length > 0) {
+        for (const teamName of changedTeamNames) {
+          const ref = teamDocRefs[teamName];
+          if (!ref) continue;
+          await ref.set(
+            {
+              squads: teamsData[teamName] || [],
+              updatedAt: now
+            },
+            { merge: true }
+          );
+        }
+      }
+      // D. 判斷這次 allMembers 有沒有被修改
+      const currAllMembersStr = JSON.stringify(state.allMembers || []);
+      const shouldSaveAllMembers =
+        !lastSavedAllMembersStr ||
+        lastSavedAllMembersStr !== currAllMembersStr;
+      // 只組出需要寫回去的 payload
+      // 👉 thisWeek 交給 teams/* 處理，不再寫回 payload 裡
+      const payloadForDoc = {
+        subs: state.subs,
+        guildPositions: state.guildPositions,
+        recentMarks: state.recentMarks
+      };
+      if (shouldSaveAllMembers) {
+        payloadForDoc.allMembers = state.allMembers;
+      }
+      // E. 把 payloadForDoc 寫回主文件
+      await stateDocRef.set(
+        {
+          payload: payloadForDoc,
+          updatedAt: now
+        },
+        { merge: true }
+      );
+      // F. 更新快取，下次比對用
+      lastSavedTeamsData = teamsData;
+      lastSavedAllMembersStr = currAllMembersStr;
+      // G. 更新本地版本時間，避免 onSnapshot 誤判舊資料
+      if (typeof lastKnownUpdatedAt !== "undefined") {
+        lastKnownUpdatedAt = Date.now();
+      }
+    } catch (err) {
+      console.warn("自動儲存到雲端失敗（分團寫入）", err);
+    }
+  }, 800);
+}
+
+
+
+
 
 
 
@@ -3498,7 +3623,7 @@ function getGuildPositionsData() {
         nextMemberId = maxId + 1;
       }
       renderMemberList();
-
+      renderRoleTabs();
       if (state.thisWeek) {
   setPanelData(thisWeekPanel, state.thisWeek, "this");
   thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
@@ -3536,47 +3661,27 @@ if (state.subs && state.subs.length) {
 }
 refreshSubsView();
 updateSubStatusByThisWeek();   // ⭐ 在這裡加入（渲染完替補後執行）
-  
-// V18.4---- 套完畫面後，更新「雲端快照」＆編輯提示 ----
-  if (!fromLocal) {
-    // 只有真正來自雲端的 state 才當成「雲端基準」
-    try {
-      lastSyncedStateJSON = JSON.stringify({
-        allMembers: state.allMembers || allMembers,
-        thisWeek: state.thisWeek || getPanelData(thisWeekPanel),
-        subs: state.subs || getSubsData(),
-        guildPositions: state.guildPositions || getGuildPositionsData(),
-        recentMarks: state.recentMarks || collectRecentMarks()
-      });
-    } catch (e) {
-      lastSyncedStateJSON = null;
-    }
-  }
-  checkEditingHint();
-  
     }
 
-// V19：共用登入有效性判斷
-function isLoginValid() {
-  const now = Date.now();
-  // currentUser = 登入帳號
-  // lastLoginTime = 儲存登入時間
-  // LOGIN_TTL = 有效時間（1 小時 = 3600000）
-  return currentUser && (now - lastLoginTime) < LOGIN_TTL;
-}
-   /*V16.1修改可以收options，儲存可以不跳窗*/
-function requestSave(options = {}){
+
+// V19-Firebase：現在改成自動儲存，這個函式只負責顯示提示／呼叫 callback
+function requestSave(options = {}) {
   const { silent = false, onSuccess = null } = options;
-  // 把設定暫存到函式屬性上，給 doSaveToBackend 用
-  requestSave._silentOnce = silent;
-  requestSave._onSuccess = onSuccess;
-  // V19改用共用的登入檢查
-  if (isLoginValid()) {
-    doSaveToBackend();
-  } else {
-    showLogin();
+  // 不再做登入、不再主動打後端，因為 saveState 會自動同步到 Firebase
+  if (!silent) {
+    // 用你現有的 Toast（或之後你想改成別的字都可以）
+    if (typeof showWeekToast === "function") {
+      showWeekToast("✅ 現在是自動儲存模式，不用按「儲存」");
+    } else {
+      console.log("現在是自動儲存模式，不用按「儲存」");
+    }
+  }
+  // 如果呼叫方有傳 onSuccess，就直接幫它執行（當作「已完成」）
+  if (typeof onSuccess === "function") {
+    onSuccess();
   }
 }
+
 
 
 
@@ -3621,210 +3726,186 @@ function doSaveToBackend() {
     thisWeek: getPanelData(thisWeekPanel),
     subs: getSubsData(),
     guildPositions: getGuildPositionsData(),  // ★ 把幫眾 / 學徒也存進去
-    recentMarks: collectRecentMarks()  // 你新版用的標記資料
-    // 如果之後要把幫眾 / 學徒職位也存進去，可以在這裡再多加欄位
-    // guildBattle: serializeGuildBattleState() 之類的
+    recentMarks: collectRecentMarks()        // 你新版用的標記資料
   };
+
   // 先存一份 localStorage 備份（延續你現在的做法）
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     console.error(e);
   }
-  // ★ 重點 1：不要自己加 Content-Type，寫法回到舊版那種
-  fetch(REMOTE_API, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "save",
-      payload: state  // ★ 重點 2：欄位名改回 payload，對應 GAS
-    })
-  })
-    .then(res => res.json())
-    .then(data => {
-      // ★ 重點 3：改回用 success 判斷
-      if (data && data.success) {
-        const silent = !!requestSave._silentOnce; //V16.1新增
-        const cb = requestSave._onSuccess; //V16.1新增
-        lastKnownUpdatedAt = data.updatedAt || null;
-       
-        // ★ V18.4儲存成功後，把這一版 state 當成新的雲端基準
-        try {
-        const newState = {
-        allMembers,
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData(),
-        guildPositions: getGuildPositionsData(),
-        recentMarks: collectRecentMarks()
-        };
-        lastSyncedStateJSON = JSON.stringify(newState);
-        } catch (e) {
-        lastSyncedStateJSON = null;
-        }
-        checkEditingHint();
 
-        if (!silent) {alert("已儲存到後台");}
-        // 如果你要順便把最近修改框線畫回來，也可以在這裡做
-        // renderRecentMarks(state.recentMarks);
-        // document.querySelectorAll("[data-dirty='1']").forEach(el => el.removeAttribute("data-dirty"));
-        requestSave._silentOnce = false; //V16.1新增
-        requestSave._onSuccess = null; //V16.1新增
-        if (typeof cb === "function") cb(); //V16.1新增
-      } else {
-        alert("後台有回應但不是 success，請看 console");
-        console.log(data);
+  // V19 使用 Firestore 儲存到固定文件
+  showLoadingMask();
+  stateDocRef
+    .set(
+      {
+        payload: state,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    )
+    .then(() => {
+      hideLoadingMask();
+      const silent = !!requestSave._silentOnce;
+      const cb = requestSave._onSuccess;
+      // 這裡的 updatedAt 我們就先用現在時間記錄在本地
+      lastKnownUpdatedAt = Date.now();
+
+      if (!silent) {
+        alert("已儲存到雲端（Firebase）");
       }
+      requestSave._silentOnce = false;
+      requestSave._onSuccess = null;
+      if (typeof cb === "function") cb();
     })
-    .catch(err => {
-      // 這裡就沿用你一開始 v15.3 的提醒文字
-      alert("無法連到後台，請檢查 Apps Script 部署權限");
+    .catch((err) => {
+      hideLoadingMask();
+      alert("儲存到雲端失敗，請檢查網路或 Firebase 設定");
       console.error(err);
     });
 }
 
 
-// V18.4目前畫面狀態（用來和 lastSyncedStateJSON 比對）
-function getCurrentStateForCompare() {
-  return {
-    allMembers,
-    thisWeek: getPanelData(thisWeekPanel),
-    subs: getSubsData(),
-    guildPositions: getGuildPositionsData(),
-    recentMarks: collectRecentMarks()
-  };
-}
-function checkEditingHint() {
-  // 還沒有任何雲端基準 → 不判斷 dirty，也不用送 ping
-  if (!lastSyncedStateJSON) return;
-  let currentJSON = "";
-  try {
-    currentJSON = JSON.stringify(getCurrentStateForCompare());
-  } catch (e) {
-    return;
-  }
-  const dirty = currentJSON !== lastSyncedStateJSON;
-  // 只有在「確定跟雲端不一樣」的時候，才 ping 一次「我正在編輯」
-  if (dirty) {
-    sendEditingPing();
-  }
-  // 這裡 **不要** 再去加 / 移除 editingHint 的 show class
-}
-
-
-/* V19， 只要 dirty 變數「偶爾」跟伺服器說一聲 */
-function sendEditingPing() {
-  const now = Date.now();
-  // 例如 10 秒 ping 一次就好，避免太頻繁
-  if (now - lastEditingPingTime < 10000) return;
-  lastEditingPingTime = now;
-  // ★ 判斷登入是否仍在有效期內（跟 requestSave / loadState 一樣邏輯）
-  let userName = null;
-  if (currentUser && (now - lastLoginTime) < LOGIN_TTL) {
-    userName = currentUser;   // 例如 "dabai"
-  } else {
-    userName = null;          // 視為未登入 → 只顯示「有人在編輯」
-  }
-  try {
-    fetch(REMOTE_API, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "editing",
-        user: userName,
-        at: now
-      })
-    }).catch(err => {
-      console.warn("editing ping error", err);
-    });
-  } catch (e) {
-    console.warn("editing ping exception", e);
-  }
-}
-
-
-
-/* V19 根據遠端資訊顯示氣泡，這個會讀 remoteEditingInfo + currentUser */
-function renderEditingHintByRemote(remoteEditingInfo) {
-  const desktopHint = document.getElementById("editingHintDesktop");
-  const mobileHint  = document.getElementById("editingHintMobile");
-  if (!desktopHint && !mobileHint) return;
-  // ✅ 這裡要用「remoteEditingInfo」，不要用 remoteInfo
-  const hasEditor  = !!(remoteEditingInfo && remoteEditingInfo.hasEditor);
-  const editorUser = remoteEditingInfo && remoteEditingInfo.user ? remoteEditingInfo.user : null;
-  // ✅ 自己在編輯 → 不顯示
-  const isSelf =
-    hasEditor &&
-    editorUser &&
-    currentUser &&
-    editorUser === currentUser;
-  if (!hasEditor || isSelf) {
-    if (desktopHint) desktopHint.classList.remove("show");
-    if (mobileHint)  mobileHint.classList.remove("show");
-    return;
-  }
-  // ✅ 顯示文字：「dabai 正在編輯」或「當前有人正在編輯中」
-  const text = editorUser
-    ? `${editorUser} 正在編輯`
-    : "當前有人正在編輯中";
-  if (desktopHint) {
-    desktopHint.textContent = text;
-    desktopHint.classList.add("show");
-  }
-  if (mobileHint) {
-    mobileHint.textContent = text;
-    mobileHint.classList.add("show");
-  }
-}
-
-
-
-/*V19*/
-  const INTERVAL = 4000;
-    function startVersionWatcher() {
-  if (!REMOTE_API) return;
-  let isChecking = false;   // 防止重複執行（避免 version & editing 打架）
-  setInterval(async () => {
-    if (isChecking) return; 
-    isChecking = true;
-    try {
-      // ----- ① 檢查 version -----
-      const vRes = await fetch(REMOTE_API + "?action=version");
-      const vData = await vRes.json();
-      if (vData && vData.success) {
-        if (lastKnownUpdatedAt !== vData.updatedAt) {
-          // 版本變了 → 拉新資料
-          lastKnownUpdatedAt = vData.updatedAt;
-          const dataRes = await fetch(REMOTE_API + "?action=get");
-          const d = await dataRes.json();
-          if (d && d.success && d.payload) {
-            applyStateToPage(d.payload, false);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(d.payload));
-            checkEditingHint(); // 重新比對雲端基準
+//V20 改成「不要再用 payload.thisWeek 重蓋整包」
+function startVersionWatcher() {
+  // 只註冊一次監聽目前這一份主文件
+  stateDocRef.onSnapshot(
+    (doc) => {
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (!data) return;
+      // 目前仍以 payload 為主（與既有結構相容）
+      const cloudState = data.payload || {};
+      // 我們只比較「非 thisWeek」的部分，避免別人整包 thisWeek 把本機蓋掉
+      let cloudShared = cloudState;
+      try {
+        const { thisWeek, ...rest } = cloudState || {};
+        cloudShared = rest;
+      } catch (e) {}
+      try {
+        const currentLocalRaw = localStorage.getItem(STORAGE_KEY);
+        if (currentLocalRaw) {
+          const currentLocal = JSON.parse(currentLocalRaw) || {};
+          const { thisWeek: localThisWeek, ...localShared } = currentLocal;
+          // 如果非 thisWeek 部分完全一樣，就略過（避免重複重畫）
+          if (sameJSON(localShared, cloudShared)) {
+            return;
           }
         }
-      }
-      // ----- ② 檢查有人在編輯 -----
-      try {
-        const eRes = await fetch(REMOTE_API + "?action=editing");
-        const eData = await eRes.json();
-        if (eData && eData.success) {
-          remoteEditingInfo = {
-            user: eData.user || null,
-            hasEditor: !!eData.hasEditor,
-            updatedAt: eData.updatedAt || null
-          };
-        } else {
-          remoteEditingInfo = null;
-        }
-        renderEditingHintByRemote(remoteEditingInfo);
       } catch (e) {
-        console.warn("編輯狀態讀取失敗", e);
-        remoteEditingInfo = null;
+        // ignore JSON error
       }
-    } catch (err) {
-      console.warn("檢查版本失敗", err);
+      // 準備要套用到畫面的 state：
+      // 1. 先以 cloudState 為主
+      // 2. 保留本機 thisWeek（讓本週名單之後交給 teams doc 來即時同步）
+      let mergedState = cloudState;
+      try {
+        const currentLocalRaw = localStorage.getItem(STORAGE_KEY);
+        if (currentLocalRaw) {
+          const currentLocal = JSON.parse(currentLocalRaw) || {};
+          mergedState = Object.assign({}, cloudState, {
+            thisWeek: currentLocal.thisWeek || cloudState.thisWeek
+          });
+        }
+      } catch (e) {
+        // 如果解析失敗，就直接用 cloudState
+        mergedState = cloudState;
+      }
+      // 套用到畫面（fromLocal = false）
+      applyStateToPage(mergedState, false);
+      // 更新本機 localStorage（包含保留下來的 thisWeek）
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedState));
+      } catch (e) {}
+      // 記錄最新更新時間，避免之後誤判舊資料
+      try {
+        if (data.updatedAt && typeof data.updatedAt.toMillis === "function") {
+          lastKnownUpdatedAt = data.updatedAt.toMillis();
+        } else if (typeof lastKnownUpdatedAt !== "undefined") {
+          lastKnownUpdatedAt = Date.now();
+        }
+      } catch (e) {
+        // ignore
+      }
+      // 保留原本的提示與更新
+      try {
+        showWeekToast("✅ 已同步最新雲端資料");
+      } catch (e) {
+        // showWeekToast 若需要 anchor 但沒傳，就忽略
+        console.log("已同步最新雲端資料");
+      }
+      updateGuildBattleAndWeekComparison();
+      maintainGuildBattlePlaceholders();
+    },
+    (err) => {
+      console.warn("Firestore 版本監聽錯誤", err);
     }
-    isChecking = false;
-  }, INTERVAL);
+  );
 }
+
+// V20：為四個團建立即時監聽（進攻 / 拆塔 / 機動 / 防守）
+function startTeamWatchers() {
+  if (typeof teamDocRefs === "undefined") return;
+  const teamNames = ["進攻", "拆塔", "機動", "防守"];
+  teamNames.forEach((teamName) => {
+    const ref = teamDocRefs[teamName];
+    if (!ref) return;
+    ref.onSnapshot(
+      (snap) => {
+        if (!snap.exists) return;
+        const data = snap.data() || {};
+        if (!Array.isArray(data.squads)) return;
+        // 1) 每次都直接從「目前畫面」抓狀態，避免吃到舊的 localStorage
+        const baseState = {
+          allMembers,
+          thisWeek: getPanelData(thisWeekPanel),
+          subs: getSubsData(),
+          guildPositions: getGuildPositionsData(),
+          recentMarks: collectRecentMarks()
+        };
+        // 2) 把 thisWeek 轉成 teamName -> 團資料 的 map
+        const byTeam = {};
+        (baseState.thisWeek || []).forEach((t) => {
+          if (t && t.team) {
+            byTeam[t.team] = {
+              team: t.team,
+              tag: t.tag || "",
+              squads: Array.isArray(t.squads) ? t.squads : []
+            };
+          }
+        });
+        // 3) 確保四個團都有一個基本殼（防止空陣列時消失）
+        teamNames.forEach((name) => {
+          if (!byTeam[name]) {
+            byTeam[name] = {
+              team: name,
+              tag: name === "進攻" || name === "拆塔" ? "一團" : "二團",
+              squads: []
+            };
+          }
+        });
+        // 4) 用最新的 squads 覆蓋「這一團」
+        byTeam[teamName].squads = data.squads;
+        // 5) 重新組成 thisWeek，保持固定順序
+        baseState.thisWeek = teamNames.map((name) => byTeam[name]);
+        // 6) 套用到畫面（其他團 + 替補 + 幫會職位，都用剛剛抓到的畫面狀態）
+        applyStateToPage(baseState, false);
+        // 7) 更新 localStorage，讓下次重整頁面有最新初始資料
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(baseState));
+        } catch (e) {
+          console.warn("更新 localStorage 失敗（team watcher）", e);
+        }
+      },
+      (err) => {
+        console.warn("各團即時監聽錯誤", err);
+      }
+    );
+  });
+}
+
 
 
     function fillRoundRect(ctx, x, y, w, h, r) {
@@ -4459,78 +4540,128 @@ closeMemberPicker();
       else skill.style.background = "transparent";
     }
 
+    /*V20更新*/
 async function loadState() {
-  renderRoleTabs();
-  renderMemberList();
-  // ---- 還原登入資料 ----
-  const loginStr = localStorage.getItem(LOGIN_STORAGE_KEY);
-  if (loginStr) {
-    try {
-      const obj = JSON.parse(loginStr);
-      currentUser = obj.user || null;
-      lastLoginTime = obj.time || 0;
-    } catch(e){}
-  }
-  
-  // V19【新增】檢查登入是否已過期（超過 LOGIN_TTL 就當作未登入）
-  (function cleanupExpiredLogin() {
-    if (!currentUser || !lastLoginTime) return;
-    const now = Date.now();
-    if (now - lastLoginTime >= LOGIN_TTL) {
-      // 超過 1 小時 → 視為未登入，清掉本機登入記錄
-      currentUser = null;
-      lastLoginTime = 0;
-      try {
-        localStorage.removeItem(LOGIN_STORAGE_KEY);
-      } catch (e) {}
-    }
-  })();
-
-  // ---- 還原 localState ----
-  const s = localStorage.getItem(STORAGE_KEY);
-  if (s) {
-    try {
-      const localState = JSON.parse(s);
-      applyStateToPage(localState, true);
-    } catch(e){}
-  }
-  // ---------------------------
-  // ⭐ 開始雲端讀取 → 顯示 loading
-  // ---------------------------
   showLoadingMask();
+  let localState = null;
+  let cloudState = null;
   let cloudSuccess = false;
+  // ① 先讀 localStorage（離線備份）
   try {
-    const res = await fetchWithTimeout(REMOTE_API + "?action=get", 3000);
-    const data = await res.json();
-
-    if (data && data.success && data.payload) {
-      cloudSuccess = true;
-
-      const currentLocal = localStorage.getItem(STORAGE_KEY);
-      if (!currentLocal || !sameJSON(JSON.parse(currentLocal), data.payload)) {
-        applyStateToPage(data.payload, false);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      localState = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn("讀取 localStorage 失敗", e);
+  }
+  // ② 再讀雲端主文件：guildBattleStates/default-room
+  try {
+    if (typeof stateDocRef !== "undefined" && stateDocRef) {
+      const docSnap = await stateDocRef.get();
+      if (docSnap.exists) {
+        const data = docSnap.data() || {};
+        if (data.payload) {
+          cloudState = data.payload;
+          cloudSuccess = true;
+        }
+        // 記錄 updatedAt 給 startVersionWatcher 用
+        if (data.updatedAt) {
+          try {
+            lastKnownUpdatedAt = data.updatedAt.toMillis
+              ? data.updatedAt.toMillis()
+              : data.updatedAt;
+          } catch (e) {
+            lastKnownUpdatedAt = Date.now();
+          }
+        }
       }
-      if (data.updatedAt) lastKnownUpdatedAt = data.updatedAt;
     }
   } catch (err) {
-    console.warn("雲端讀取失敗或逾時", err);
+    console.warn("雲端讀取失敗或逾時（Firebase）", err);
   }
-  // ---------------------------
-  // ⭐ 雲端成功 → 立刻關閉 loading
-  // ⭐ 雲端失敗 → 同樣關閉，但提示
-  // ---------------------------
+  // ③ 沒雲端就退回 localState，再不行就用畫面當前狀態
+  let finalState =
+    cloudState ||
+    localState || {
+      allMembers,
+      thisWeek: getPanelData(thisWeekPanel),
+      subs: getSubsData(),
+      guildPositions: getGuildPositionsData(),
+      recentMarks: collectRecentMarks()
+    };
+  // ④ 嘗試從「拆分後的 4 個團文件」讀取 squads，覆蓋 thisWeek
+  try {
+    const teamNames = ["進攻", "拆塔", "機動", "防守"];
+    // 先把原本 finalState.thisWeek 轉成以 team 為 key 的 map
+    const byTeam = {};
+    (finalState.thisWeek || []).forEach((team) => {
+      if (team && team.team) {
+        byTeam[team.team] = {
+          team: team.team,
+          tag: team.tag || "",
+          squads: Array.isArray(team.squads) ? team.squads : []
+        };
+      }
+    });
+    // 如果原本沒 thisWeek，就幫他生四個空殼團（tag 先給預設值）
+    teamNames.forEach((name) => {
+      if (!byTeam[name]) {
+        byTeam[name] = {
+          team: name,
+          tag: name === "進攻" || name === "拆塔" ? "一團" : "二團",
+          squads: []
+        };
+      }
+    });
+    // 逐團讀 Firestore：/guildBattleStates/default-room/teams/{offense, tower, mobile, defence}
+    for (const name of teamNames) {
+      const ref = teamDocRefs[name]; // ★ 我們之前 Step1 新增的那個 map
+      if (!ref) continue;
+      const snap = await ref.get();
+      if (snap.exists) {
+        const data = snap.data() || {};
+        if (Array.isArray(data.squads)) {
+          byTeam[name].squads = data.squads;
+        }
+      }
+    }
+    // 重新組成 thisWeek 陣列，照固定順序排回去
+    finalState.thisWeek = teamNames.map((name) => byTeam[name]);
+      // 把目前 thisWeek / allMembers 記錄成「已同步基準」，給之後的差異比對用
+    try {
+      const teamBaseline = {};
+      (finalState.thisWeek || []).forEach((team) => {
+        if (team && team.team) {
+          teamBaseline[team.team] = Array.isArray(team.squads)
+            ? team.squads
+            : [];
+        }
+      });
+      lastSavedTeamsData = teamBaseline;
+      lastSavedAllMembersStr = JSON.stringify(finalState.allMembers || []);
+    } catch (e) {
+      console.warn("初始化 lastSavedTeamsData 失敗", e);
+    }
+  } catch (e) {
+    console.warn("讀取分團 thisWeek 失敗，改用 payload 裡的版本", e);
+  }
+  // ⑤ 把最後的狀態套回畫面
+  applyStateToPage(finalState, !cloudSuccess);
   hideLoadingMask();
-
   if (!cloudSuccess) {
-    showWeekToast("⚠️ 無法取得雲端資料，已使用上次離線版本");
+    showWeekToast("⚠️ 無法取得雲端資料（Firebase），已使用上次離線版本");
   }
-  // ---- 啟動偵測版本變動 ----
+  // ⑥ 啟動版本監聽（之後我們再加「每團即時監聽」）
   startVersionWatcher();
-  // ---- 一開頁面 → 重新比對 ----
+  // ⑥-2 啟動各團的即時監聽（teams/offense, tower, mobile, defence）
+  startTeamWatchers();
+  // ⑦ 一開頁面補一次比對 & placeholder
   updateGuildBattleAndWeekComparison();
   maintainGuildBattlePlaceholders();
 }
+
+
 
 
     // V14.9根據名字長度自動縮放字體大小（只管本週名單 + 替補名字）

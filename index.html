@@ -3487,6 +3487,7 @@ let autoSaveTimer = null;
 // 記錄上一次寫入的「核心資料」與「各團資料」，避免沒變還一直覆蓋別人
 let lastSavedCoreStateJson = "";
 let lastSavedTeamsData = {};
+let lastSavedAllMembersStr = "";   // ★ 新增：只追蹤 allMembers 有沒有變
 function scheduleAutoSaveToCloud(stateOverride) {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
   // 先組一份完整的狀態（跟 saveState 裡的一樣）
@@ -3509,22 +3510,32 @@ function scheduleAutoSaveToCloud(stateOverride) {
   const coreJson = JSON.stringify(coreState);
   // 2) 拆出「各團 thisWeek 資料」
   const teamsData = extractThisWeekByTeams(state.thisWeek || []);
+    // 判斷 allMembers 是否有變化（單獨追蹤，避免被別人洗掉）
+  const currAllMembersStr = JSON.stringify(state.allMembers || []);
+  const shouldSaveAllMembers =
+    !lastSavedAllMembersStr || lastSavedAllMembersStr !== currAllMembersStr;
   // debounce：0.8 秒內多次變更，合併成一次寫入
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
     try {
-      // 2-1）只有核心資料真的有變化時，才寫回主文件，避免覆蓋別人
+        // 2-1）只有核心資料真的有變化時，才寫回主文件
       if (coreJson !== lastSavedCoreStateJson) {
         lastSavedCoreStateJson = coreJson;
-        await stateDocRef.set(
-          {
-            // 把 payload 拆散也可以，但先維持你的結構，只更新 payload 這個欄位
-            payload: coreState,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          },
-          { merge: true }
-        );
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        // ★ 用「欄位路徑」寫入，不再整個覆蓋 payload 物件
+        const updateDoc = {
+          "payload.subs": state.subs,
+          "payload.guildPositions": state.guildPositions,
+          "payload.recentMarks": state.recentMarks,
+          updatedAt: now
+        };
+        // 只有 allMembers 真的有變化時，才更新 payload.allMembers
+        if (shouldSaveAllMembers) {
+          updateDoc["payload.allMembers"] = state.allMembers;
+          lastSavedAllMembersStr = currAllMembersStr;
+        }
+        await stateDocRef.set(updateDoc, { merge: true });
       }
       // 2-2）各團各自寫入 teams 子集合，只寫「有變動」的團
       if (!lastSavedTeamsData) lastSavedTeamsData = {};

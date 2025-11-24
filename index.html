@@ -3503,100 +3503,72 @@ function extractThisWeekByTeams(thisWeekArray) {
 
 
 
-// ★ V20：自動儲存到雲端（核心資料 + 分團寫入）
+// ★ v21：簡化版自動儲存（每次觸發都重新讀目前畫面）
 let autoSaveTimer = null;
-// 記錄上一次寫入的「核心資料」與「各團資料」，避免沒變還一直覆蓋別人
-let lastSavedCoreStateJson = "";
-let lastSavedTeamsData = {};
-let lastSavedAllMembersStr = "";   // ★ 新增：只追蹤 allMembers 有沒有變
 function scheduleAutoSaveToCloud(stateOverride) {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
-  // 先組一份完整的狀態（跟 saveState 裡的一樣）
-  const state =
-    stateOverride ||
-    {
-      allMembers,
-      thisWeek: getPanelData(thisWeekPanel),
-      subs: getSubsData(),
-      guildPositions: getGuildPositionsData(),
-      recentMarks: collectRecentMarks()
-    };
-  // 1) 拆出「核心資料」（不含 thisWeek）
-  const coreState = {
-    allMembers: state.allMembers,
-    subs: state.subs,
-    guildPositions: state.guildPositions,
-    recentMarks: state.recentMarks
-  };
-  const coreJson = JSON.stringify(coreState);
-  // 2) 拆出「各團 thisWeek 資料」
-  const teamsData = extractThisWeekByTeams(state.thisWeek || []);
-    // 判斷 allMembers 是否有變化（單獨追蹤，避免被別人洗掉）
-  const currAllMembersStr = JSON.stringify(state.allMembers || []);
-  const shouldSaveAllMembers =
-    !lastSavedAllMembersStr || lastSavedAllMembersStr !== currAllMembersStr;
-  // debounce：0.8 秒內多次變更，合併成一次寫入
+  // debounce：0.8 秒內多次變更合併成一次
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
-    dbg("scheduleAutoSaveToCloud: TIMER FIRE", {
-    // 只看每團小隊數，避免太肥
-    teams: extractThisWeekByTeams()
-  });
+    const now = firebase.firestore.FieldValue.serverTimestamp();
     try {
-        // 2-1）只有核心資料真的有變化時，才寫回主文件
-      if (coreJson !== lastSavedCoreStateJson) {
-        lastSavedCoreStateJson = coreJson;
-        const now = firebase.firestore.FieldValue.serverTimestamp();
-        // ★ 用「欄位路徑」寫入，不再整個覆蓋 payload 物件
-        const updateDoc = {
+      // 1) 每次觸發時「重新抓一次畫面狀態」
+      const state =
+        stateOverride ||
+        {
+          allMembers,
+          thisWeek: getPanelData(thisWeekPanel),
+          subs: getSubsData(),
+          guildPositions: getGuildPositionsData(),
+          recentMarks: collectRecentMarks()
+        };
+      // 2) 用「目前 thisWeek」拆出四團資料
+      const teamsData = extractThisWeekByTeams(state.thisWeek || []);
+      dbg("AutoSave TIMER FIRE", {
+        teamsPreview: Object.keys(teamsData)
+      });
+      // 3) 寫入四個團的 document
+      for (const teamName in teamDocRefs) {
+        const ref = teamDocRefs[teamName];
+        if (!ref) continue;
+        const team = teamsData[teamName] || {
+          tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
+          squads: []
+        };
+        await ref.set(
+          {
+            tag: team.tag || "",
+            squads: Array.isArray(team.squads) ? team.squads : [],
+            updatedAt: now
+          },
+          { merge: true }
+        );
+      }
+      dbg("CloudWrite TEAMS done", teamsData);
+      // 4) 只更新「核心資料」，不動 thisWeek（thisWeek 完全交給 teams/*）
+      await stateDocRef.set(
+        {
+          "payload.allMembers": state.allMembers,
           "payload.subs": state.subs,
           "payload.guildPositions": state.guildPositions,
           "payload.recentMarks": state.recentMarks,
           updatedAt: now
-        };
-        // 只有 allMembers 真的有變化時，才更新 payload.allMembers
-        if (shouldSaveAllMembers) {
-          updateDoc["payload.allMembers"] = state.allMembers;
-          lastSavedAllMembersStr = currAllMembersStr;
-        }
-        await stateDocRef.set(updateDoc, { merge: true });
-        dbg("CloudWrite CORE done", coreState);
-      }
-      // 2-2）各團各自寫入 teams 子集合，只寫「有變動」的團
-      if (!lastSavedTeamsData) lastSavedTeamsData = {};
-      const writePromises = [];
-      for (const teamName in teamDocRefs) {
-        const ref = teamDocRefs[teamName];
-        const newData = teamsData[teamName];
-        if (!ref || !newData) continue;
-        const prevJson = JSON.stringify(lastSavedTeamsData[teamName] || {});
-        const nextJson = JSON.stringify(newData);
-        if (prevJson === nextJson) {
-          // 這個團沒變，不用打 API
-          continue;
-        }
-        // 記錄這次寫入內容
-        lastSavedTeamsData[teamName] = newData;
-        writePromises.push(
-          ref.set(
-            {
-              tag: newData.tag || "",
-              squads: Array.isArray(newData.squads) ? newData.squads : []
-            },
-            { merge: true }
-          )
-        );
-      }
-      if (writePromises.length > 0) {
-        await Promise.all(writePromises);
-        dbg("CloudWrite TEAMS done", lastSavedTeamsData);
+        },
+        { merge: true }
+      );
+      dbg("CloudWrite CORE done", {
+        allMembersCount: (state.allMembers || []).length
+      });
+      if (typeof lastKnownUpdatedAt !== "undefined") {
+        lastKnownUpdatedAt = Date.now();
       }
     } catch (err) {
       console.warn("自動儲存到雲端失敗（分團寫入）", err);
     }
   }, 800);
 }
+
 
 
 

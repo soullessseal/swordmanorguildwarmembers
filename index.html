@@ -3833,7 +3833,7 @@ function startVersionWatcher() {
   );
 }
 
-// V20：為四個團建立即時監聽（進攻 / 拆塔 / 機動 / 防守）
+// V21：各團即時監聽，只更新「本週名單」這一塊，不再整頁重畫
 function startTeamWatchers() {
   if (typeof teamDocRefs === "undefined") return;
   const teamNames = ["進攻", "拆塔", "機動", "防守"];
@@ -3844,33 +3844,28 @@ function startTeamWatchers() {
       (snap) => {
         if (!snap.exists) return;
         const data = snap.data() || {};
-          dbg("TeamWatcher fired", {
-      team: teamName,
-      squads: Array.isArray(data.squads) ? data.squads.length : "no-squads",
-      fromLocal: snap.metadata && snap.metadata.hasPendingWrites
-    });
         if (!Array.isArray(data.squads)) return;
-        // 1) 每次都直接從「目前畫面」抓狀態，避免吃到舊的 localStorage
-        const baseState = {
-          allMembers,
-          thisWeek: getPanelData(thisWeekPanel),
-          subs: getSubsData(),
-          guildPositions: getGuildPositionsData(),
-          recentMarks: collectRecentMarks()
-        };
-        // 2) 把 thisWeek 轉成 teamName -> 團資料 的 map
-        const byTeam = {};
-        (baseState.thisWeek || []).forEach((t) => {
-          if (t && t.team) {
-            byTeam[t.team] = {
-              team: t.team,
-              tag: t.tag || "",
-              squads: Array.isArray(t.squads) ? t.squads : []
-            };
-          }
+        dbg("TeamWatcher fired", {
+          team: teamName,
+          squads: data.squads.length,
+          pending: snap.metadata && snap.metadata.hasPendingWrites
         });
-        // 3) 確保四個團都有一個基本殼（防止空陣列時消失）
-        teamNames.forEach((name) => {
+
+        // 1) 先從畫面抓「目前的 thisWeek」（含其他人的變更、以及自己當前的編輯）
+        const currentThisWeek = getPanelData(thisWeekPanel) || [];
+        // 2) 轉成以 teamName 為 key 的 map
+        const byTeam = {};
+        currentThisWeek.forEach((t) => {
+          if (!t || !t.team) return;
+          byTeam[t.team] = {
+            team: t.team,
+            tag: t.tag || "",
+            squads: Array.isArray(t.squads) ? t.squads : []
+          };
+        });
+        // 3) 確保四個團都有基本殼
+        const allTeamNames = ["進攻", "拆塔", "機動", "防守"];
+        allTeamNames.forEach((name) => {
           if (!byTeam[name]) {
             byTeam[name] = {
               team: name,
@@ -3879,18 +3874,28 @@ function startTeamWatchers() {
             };
           }
         });
-        // 4) 用最新的 squads 覆蓋「這一團」
-        byTeam[teamName].squads = data.squads;
-        // 5) 重新組成 thisWeek，保持固定順序
-        baseState.thisWeek = teamNames.map((name) => byTeam[name]);
-        // 6) 套用到畫面（其他團 + 替補 + 幫會職位，都用剛剛抓到的畫面狀態）
-        applyStateToPage(baseState, false);
-        // 7) 更新 localStorage，讓下次重整頁面有最新初始資料
+        // 4) 用 Firestore 的最新資料覆蓋「這一團」
+        byTeam[teamName].squads = Array.isArray(data.squads) ? data.squads : [];
+        if (data.tag) {
+          byTeam[teamName].tag = data.tag;
+        }
+        // 5) 組回 thisWeek 陣列，固定順序
+        const newThisWeek = allTeamNames.map((name) => byTeam[name]);
+        // 6) 只更新「本週名單」畫面，不動全部成員 / 幫會職位
+        setPanelData(thisWeekPanel, newThisWeek, "this");
+        thisWeekPanel.querySelectorAll(".team-block").forEach(adjustSquadWidths);
+        // 7) 更新 localStorage 裡的 thisWeek（讓重整有最新資料）
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(baseState));
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const saved = raw ? JSON.parse(raw) : {};
+          saved.thisWeek = newThisWeek;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
         } catch (e) {
           console.warn("更新 localStorage 失敗（team watcher）", e);
         }
+        // 8) 補上你原本有的比對 / placeholder 維護
+        updateGuildBattleAndWeekComparison();
+        maintainGuildBattlePlaceholders();
       },
       (err) => {
         console.warn("各團即時監聽錯誤", err);
@@ -3898,6 +3903,7 @@ function startTeamWatchers() {
     );
   });
 }
+
 
 
 

@@ -3466,55 +3466,30 @@ function saveState() {
   scheduleAutoSaveToCloud(state);
 }
 
-// ★ V20：依照 UI 拆出 4 個團的本週名單
-function extractThisWeekByTeams() {
-  const result = {
-    "進攻": [],
-    "拆塔": [],
-    "機動": [],
-    "防守": []
-  };
-  // 找到 thisWeek 區塊下的所有 team-block
-  document.querySelectorAll("#thisWeek .team-block").forEach(teamBlock => {
-    const teamName = teamBlock.dataset.team;
-    if (!teamName) return;
-    const squads = [];
-    // 每一隊（squad）
-    teamBlock.querySelectorAll(".squad").forEach(squad => {
-      const members = [];
-      const rows = squad.querySelectorAll(".member-row");
-      for (let i = 0; i < rows.length; i += 2) {
-        const rowName  = rows[i];
-        const rowSkill = rows[i + 1];
-        const inputName  = rowName.querySelector('input[data-role="name"]');
-        const inputSkill = rowSkill.querySelector('input[data-role="skill"]');
-        members.push({
-          name: inputName?.value.trim() || "",
-          job:  rowName.dataset.job || "",
-          skill: inputSkill?.value.trim() || "",
-          status:
-            rowName.classList.contains("status-present")
-              ? "present"
-              : rowName.classList.contains("status-unsure")
-              ? "unsure"
-              : "absent"
-        });
-      }
-      squads.push({ members });
-    });
-    result[teamName] = squads;
+// ★ V20 把 thisWeek 陣列，拆成以「團名」為 key 的物件，方便分團儲存
+function extractThisWeekByTeams(thisWeekArray) {
+  const result = {};
+  if (!Array.isArray(thisWeekArray)) return result;
+  thisWeekArray.forEach((team) => {
+    if (!team || !team.team) return;
+    result[team.team] = {
+      tag: team.tag || "",
+      squads: Array.isArray(team.squads) ? team.squads : []
+    };
   });
   return result;
 }
 
 
 
-// V20：拆成四團分開儲存 + 其他資料仍寫回主 doc（payload）
+// ★ V20：自動儲存到雲端（核心資料 + 分團寫入）
 let autoSaveTimer = null;
-let lastSavedTeamsData = null;      // 記住上次送出的四團內容
-let lastSavedAllMembersStr = null;  // 記住上次送出的 allMembers 內容（用來判斷有沒有改成員名單）
+// 記錄上一次寫入的「核心資料」與「各團資料」，避免沒變還一直覆蓋別人
+let lastSavedCoreStateJson = "";
+let lastSavedTeamsData = {};
 function scheduleAutoSaveToCloud(stateOverride) {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
+  // 先組一份完整的狀態（跟 saveState 裡的一樣）
   const state =
     stateOverride ||
     {
@@ -3524,76 +3499,67 @@ function scheduleAutoSaveToCloud(stateOverride) {
       guildPositions: getGuildPositionsData(),
       recentMarks: collectRecentMarks()
     };
-  // debounce：0.8 秒內多次變更合併成一次
+  // 1) 拆出「核心資料」（不含 thisWeek）
+  const coreState = {
+    allMembers: state.allMembers,
+    subs: state.subs,
+    guildPositions: state.guildPositions,
+    recentMarks: state.recentMarks
+  };
+  const coreJson = JSON.stringify(coreState);
+  // 2) 拆出「各團 thisWeek 資料」
+  const teamsData = extractThisWeekByTeams(state.thisWeek || []);
+  // debounce：0.8 秒內多次變更，合併成一次寫入
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
-    const now = firebase.firestore.FieldValue.serverTimestamp();
     try {
-      // A. 把目前畫面拆成四團
-      const teamsData = extractThisWeekByTeams();
-      // B. 跟「上一次送上去」比對，只挑有變化的團
-      const changedTeamNames = [];
-      const teamNames = ["進攻", "拆塔", "機動", "防守"];
-      teamNames.forEach((teamName) => {
-        const prevStr = lastSavedTeamsData
-          ? JSON.stringify(lastSavedTeamsData[teamName] || [])
-          : null;
-        const currStr = JSON.stringify(teamsData[teamName] || []);
-        // 第一次（prevStr 為 null）或內容不同，才視為有變動
-        if (!prevStr || prevStr !== currStr) {
-          changedTeamNames.push(teamName);
+      // 2-1）只有核心資料真的有變化時，才寫回主文件，避免覆蓋別人
+      if (coreJson !== lastSavedCoreStateJson) {
+        lastSavedCoreStateJson = coreJson;
+        await stateDocRef.set(
+          {
+            // 把 payload 拆散也可以，但先維持你的結構，只更新 payload 這個欄位
+            payload: coreState,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          },
+          { merge: true }
+        );
+      }
+      // 2-2）各團各自寫入 teams 子集合，只寫「有變動」的團
+      if (!lastSavedTeamsData) lastSavedTeamsData = {};
+      const writePromises = [];
+      for (const teamName in teamDocRefs) {
+        const ref = teamDocRefs[teamName];
+        const newData = teamsData[teamName];
+        if (!ref || !newData) continue;
+        const prevJson = JSON.stringify(lastSavedTeamsData[teamName] || {});
+        const nextJson = JSON.stringify(newData);
+        if (prevJson === nextJson) {
+          // 這個團沒變，不用打 API
+          continue;
         }
-      });
-      // C. 只有「有變動」的團才各自寫入自己的 document
-      if (changedTeamNames.length > 0) {
-        for (const teamName of changedTeamNames) {
-          const ref = teamDocRefs[teamName];
-          if (!ref) continue;
-          await ref.set(
+        // 記錄這次寫入內容
+        lastSavedTeamsData[teamName] = newData;
+        writePromises.push(
+          ref.set(
             {
-              squads: teamsData[teamName] || [],
-              updatedAt: now
+              tag: newData.tag || "",
+              squads: Array.isArray(newData.squads) ? newData.squads : []
             },
             { merge: true }
-          );
-        }
+          )
+        );
       }
-      // D. 判斷這次 allMembers 有沒有被修改
-      const currAllMembersStr = JSON.stringify(state.allMembers || []);
-      const shouldSaveAllMembers =
-        !lastSavedAllMembersStr ||
-        lastSavedAllMembersStr !== currAllMembersStr;
-      // 只組出需要寫回去的 payload
-      // 👉 thisWeek 交給 teams/* 處理，不再寫回 payload 裡
-      const payloadForDoc = {
-        subs: state.subs,
-        guildPositions: state.guildPositions,
-        recentMarks: state.recentMarks
-      };
-      if (shouldSaveAllMembers) {
-        payloadForDoc.allMembers = state.allMembers;
-      }
-      // E. 把 payloadForDoc 寫回主文件
-      await stateDocRef.set(
-        {
-          payload: payloadForDoc,
-          updatedAt: now
-        },
-        { merge: true }
-      );
-      // F. 更新快取，下次比對用
-      lastSavedTeamsData = teamsData;
-      lastSavedAllMembersStr = currAllMembersStr;
-      // G. 更新本地版本時間，避免 onSnapshot 誤判舊資料
-      if (typeof lastKnownUpdatedAt !== "undefined") {
-        lastKnownUpdatedAt = Date.now();
+      if (writePromises.length > 0) {
+        await Promise.all(writePromises);
       }
     } catch (err) {
       console.warn("自動儲存到雲端失敗（分團寫入）", err);
     }
   }, 800);
 }
+
 
 
 

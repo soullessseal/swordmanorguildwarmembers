@@ -3503,17 +3503,23 @@ function extractThisWeekByTeams(thisWeekArray) {
 
 
 
-// ★ v21：簡化版自動儲存（每次觸發都重新讀目前畫面）
+// ★ v21：簡化版自動儲存（每次觸發都重新讀目前畫面，只寫有變動的團）
 let autoSaveTimer = null;
-function scheduleAutoSaveToCloud(_stateOverride) {
+// ★ 記住「上次已寫上去的四團內容」，避免沒改卻重寫覆蓋別人
+let lastSavedTeamsData = {};
+
+function scheduleAutoSaveToCloud() {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
+
   // debounce：0.8 秒內多次變更合併成一次
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
     const now = firebase.firestore.FieldValue.serverTimestamp();
+
     try {
-      // 1) 每次觸發時「重新抓一次畫面狀態」，完全不吃舊快照
+      // 1) 每次觸發時「重新抓一次畫面狀態」
       const state = {
         allMembers,
         thisWeek: getPanelData(thisWeekPanel),
@@ -3524,30 +3530,56 @@ function scheduleAutoSaveToCloud(_stateOverride) {
 
       // 2) 用「目前 thisWeek」拆出四團資料
       const teamsData = extractThisWeekByTeams(state.thisWeek || []);
+      const teamNames = ["進攻", "拆塔", "機動", "防守"];
+
+      // 2-1) 算出「哪幾個團真的有變化」
+      const changedTeamNames = [];
+      teamNames.forEach((teamName) => {
+        const prevJson = JSON.stringify(
+          (lastSavedTeamsData && lastSavedTeamsData[teamName]) || {}
+        );
+        const nextJson = JSON.stringify(teamsData[teamName] || {});
+        if (prevJson !== nextJson) {
+          changedTeamNames.push(teamName);
+        }
+      });
+
       dbg("AutoSave TIMER FIRE", {
         from: "fresh-dom",
-        teams: Object.keys(teamsData)
+        changedTeams: changedTeamNames
       });
-      // 3) 寫入四個團的 document（teams/offense, tower, mobile, defence）
-      const teamNames = ["進攻", "拆塔", "機動", "防守"];
-      for (const teamName of teamNames) {
-        const ref = teamDocRefs[teamName];
-        if (!ref) continue;
-        const team = teamsData[teamName] || {
-          tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
-          squads: []
-        };
-        await ref.set(
-          {
+
+      // 3) 只寫「有變化的團」，避免把別人剛改好的團蓋回去
+      if (changedTeamNames.length > 0) {
+        for (const teamName of changedTeamNames) {
+          const ref = teamDocRefs[teamName];
+          if (!ref) continue;
+
+          const team = teamsData[teamName] || {
+            tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
+            squads: []
+          };
+
+          await ref.set(
+            {
+              tag: team.tag || "",
+              squads: Array.isArray(team.squads) ? team.squads : [],
+              updatedAt: now
+            },
+            { merge: true }
+          );
+
+          // 更新本地 baseline
+          lastSavedTeamsData[teamName] = {
             tag: team.tag || "",
-            squads: Array.isArray(team.squads) ? team.squads : [],
-            updatedAt: now
-          },
-          { merge: true }
-        );
+            squads: Array.isArray(team.squads) ? team.squads : []
+          };
+        }
+
+        dbg("CloudWrite TEAMS done", lastSavedTeamsData);
       }
-      dbg("CloudWrite TEAMS done", teamsData);
-      // 4) 只更新「核心資料」，thisWeek 完全交給 teams/* 負責
+
+      // 4) 只更新「核心資料」，不動 thisWeek（thisWeek 完全交給 teams/*）
       await stateDocRef.set(
         {
           "payload.allMembers": state.allMembers,
@@ -3558,9 +3590,11 @@ function scheduleAutoSaveToCloud(_stateOverride) {
         },
         { merge: true }
       );
+
       dbg("CloudWrite CORE done", {
         allMembersCount: (state.allMembers || []).length
       });
+
       if (typeof lastKnownUpdatedAt !== "undefined") {
         lastKnownUpdatedAt = Date.now();
       }
@@ -3569,6 +3603,7 @@ function scheduleAutoSaveToCloud(_stateOverride) {
     }
   }, 800);
 }
+
 
 
 
@@ -3877,6 +3912,16 @@ function startTeamWatchers() {
         }
         // 5) 組回 thisWeek 陣列（固定順序）
         const newThisWeek = allTeamNames.map((name) => byTeam[name]);
+
+        // ★ 更新 baseline 的其中一團，讓之後 autosave 比對知道「這個團是最新的雲端版本」
+        if (!lastSavedTeamsData) lastSavedTeamsData = {};
+        lastSavedTeamsData[teamName] = {
+        tag: byTeam[teamName].tag,
+        squads: Array.isArray(byTeam[teamName].squads)
+        ? byTeam[teamName].squads
+        : []
+        };
+
         // 6) 只更新「本週名單」畫面，不動全部成員 / 幫會職位
         setPanelData(thisWeekPanel, newThisWeek, "this");
         thisWeekPanel
@@ -4634,16 +4679,7 @@ async function loadState() {
     finalState.thisWeek = teamNames.map((name) => byTeam[name]);
     // 同時初始化「已同步基準」，給之後 autosave 用
     try {
-      const teamBaseline = {};
-      (finalState.thisWeek || []).forEach((team) => {
-        if (team && team.team) {
-          teamBaseline[team.team] = Array.isArray(team.squads)
-            ? team.squads
-            : [];
-        }
-      });
-      lastSavedTeamsData = teamBaseline;
-      lastSavedAllMembersStr = JSON.stringify(finalState.allMembers || []);
+      lastSavedTeamsData = extractThisWeekByTeams(finalState.thisWeek || []);
     } catch (e) {
       console.warn("初始化 lastSavedTeamsData 失敗", e);
     }

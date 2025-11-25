@@ -3483,8 +3483,8 @@ function saveState() {
   } catch (e) {
     console.error(e);
   }
-  // ★ 新增：每次有變動就排程自動同步到雲端
-  scheduleAutoSaveToCloud(state);
+  // 🔥 不要再傳 state 進去了
+  scheduleAutoSaveToCloud();
 }
 
 // ★ V20 把 thisWeek 陣列，拆成以「團名」為 key 的物件，方便分團儲存
@@ -3505,7 +3505,7 @@ function extractThisWeekByTeams(thisWeekArray) {
 
 // ★ v21：簡化版自動儲存（每次觸發都重新讀目前畫面）
 let autoSaveTimer = null;
-function scheduleAutoSaveToCloud(stateOverride) {
+function scheduleAutoSaveToCloud(_stateOverride) {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
   // debounce：0.8 秒內多次變更合併成一次
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -3513,23 +3513,24 @@ function scheduleAutoSaveToCloud(stateOverride) {
     autoSaveTimer = null;
     const now = firebase.firestore.FieldValue.serverTimestamp();
     try {
-      // 1) 每次觸發時「重新抓一次畫面狀態」
-      const state =
-        stateOverride ||
-        {
-          allMembers,
-          thisWeek: getPanelData(thisWeekPanel),
-          subs: getSubsData(),
-          guildPositions: getGuildPositionsData(),
-          recentMarks: collectRecentMarks()
-        };
+      // 1) 每次觸發時「重新抓一次畫面狀態」，完全不吃舊快照
+      const state = {
+        allMembers,
+        thisWeek: getPanelData(thisWeekPanel),
+        subs: getSubsData(),
+        guildPositions: getGuildPositionsData(),
+        recentMarks: collectRecentMarks()
+      };
+
       // 2) 用「目前 thisWeek」拆出四團資料
       const teamsData = extractThisWeekByTeams(state.thisWeek || []);
       dbg("AutoSave TIMER FIRE", {
-        teamsPreview: Object.keys(teamsData)
+        from: "fresh-dom",
+        teams: Object.keys(teamsData)
       });
-      // 3) 寫入四個團的 document
-      for (const teamName in teamDocRefs) {
+      // 3) 寫入四個團的 document（teams/offense, tower, mobile, defence）
+      const teamNames = ["進攻", "拆塔", "機動", "防守"];
+      for (const teamName of teamNames) {
         const ref = teamDocRefs[teamName];
         if (!ref) continue;
         const team = teamsData[teamName] || {
@@ -3546,7 +3547,7 @@ function scheduleAutoSaveToCloud(stateOverride) {
         );
       }
       dbg("CloudWrite TEAMS done", teamsData);
-      // 4) 只更新「核心資料」，不動 thisWeek（thisWeek 完全交給 teams/*）
+      // 4) 只更新「核心資料」，thisWeek 完全交給 teams/* 負責
       await stateDocRef.set(
         {
           "payload.allMembers": state.allMembers,
@@ -3568,11 +3569,6 @@ function scheduleAutoSaveToCloud(stateOverride) {
     }
   }, 800);
 }
-
-
-
-
-
 
 
 

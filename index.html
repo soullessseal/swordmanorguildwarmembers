@@ -3503,97 +3503,115 @@ function extractThisWeekByTeams(thisWeekArray) {
 
 
 
-// ★ v21：簡化版自動儲存（每次觸發都重新讀目前畫面，只寫有變動的團）
-let autoSaveTimer = null;
-// ★ 記住「上次已寫上去的四團內容」，避免沒改卻重寫覆蓋別人
-let lastSavedTeamsData = {};
 
+// ★ v22：只寫「有改動的團」＋「有改動的核心資料」
+// ----------------------------------------------------
+// 這三個變數請放在其它 function 外面（全域區域）
+let autoSaveTimer = null;
+// 這台瀏覽器「自己最後一次成功寫上去」的四團快照（字串）
+let lastUploadedTeamsJsonByTeam = {
+  "進攻": "",
+  "拆塔": "",
+  "機動": "",
+  "防守": ""
+};
+// 這台瀏覽器「自己最後一次成功寫上去」的核心資料快照（allMembers / subs / guildPositions / recentMarks）
+let lastUploadedCoreJson = "";
+
+// 只負責排程＋實際寫入 Firestore
 function scheduleAutoSaveToCloud() {
   if (typeof stateDocRef === "undefined" || !stateDocRef) return;
 
-  // debounce：0.8 秒內多次變更合併成一次
+  // debounce：0.8 秒內的多次變更合併成一次
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
-
   autoSaveTimer = setTimeout(async () => {
     autoSaveTimer = null;
     const now = firebase.firestore.FieldValue.serverTimestamp();
 
-    try {
-      // 1) 每次觸發時「重新抓一次畫面狀態」
-      const state = {
-        allMembers,
-        thisWeek: getPanelData(thisWeekPanel),
-        subs: getSubsData(),
-        guildPositions: getGuildPositionsData(),
-        recentMarks: collectRecentMarks()
+    // 1) 每次觸發時「重新抓一次畫面狀態」
+    const state = {
+      allMembers,
+      thisWeek: getPanelData(thisWeekPanel),
+      subs: getSubsData(),
+      guildPositions: getGuildPositionsData(),
+      recentMarks: collectRecentMarks()
+    };
+
+    // 2) 組一份「核心資料」：不包含 thisWeek，避免和 teams/* 搞在一起
+    const coreForDoc = {
+      allMembers: state.allMembers,
+      subs: state.subs,
+      guildPositions: state.guildPositions,
+      recentMarks: state.recentMarks
+    };
+    const coreJson = JSON.stringify(coreForDoc);
+
+    // 3) 取出目前四團的資料（這裡用你已經有的 extractThisWeekByTeams）
+    const teamsData = extractThisWeekByTeams(state.thisWeek || []);
+    const changedTeamNames = [];
+
+    // 比對四個團，看看哪幾團「和這台機器上次寫入的內容不一樣」
+    const TEAM_NAMES = ["進攻", "拆塔", "機動", "防守"];
+    TEAM_NAMES.forEach((teamName) => {
+      const t = teamsData[teamName] || {
+        tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
+        squads: []
       };
+      const json = JSON.stringify({
+        tag: t.tag || "",
+        squads: Array.isArray(t.squads) ? t.squads : []
+      });
+      if (!lastUploadedTeamsJsonByTeam[teamName] || lastUploadedTeamsJsonByTeam[teamName] !== json) {
+        changedTeamNames.push(teamName);
+        lastUploadedTeamsJsonByTeam[teamName] = json;
+      }
+    });
 
-      // 2) 用「目前 thisWeek」拆出四團資料
-      const teamsData = extractThisWeekByTeams(state.thisWeek || []);
-      const teamNames = ["進攻", "拆塔", "機動", "防守"];
+    dbg("AutoSave TIMER FIRE", {
+      changedTeamNames,
+      coreChanged: coreJson !== lastUploadedCoreJson
+    });
 
-      // 2-1) 算出「哪幾個團真的有變化」
-      const changedTeamNames = [];
-      teamNames.forEach((teamName) => {
-        const prevJson = JSON.stringify(
-          (lastSavedTeamsData && lastSavedTeamsData[teamName]) || {}
+    try {
+      // 3-1) 先寫「有變化的團」到 /teams/{offense,tower,mobile,defence}
+      for (const teamName of changedTeamNames) {
+        const ref = teamDocRefs[teamName];
+        if (!ref) continue;
+        const t = teamsData[teamName] || {
+          tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
+          squads: []
+        };
+        await ref.set(
+          {
+            tag: t.tag || "",
+            squads: Array.isArray(t.squads) ? t.squads : [],
+            updatedAt: now
+          },
+          { merge: true }
         );
-        const nextJson = JSON.stringify(teamsData[teamName] || {});
-        if (prevJson !== nextJson) {
-          changedTeamNames.push(teamName);
-        }
-      });
-
-      dbg("AutoSave TIMER FIRE", {
-        from: "fresh-dom",
-        changedTeams: changedTeamNames
-      });
-
-      // 3) 只寫「有變化的團」，避免把別人剛改好的團蓋回去
-      if (changedTeamNames.length > 0) {
-        for (const teamName of changedTeamNames) {
-          const ref = teamDocRefs[teamName];
-          if (!ref) continue;
-
-          const team = teamsData[teamName] || {
-            tag: teamName === "進攻" || teamName === "拆塔" ? "一團" : "二團",
-            squads: []
-          };
-
-          await ref.set(
-            {
-              tag: team.tag || "",
-              squads: Array.isArray(team.squads) ? team.squads : [],
-              updatedAt: now
-            },
-            { merge: true }
-          );
-
-          // 更新本地 baseline
-          lastSavedTeamsData[teamName] = {
-            tag: team.tag || "",
-            squads: Array.isArray(team.squads) ? team.squads : []
-          };
-        }
-
-        dbg("CloudWrite TEAMS done", lastSavedTeamsData);
       }
 
-      // 4) 只更新「核心資料」，不動 thisWeek（thisWeek 完全交給 teams/*）
-      await stateDocRef.set(
-        {
-          "payload.allMembers": state.allMembers,
-          "payload.subs": state.subs,
-          "payload.guildPositions": state.guildPositions,
-          "payload.recentMarks": state.recentMarks,
-          updatedAt: now
-        },
-        { merge: true }
-      );
+      if (changedTeamNames.length > 0) {
+        dbg("CloudWrite TEAMS done", { changedTeamNames });
+      }
 
-      dbg("CloudWrite CORE done", {
-        allMembersCount: (state.allMembers || []).length
-      });
+      // 3-2) 如果核心資料真的有變化，再寫回主文件 payload.*
+      if (coreJson !== lastUploadedCoreJson) {
+        lastUploadedCoreJson = coreJson;
+        await stateDocRef.set(
+          {
+            "payload.allMembers": coreForDoc.allMembers,
+            "payload.subs": coreForDoc.subs,
+            "payload.guildPositions": coreForDoc.guildPositions,
+            "payload.recentMarks": coreForDoc.recentMarks,
+            updatedAt: now
+          },
+          { merge: true }
+        );
+        dbg("CloudWrite CORE done", {
+          allMembersCount: (coreForDoc.allMembers || []).length
+        });
+      }
 
       if (typeof lastKnownUpdatedAt !== "undefined") {
         lastKnownUpdatedAt = Date.now();
@@ -3603,6 +3621,7 @@ function scheduleAutoSaveToCloud() {
     }
   }, 800);
 }
+
 
 
 
